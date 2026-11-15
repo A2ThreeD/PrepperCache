@@ -266,6 +266,13 @@
       border-radius: 0;
     }
 
+    .coordinates summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .coordinates form { margin-top: 14px; }
+
     .compact-input {
       padding: 9px 10px;
       font-size: 0.94rem;
@@ -348,51 +355,39 @@
       <h1>Offline Maps</h1>
 
       <section class="card">
-        <h2>Search Position</h2>
-        <div class="field-row">
-          <div class="field">
-            <label for="lat-input">Latitude</label>
-            <input class="compact-input" id="lat-input" type="number" step="any" value="39.8283">
-          </div>
-          <div class="field">
-            <label for="lon-input">Longitude</label>
-            <input class="compact-input" id="lon-input" type="number" step="any" value="-98.5795">
-          </div>
-        </div>
         <div class="field">
-          <label for="zoom-input">Zoom</label>
-          <div class="zoom-row">
-            <input id="zoom-input" type="range" min="2" max="14" step="1" value="4">
-            <span class="zoom-value" id="zoom-value">4</span>
-          </div>
-        </div>
-        <div class="actions">
-          <button class="button" id="go-button" type="button">Go To Coordinates</button>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>Map Selection</h2>
-        <div class="field">
-          <label for="map-browse-mode">Browse Mode</label>
-          <select id="map-browse-mode">
-            <option value="region">Browse by Region</option>
-            <option value="individual">Browse All Maps</option>
+          <label for="map-select">Choose a map</label>
+          <select id="map-select" disabled>
+            <option>Loading maps…</option>
           </select>
         </div>
-        <div class="field" id="map-region-field">
-          <label for="map-region-select">Select Region</label>
-          <select id="map-region-select"></select>
-        </div>
-        <div class="field" id="map-package-field">
-          <label for="map-package-select">Select Map</label>
-          <select id="map-package-select"></select>
-        </div>
-        <div class="actions">
-          <button class="button" id="save-map-settings-button" type="button">Apply / Refresh</button>
-        </div>
       </section>
 
+      <details class="card coordinates">
+        <summary>Go to coordinates</summary>
+        <form id="coordinates-form">
+          <div class="field-row">
+            <div class="field">
+              <label for="lat-input">Latitude</label>
+              <input class="compact-input" id="lat-input" type="number" min="-90" max="90" required step="any" value="39.8283">
+            </div>
+            <div class="field">
+              <label for="lon-input">Longitude</label>
+              <input class="compact-input" id="lon-input" type="number" min="-180" max="180" required step="any" value="-98.5795">
+            </div>
+          </div>
+          <div class="field">
+            <label for="zoom-input">Zoom</label>
+            <div class="zoom-row">
+              <input id="zoom-input" type="range" min="2" max="14" step="1" value="4">
+              <span class="zoom-value" id="zoom-value">4</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="button" type="submit">Go</button>
+          </div>
+        </form>
+      </details>
     </aside>
 
     <main class="map-shell">
@@ -423,17 +418,12 @@
     const lonInput = document.getElementById("lon-input");
     const zoomInput = document.getElementById("zoom-input");
     const zoomValue = document.getElementById("zoom-value");
-    const mapBrowseModeSelect = document.getElementById("map-browse-mode");
-    const mapRegionField = document.getElementById("map-region-field");
-    const mapPackageField = document.getElementById("map-package-field");
-    const mapRegionSelect = document.getElementById("map-region-select");
-    const mapPackageSelect = document.getElementById("map-package-select");
-    const saveMapSettingsButton = document.getElementById("save-map-settings-button");
+    const mapSelect = document.getElementById("map-select");
     const MAP_SELECTION_STORAGE_KEY = "preppercache.offlineMaps.selection";
     let mapInstance = null;
     let currentConfigSignature = "";
     let mapReloadInProgress = false;
-    let installedMapEntries = [];
+    let currentLibrarySignature = "";
     let preferredMapRegion = "all";
     let preferredBrowseMode = "region";
     let preferredMapPackage = "";
@@ -466,7 +456,7 @@
           JSON.stringify({
             browseMode: preferredBrowseMode,
             region: preferredMapRegion,
-            map: preferredMapPackage || mapPackageSelect.value || "",
+            map: preferredMapPackage,
           })
         );
       } catch (_error) {
@@ -562,112 +552,27 @@
       });
     }
 
-    function populateRegionControl(entries, activeFile) {
-      const previousRegion = mapRegionSelect.value;
-      const activeEntry = entries.find((entry) => entry.filename === activeFile);
-      const activeRegion = activeEntry?.regionSlug || "all";
-      const regionOptions = [];
-      const seen = new Set();
-      for (const entry of entries) {
-        if (!entry.regionSlug || seen.has(entry.regionSlug)) {
-          continue;
-        }
-        seen.add(entry.regionSlug);
-        regionOptions.push({ slug: entry.regionSlug, name: entry.regionName });
-      }
-
-      mapRegionSelect.innerHTML = "";
-      const allOption = document.createElement("option");
-      allOption.value = "all";
-      allOption.textContent = "All Installed Maps";
-      mapRegionSelect.appendChild(allOption);
-
-      for (const region of regionOptions) {
-        const option = document.createElement("option");
-        option.value = region.slug;
-        option.textContent = region.name;
-        mapRegionSelect.appendChild(option);
-      }
-
-      const nextRegion = [preferredMapRegion, previousRegion, activeRegion, "all"].find((value) =>
-        Array.from(mapRegionSelect.options).some((option) => option.value === value)
-      ) || "all";
-      mapRegionSelect.value = nextRegion;
-      preferredMapRegion = nextRegion;
-      mapRegionSelect.disabled = entries.length === 0;
-    }
-
-    function populateMapPackageControl(entries, preferredFile) {
-      const selectedRegion = preferredBrowseMode === "individual"
-        ? "all"
-        : (mapRegionSelect.value || "all");
-      const filteredEntries = selectedRegion === "all"
-        ? entries
-        : entries.filter((entry) => entry.regionSlug === selectedRegion);
-
-      mapPackageSelect.innerHTML = "";
-      if (!filteredEntries.length) {
-        const option = document.createElement("option");
-        option.value = "";
-        option.textContent = "No maps found for this region";
-        mapPackageSelect.appendChild(option);
-        mapPackageSelect.disabled = true;
+    function populateMapPicker(entries) {
+      if (!entries.length) {
+        mapSelect.replaceChildren(new Option("No installed maps", ""));
         return;
       }
 
-      mapPackageSelect.disabled = false;
-      for (const entry of filteredEntries) {
-        const option = document.createElement("option");
-        option.value = entry.filename;
-        option.textContent = entry.title;
-        if (entry.filename === (preferredMapPackage || preferredFile)) {
-          option.selected = true;
-        }
-        mapPackageSelect.appendChild(option);
-      }
+      const regions = document.createElement("optgroup");
+      regions.label = "Regions";
+      const groupedNames = new Map(entries.map(({ regionSlug, regionName }) => [regionSlug, regionName]));
+      for (const [slug, name] of groupedNames) regions.append(new Option(name, `region:${slug}`));
 
-      if (!Array.from(mapPackageSelect.options).some((option) => option.selected)) {
-        mapPackageSelect.value = filteredEntries[0].filename;
-      }
-      preferredMapPackage = mapPackageSelect.value || "";
+      const maps = document.createElement("optgroup");
+      maps.label = "Individual maps";
+      for (const { filename, title } of entries) maps.append(new Option(title, `map:${filename}`));
+
+      mapSelect.replaceChildren(new Option("All installed maps", "region:all"), regions, maps);
+      mapSelect.value = preferredBrowseMode === "individual" ? `map:${preferredMapPackage}` : `region:${preferredMapRegion}`;
     }
 
-    function populateMapControls(state) {
-      if (!state.available_files.length) {
-        mapBrowseModeSelect.value = preferredBrowseMode;
-        mapBrowseModeSelect.disabled = true;
-        mapRegionField.classList.toggle("hidden", preferredBrowseMode === "individual");
-        mapPackageField.classList.toggle("hidden", preferredBrowseMode === "region");
-        mapRegionSelect.innerHTML = `<option value="all">All Installed Maps</option>`;
-        mapRegionSelect.disabled = true;
-        mapPackageSelect.innerHTML = "";
-        const option = document.createElement("option");
-        option.value = "";
-        option.textContent = "No PMTiles files found";
-        mapPackageSelect.appendChild(option);
-        mapPackageSelect.disabled = true;
-      } else {
-        mapBrowseModeSelect.disabled = false;
-        mapBrowseModeSelect.value = preferredBrowseMode;
-        mapRegionField.classList.toggle("hidden", preferredBrowseMode === "individual");
-        mapPackageField.classList.toggle("hidden", preferredBrowseMode === "region");
-        populateRegionControl(installedMapEntries, state.active_file);
-        if (preferredBrowseMode === "individual") {
-          populateMapPackageControl(installedMapEntries, state.active_file);
-        }
-      }
-    }
-
-    function populateFallbackControls(config) {
-      mapBrowseModeSelect.value = preferredBrowseMode;
-      mapBrowseModeSelect.disabled = true;
-      mapRegionField.classList.toggle("hidden", preferredBrowseMode === "individual");
-      mapPackageField.classList.toggle("hidden", preferredBrowseMode === "region");
-      mapRegionSelect.innerHTML = `<option value="${preferredMapRegion}">${preferredMapRegion === "all" ? "All Installed Maps" : "Loading region..."}</option>`;
-      mapRegionSelect.value = preferredMapRegion;
-      mapRegionSelect.disabled = true;
-      mapPackageSelect.innerHTML = `<option value="${config.pmtilesFile}">${friendlyMapName(config.pmtilesFile)}</option>`;
-      mapPackageSelect.disabled = true;
+    function librarySignature(state) {
+      return JSON.stringify([state?.available_files, state?.invalid_files, state?.state_regions]);
     }
 
     function isUsableBounds(header) {
@@ -723,24 +628,27 @@
       zoomValue.textContent = String(zoom);
     }
 
-    async function buildMap() {
-      mapReloadInProgress = true;
+    async function buildMap(config, state) {
+      mapSelect.disabled = true;
       try {
-        const config = await loadConfig();
         currentConfigSignature = configSignature(config);
-        populateFallbackControls(config);
-        saveMapSettingsButton.disabled = true;
-
-        const state = await loadMapState().catch(() => null);
-        installedMapEntries = state ? buildInstalledMapEntries(state) : [];
-        if (preferredMapRegion !== "all" && !installedMapEntries.some(({ regionSlug }) => regionSlug === preferredMapRegion)) {
-          preferredMapRegion = "all";
+        currentLibrarySignature = librarySignature(state);
+        const entries = state ? buildInstalledMapEntries(state) : [];
+        if (entries.length) {
+          if (preferredBrowseMode === "individual" && !entries.some(({ filename }) => filename === preferredMapPackage)) {
+            preferredMapPackage = entries.find(({ filename }) => filename === state.active_file)?.filename || entries[0].filename;
+          }
+          if (preferredMapRegion !== "all" && !entries.some(({ regionSlug }) => regionSlug === preferredMapRegion)) {
+            preferredMapRegion = "all";
+          }
         }
-        const browsingRegion = preferredBrowseMode === "region" && installedMapEntries.length > 0;
+        populateMapPicker(entries);
+
+        const browsingRegion = preferredBrowseMode === "region" && entries.length > 0;
         const filenames = browsingRegion
-          ? installedMapEntries.filter(({ regionSlug }) => preferredMapRegion === "all" || regionSlug === preferredMapRegion)
+          ? entries.filter(({ regionSlug }) => preferredMapRegion === "all" || regionSlug === preferredMapRegion)
             .map(({ filename }) => filename)
-          : [config.pmtilesFile];
+          : [entries.length ? preferredMapPackage : config.pmtilesFile];
         const protocol = new pmtiles.Protocol();
         maplibregl.addProtocol("pmtiles", protocol.tile);
 
@@ -756,11 +664,10 @@
           return { filename, url, header };
         }));
         const archives = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
-        if (state) populateMapControls(state);
         if (!archives.length) {
           const emptyLibrary = state && !state.available_files.length && !state.invalid_files?.length && !state.active_exists;
           throw new Error(emptyLibrary
-            ? "No offline maps are installed. Add one in Map Settings, then select Apply / Refresh."
+            ? "No offline maps are installed. Add one in Map Settings to view it here."
             : "The selected offline map could not be opened. Choose another map or replace the unreadable archive in Map Settings.");
         }
 
@@ -818,60 +725,25 @@
           showMapStatus(`Map error: ${message}`);
         });
       } finally {
-        mapReloadInProgress = false;
-        saveMapSettingsButton.disabled = false;
+        mapSelect.disabled = !mapSelect.value;
       }
     }
 
-    async function showSelectedRegion() {
+    async function loadSelectedMap({ refreshOnly = false } = {}) {
       if (mapReloadInProgress) return;
+      mapReloadInProgress = true;
+      if (!refreshOnly) mapSelect.disabled = true;
       try {
-        await buildMap();
+        const [config, state] = await Promise.all([loadConfig(), loadMapState().catch(() => null)]);
+        if (refreshOnly && !state && currentLibrarySignature) return;
+        if (!refreshOnly || configSignature(config) !== currentConfigSignature || librarySignature(state) !== currentLibrarySignature) {
+          await buildMap(config, state);
+        }
       } catch (error) {
         showMapStatus(error.message);
-      }
-    }
-
-    async function saveMapSettings() {
-      if (preferredBrowseMode === "region") {
-        await showSelectedRegion();
-        return;
-      }
-      const filename = mapPackageSelect.value;
-      if (!filename) {
-        showMapStatus("Choose a valid PMTiles archive before applying map settings.");
-        return;
-      }
-
-      saveMapSettingsButton.disabled = true;
-      mapPackageSelect.disabled = true;
-      saveMapSettingsButton.textContent = "Applying...";
-      try {
-        clearMapStatus();
-        const response = await fetch("/api/maps/select", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            filename
-          })
-        });
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.error || "Unable to set active map");
-        }
-        if (payload && payload.active_file) {
-          mapPackageSelect.value = payload.active_file;
-          preferredMapPackage = payload.active_file;
-          saveStoredMapSelection();
-        }
-        await new Promise((resolve) => window.setTimeout(resolve, 50));
-        await buildMap();
-      } catch (error) {
-        showMapStatus(`Map settings error: ${error.message}`);
       } finally {
-        saveMapSettingsButton.disabled = false;
-        mapPackageSelect.disabled = false;
-        saveMapSettingsButton.textContent = "Apply / Refresh";
+        mapReloadInProgress = false;
+        mapSelect.disabled = !mapSelect.value;
       }
     }
 
@@ -879,22 +751,8 @@
       zoomValue.textContent = zoomInput.value;
     });
 
-    async function syncConfigFromDisk() {
-      try {
-        if (mapReloadInProgress) {
-          return;
-        }
-        const config = await loadConfig();
-        const nextSignature = configSignature(config);
-        if (nextSignature !== currentConfigSignature) {
-          await showSelectedRegion();
-        }
-      } catch (error) {
-        // Ignore periodic sync failures and keep the current map view.
-      }
-    }
-
-    document.getElementById("go-button").addEventListener("click", () => {
+    document.getElementById("coordinates-form").addEventListener("submit", (event) => {
+      event.preventDefault();
       const lat = Number.parseFloat(latInput.value);
       const lon = Number.parseFloat(lonInput.value);
       const zoom = Number.parseInt(zoomInput.value, 10);
@@ -904,30 +762,25 @@
       }
     });
 
-    mapRegionSelect.addEventListener("change", () => {
-      preferredMapRegion = mapRegionSelect.value || "all";
+    mapSelect.addEventListener("change", () => {
+      const separator = mapSelect.value.indexOf(":");
+      const kind = mapSelect.value.slice(0, separator);
+      const value = mapSelect.value.slice(separator + 1);
+      if (kind === "map") {
+        preferredBrowseMode = "individual";
+        preferredMapPackage = value;
+      } else {
+        preferredBrowseMode = "region";
+        preferredMapRegion = value;
+      }
       saveStoredMapSelection();
-      showSelectedRegion();
+      currentLibrarySignature = "";
+      loadSelectedMap();
     });
-
-    mapBrowseModeSelect.addEventListener("change", () => {
-      preferredBrowseMode = mapBrowseModeSelect.value === "individual" ? "individual" : "region";
-      mapRegionField.classList.toggle("hidden", preferredBrowseMode === "individual");
-      mapPackageField.classList.toggle("hidden", preferredBrowseMode === "region");
-      saveStoredMapSelection();
-      showSelectedRegion();
-    });
-
-    mapPackageSelect.addEventListener("change", () => {
-      preferredMapPackage = mapPackageSelect.value || "";
-      saveStoredMapSelection();
-    });
-
-    saveMapSettingsButton.addEventListener("click", saveMapSettings);
 
     loadStoredMapSelection();
-    showSelectedRegion();
-    window.setInterval(syncConfigFromDisk, 15000);
+    loadSelectedMap();
+    window.setInterval(() => loadSelectedMap({ refreshOnly: true }), 15000);
   </script>
   <script defer src="/job-status.js"></script>
 </body>
