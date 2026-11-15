@@ -26,12 +26,13 @@
         aside.open { visibility: visible; opacity: 1; transform: translateY(0); pointer-events: auto; }
         section + section { margin-top: .65rem; padding-top: .65rem; border-top: 1px solid var(--border-subtle, #a9bfbb); }
         header { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+        section[data-problem] strong { color: var(--status-error, #8a2828); }
         a { color: var(--accent-primary, #006e68); }
         p { margin: .2rem 0; overflow-wrap: anywhere; }
         progress { display: block; width: 100%; height: .55rem; accent-color: var(--accent-primary, #006e68); margin-top: .35rem; }
         @media (prefers-reduced-motion: reduce) { aside { transition: none; } }
       </style>
-      <aside aria-label="PrepperCache job progress"></aside>
+      <aside aria-label="PrepperCache status"></aside>
     `;
     document.body.append(host);
     const panel = root.querySelector("aside");
@@ -67,21 +68,28 @@
       return { title, detail, percent };
     }
 
+    const mapCanvas = document.getElementById("map");
     let lastView = "";
     function render() {
+      const mapProblem = mapCanvas?.dataset.problem;
       const views = jobs.map((job, index) => displayJob(job, index === 1));
+      views.push(mapProblem ? { title: "Offline map problem", detail: mapProblem, problem: true } : null);
       const serialized = JSON.stringify(views);
       if (lastView === serialized) return;
       lastView = serialized;
       const sections = views.map((view, index) => {
         if (!view) return null;
         const section = document.createElement("section");
+        if (view.problem) {
+          section.dataset.problem = "";
+          section.setAttribute("role", "alert");
+        }
         const header = document.createElement("header");
         const title = document.createElement("strong");
         title.textContent = view.title;
         const link = document.createElement("a");
-        link.href = index === 1 ? "/admin/#maps" : "/admin/#content";
-        link.textContent = "Details";
+        link.href = view.problem || index === 1 ? "/admin/#maps" : "/admin/#content";
+        link.textContent = view.problem ? "Map Settings" : "Details";
         const detail = document.createElement("p");
         detail.textContent = view.detail;
         header.append(title, link);
@@ -121,6 +129,9 @@
       }
     }
 
+    if (mapCanvas) {
+      new MutationObserver(render).observe(mapCanvas, { attributeFilter: ["data-problem"] });
+    }
     render();
     refresh();
     window.setInterval(refresh, 2500);

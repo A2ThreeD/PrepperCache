@@ -88,7 +88,7 @@
     }
 
     .masthead {
-      width: min(360px, 82vw);
+      width: min(390px, 86vw);
       margin: 0 auto 8px;
     }
 
@@ -1088,6 +1088,12 @@
       place-items: center;
       font-size: 24px;
       color: var(--icon-color);
+      text-decoration: none;
+    }
+
+    .dashboard-icon[href]:hover {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
     }
 
     .icon-library, .icon-books { --icon-background: #eee8fb; --icon-border: #c3afe3; --icon-color: #56368e; }
@@ -1447,7 +1453,7 @@
     <section id="dashboard-view">
       <main class="dashboard-grid">
         <section class="dashboard-tile">
-          <div class="dashboard-icon icon-library" aria-hidden="true">📚</div>
+          <a class="dashboard-icon icon-library" href="/kiwix/#tag=" aria-label="Kiwix Full Library"><span aria-hidden="true">📚</span></a>
           <div class="dashboard-copy">
             <span class="eyebrow">Quick Access</span>
             <h2>Kiwix Full Library</h2>
@@ -1459,7 +1465,7 @@
         </section>
 
         <section class="dashboard-tile">
-          <div class="dashboard-icon icon-books" aria-hidden="true">📖</div>
+          <a class="dashboard-icon icon-books" href="/kiwix/#tag=gutenberg" aria-label="Classic Books"><span aria-hidden="true">📖</span></a>
           <div class="dashboard-copy">
             <h2>Classic Books</h2>
             <p>Read books from Project Gutenberg offline.</p>
@@ -1470,7 +1476,7 @@
         </section>
 
         <section class="dashboard-tile">
-          <div class="dashboard-icon icon-maps" aria-hidden="true">🗺️</div>
+          <a class="dashboard-icon icon-maps" href="/maps" aria-label="Offline Maps"><span aria-hidden="true">🗺️</span></a>
           <div class="dashboard-copy">
             <span class="eyebrow">Navigation</span>
             <h2>Offline Maps</h2>
@@ -1482,7 +1488,7 @@
         </section>
 
         <section class="dashboard-tile">
-          <div class="dashboard-icon icon-medical" aria-hidden="true">✚</div>
+          <a class="dashboard-icon icon-medical" href="/kiwix/#tag=preppercache-medical" aria-label="Medical & First Aid"><span aria-hidden="true">✚</span></a>
           <div class="dashboard-copy">
             <span class="eyebrow">Critical</span>
             <h2>Medical & First Aid</h2>
@@ -1494,7 +1500,7 @@
         </section>
 
         <section class="dashboard-tile">
-          <div class="dashboard-icon icon-water" aria-hidden="true">💧</div>
+          <a class="dashboard-icon icon-water" href="/kiwix/#tag=preppercache-food-water" aria-label="Food and Water"><span aria-hidden="true">💧</span></a>
           <div class="dashboard-copy">
             <h2>Food and Water</h2>
             <p>Cooking, food storage, growing, and water treatment.</p>
@@ -1505,7 +1511,7 @@
         </section>
 
         <section class="dashboard-tile">
-          <div class="dashboard-icon icon-shelter" aria-hidden="true">⛺</div>
+          <a class="dashboard-icon icon-shelter" href="/kiwix/#tag=preppercache-survival-shelter" aria-label="Survival &amp; Shelter"><span aria-hidden="true">⛺</span></a>
           <div class="dashboard-copy">
             <h2>Survival &amp; Shelter</h2>
             <p>Survival guides, emergency shelter, and disaster preparedness.</p>
@@ -1516,7 +1522,7 @@
         </section>
 
         <section class="dashboard-tile">
-          <div class="dashboard-icon icon-repair" aria-hidden="true">🔧</div>
+          <a class="dashboard-icon icon-repair" href="/kiwix/#tag=preppercache-repair" aria-label="Repair"><span aria-hidden="true">🔧</span></a>
           <div class="dashboard-copy">
             <h2>Repair</h2>
             <p>Repair manuals and guides for tools, vehicles, and equipment.</p>
@@ -1527,7 +1533,7 @@
         </section>
 
         <section class="dashboard-tile">
-          <div class="dashboard-icon icon-radio" aria-hidden="true">📻</div>
+          <a class="dashboard-icon icon-radio" href="/kiwix/#tag=preppercache-communication" aria-label="Communication"><span aria-hidden="true">📻</span></a>
           <div class="dashboard-copy">
             <h2>Communication</h2>
             <p>Amateur radio and communication references.</p>
@@ -1538,7 +1544,7 @@
         </section>
 
         <section class="dashboard-tile">
-          <div class="dashboard-icon icon-power" aria-hidden="true">⚡</div>
+          <a class="dashboard-icon icon-power" href="/kiwix/#tag=preppercache-power-energy" aria-label="Power and Energy"><span aria-hidden="true">⚡</span></a>
           <div class="dashboard-copy">
             <h2>Power and Energy</h2>
             <p>Off-grid power and sustainable energy references.</p>
@@ -1549,7 +1555,7 @@
         </section>
 
         <section class="dashboard-tile" id="kolibri-tile">
-          <div class="dashboard-icon icon-education" aria-hidden="true">🎓</div>
+          <a class="dashboard-icon icon-education" id="kolibri-icon-link" aria-disabled="true" aria-label="Education & Skills"><span aria-hidden="true">🎓</span></a>
           <div class="dashboard-copy">
             <span class="eyebrow">Rebuild</span>
             <h2>Education & Skills</h2>
@@ -1561,7 +1567,7 @@
         </section>
 
         <section class="dashboard-tile">
-          <div class="dashboard-icon icon-settings" aria-hidden="true">⚙️</div>
+          <a class="dashboard-icon icon-settings" href="/admin" aria-label="Settings"><span aria-hidden="true">⚙️</span></a>
           <div class="dashboard-copy">
             <span class="eyebrow">System Tools</span>
             <h2>Settings</h2>
@@ -1626,6 +1632,7 @@
     const storageWarning = document.getElementById("storage-warning");
     const kolibriTile = document.getElementById("kolibri-tile");
     const kolibriLink = document.getElementById("kolibri-link");
+    const kolibriIconLink = document.getElementById("kolibri-icon-link");
     const applyStatusText = document.getElementById("apply-status-text");
     const applyLogText = document.getElementById("apply-log-text");
 
@@ -1678,6 +1685,8 @@
         kolibriLink.textContent = "Open Kolibri";
         kolibriLink.href = state?.storage?.kolibri_url || `${window.location.protocol}//${window.location.hostname}:8082`;
         kolibriLink.title = "Open Kolibri";
+        kolibriIconLink.href = kolibriLink.href;
+        kolibriIconLink.removeAttribute("aria-disabled");
         return;
       }
 
@@ -1686,6 +1695,8 @@
       kolibriLink.setAttribute("aria-disabled", "true");
       kolibriLink.textContent = "Kolibri Not Installed";
       kolibriLink.href = "#";
+      kolibriIconLink.removeAttribute("href");
+      kolibriIconLink.setAttribute("aria-disabled", "true");
       kolibriLink.title = "Kolibri is not installed on this device";
     }
 

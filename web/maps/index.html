@@ -266,13 +266,6 @@
       border-radius: 0;
     }
 
-    .status {
-      margin-top: 12px;
-      font-size: 0.92rem;
-      color: var(--muted);
-      overflow-wrap: anywhere;
-    }
-
     .compact-input {
       padding: 9px 10px;
       font-size: 0.94rem;
@@ -295,56 +288,6 @@
       letter-spacing: 0.05em;
     }
 
-    .status-chip-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .status-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 10px;
-      border: 1px solid var(--border-primary, #8da9a5);
-      background: var(--bg-secondary, #ffffff);
-      color: var(--text-primary, #172b2d);
-      font: 0.76rem/1 var(--ui-display);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .status-chip::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      border: 1px solid currentColor;
-      background: var(--accent-subtle, rgba(96, 159, 153, 0.12));
-      flex: 0 0 auto;
-    }
-
-    .status-chip.ok {
-      border-color: var(--border-primary, #8da9a5);
-      color: var(--status-success, #21653e);
-    }
-
-    .status-chip.warn {
-      border-color: var(--border-primary, #8da9a5);
-      color: var(--status-warning, #6e4b0d);
-    }
-
-    .status-chip.error {
-      border-color: var(--status-error, #b96767);
-      color: var(--status-error, #8a2828);
-    }
-
-    .status-chip.muted {
-      border-color: var(--border-primary, #8da9a5);
-      color: var(--text-primary, #172b2d);
-    }
-
     .map-shell {
       position: relative;
       min-height: 100vh;
@@ -355,24 +298,6 @@
       height: 100%;
       min-height: 100vh;
       width: 100%;
-    }
-
-    .map-banner {
-      position: absolute;
-      top: 18px;
-      left: 18px;
-      right: 18px;
-      z-index: 500;
-      padding: 12px 14px;
-      border: 1px solid var(--border);
-      background: var(--bg-secondary, #ffffff);
-      box-shadow: var(--shadow);
-      color: var(--text);
-      border-radius: 0;
-    }
-
-    .map-banner.hidden {
-      display: none;
     }
 
     @media (max-width: 980px) {
@@ -468,17 +393,9 @@
         </div>
       </section>
 
-      <section class="card">
-        <h2>Map Status</h2>
-        <p class="status" id="map-status">Checking archive availability...</p>
-        <div class="status-chip-row" id="map-meta"></div>
-      </section>
     </aside>
 
     <main class="map-shell">
-      <div class="map-banner hidden" id="map-banner">
-        No offline PMTiles archive was found at the configured source. Add a local archive, then reload this page.
-      </div>
       <div id="map"></div>
     </main>
   </div>
@@ -501,9 +418,7 @@
       spriteBaseUrl: "/maps/assets/sprites/v4/dark",
     };
 
-    const mapStatus = document.getElementById("map-status");
-    const mapMeta = document.getElementById("map-meta");
-    const mapBanner = document.getElementById("map-banner");
+    const mapCanvas = document.getElementById("map");
     const latInput = document.getElementById("lat-input");
     const lonInput = document.getElementById("lon-input");
     const zoomInput = document.getElementById("zoom-input");
@@ -523,21 +438,12 @@
     let preferredBrowseMode = "region";
     let preferredMapPackage = "";
 
-    function setMapMetaChips(items) {
-      mapMeta.innerHTML = items.map((item) => {
-        const tone = item.tone ? ` ${item.tone}` : "";
-        return `<span class="status-chip${tone}">${item.label} ${item.value}</span>`;
-      }).join("");
-    }
-
     function clearMapStatus() {
-      mapStatus.textContent = "";
-      mapStatus.classList.add("hidden");
+      delete mapCanvas.dataset.problem;
     }
 
     function showMapStatus(message) {
-      mapStatus.textContent = message;
-      mapStatus.classList.remove("hidden");
+      mapCanvas.dataset.problem = message;
     }
 
     function loadStoredMapSelection() {
@@ -726,7 +632,7 @@
       preferredMapPackage = mapPackageSelect.value || "";
     }
 
-    function populateMapControls(state, config) {
+    function populateMapControls(state) {
       if (!state.available_files.length) {
         mapBrowseModeSelect.value = preferredBrowseMode;
         mapBrowseModeSelect.disabled = true;
@@ -750,11 +656,6 @@
           populateMapPackageControl(installedMapEntries, state.active_file);
         }
       }
-      setMapMetaChips([
-        { label: "Archive", value: state.active_valid ? "Valid" : (state.active_exists ? "Invalid" : "Missing"), tone: state.active_valid ? "ok" : (state.active_exists ? "error" : "warn") },
-        { label: "Theme", value: state.flavor || config.flavor || "dark", tone: "muted" },
-        { label: "Language", value: state.language || config.language || "en", tone: "muted" }
-      ]);
     }
 
     function populateFallbackControls(config) {
@@ -767,11 +668,6 @@
       mapRegionSelect.disabled = true;
       mapPackageSelect.innerHTML = `<option value="${config.pmtilesFile}">${friendlyMapName(config.pmtilesFile)}</option>`;
       mapPackageSelect.disabled = true;
-      setMapMetaChips([
-        { label: "Archive", value: "Checking", tone: "warn" },
-        { label: "Theme", value: config.flavor || "dark", tone: "muted" },
-        { label: "Language", value: config.language || "en", tone: "muted" }
-      ]);
     }
 
     function isUsableBounds(header) {
@@ -830,8 +726,6 @@
     async function buildMap() {
       mapReloadInProgress = true;
       try {
-        clearMapStatus();
-        mapBanner.classList.add("hidden");
         const config = await loadConfig();
         currentConfigSignature = configSignature(config);
         populateFallbackControls(config);
@@ -855,13 +749,19 @@
           const url = window.location.origin + path;
           const archive = new pmtiles.PMTiles(url);
           const header = await archive.getHeader();
+          if (header.tileType !== pmtiles.TileType.Mvt) {
+            throw new Error("The archive does not contain vector map data.");
+          }
           protocol.add(archive);
           return { filename, url, header };
         }));
         const archives = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
-        if (state) populateMapControls(state, config);
+        if (state) populateMapControls(state);
         if (!archives.length) {
-          throw new Error("No readable offline map archives were found for this selection.");
+          const emptyLibrary = state && !state.available_files.length && !state.invalid_files?.length && !state.active_exists;
+          throw new Error(emptyLibrary
+            ? "No offline maps are installed. Add one in Map Settings, then select Apply / Refresh."
+            : "The selected offline map could not be opened. Choose another map or replace the unreadable archive in Map Settings.");
         }
 
         const minZoom = browsingRegion ? 0 : config.minZoom;
@@ -903,14 +803,14 @@
         updateCameraControls(map);
         map.on("moveend", () => updateCameraControls(map));
 
-        if (browsingRegion) {
-          const missing = filenames.length - archives.length;
-          setMapMetaChips([
-            { label: "Archives", value: `${archives.length}/${filenames.length}`, tone: missing ? "warn" : "ok" },
-            { label: "Theme", value: config.flavor, tone: "muted" },
-            { label: "Language", value: config.language, tone: "muted" }
-          ]);
-          if (missing) showMapStatus(`${missing} regional map archive(s) could not be opened.`);
+        const unreadableCount = filenames.length - archives.length;
+        const invalidCount = preferredBrowseMode === "region" && preferredMapRegion === "all"
+          ? state?.invalid_files?.length || 0 : 0;
+        if (unreadableCount || invalidCount) {
+          const total = unreadableCount + invalidCount;
+          showMapStatus(`${total} offline map archive${total === 1 ? "" : "s"} could not be opened. The other maps are available.`);
+        } else {
+          clearMapStatus();
         }
 
         map.on("error", (event) => {
@@ -987,8 +887,7 @@
         const config = await loadConfig();
         const nextSignature = configSignature(config);
         if (nextSignature !== currentConfigSignature) {
-          clearMapStatus();
-          await buildMap();
+          await showSelectedRegion();
         }
       } catch (error) {
         // Ignore periodic sync failures and keep the current map view.
@@ -1002,7 +901,6 @@
 
       if (mapInstance && Number.isFinite(lat) && Number.isFinite(lon) && Number.isFinite(zoom)) {
         mapInstance.flyTo({ center: [lon, lat], zoom });
-        clearMapStatus();
       }
     });
 
@@ -1028,11 +926,7 @@
     saveMapSettingsButton.addEventListener("click", saveMapSettings);
 
     loadStoredMapSelection();
-    buildMap().catch((error) => {
-      showMapStatus(`Map startup error: ${error.message}`);
-      mapBanner.textContent = `Map startup error: ${error.message}`;
-      mapBanner.classList.remove("hidden");
-    });
+    showSelectedRegion();
     window.setInterval(syncConfigFromDisk, 15000);
   </script>
   <script defer src="/job-status.js"></script>
