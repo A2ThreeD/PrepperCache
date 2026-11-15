@@ -210,6 +210,29 @@
       flex: 0 0 auto;
     }
 
+    .button[data-icon]::before { color: #24558e; }
+    .button[data-icon="⚙"]::before,
+    .button[data-icon="⇄"]::before { color: #56368e; }
+    .button[data-icon="⌖"]::before,
+    .button[data-icon="✓"]::before,
+    .button[data-icon="☑"]::before,
+    .button[data-icon="＋"]::before { color: #21653e; }
+    .button[data-icon="✖"]::before,
+    .button[data-icon="⏻"]::before { color: #b41728; }
+    .button[data-icon="⚠"]::before,
+    .button[data-icon="✎"]::before,
+    .button[data-icon="🗂"]::before,
+    .button[data-icon="📁"]::before { color: #8c500e; }
+    .button[data-icon="⌘"]::before,
+    .button[data-icon="▤"]::before,
+    .button[data-icon="◫"]::before { color: #743864; }
+    .button[data-icon="↻"]::before,
+    .button[data-icon="↓"]::before { color: #006e68; }
+
+    .home-link, .back-link { color: #24558e; }
+    .catalog-icon--download { color: #006e68; }
+    .catalog-icon--installed { color: #56368e; }
+
     .home-link,
     .back-link {
       width: 42px;
@@ -2325,14 +2348,14 @@
 
     function iconLabel(kind, text) {
       const cloudDownload = `
-        <span class="catalog-icon" aria-hidden="true">
+        <span class="catalog-icon catalog-icon--download" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false">
             <path d="M7 18a4 4 0 0 1-.5-7.97A6.5 6.5 0 0 1 19 11a3.5 3.5 0 1 1 .5 7H14v-2h5.5a1.5 1.5 0 0 0 0-3h-1.77l-.18-.98A4.5 4.5 0 0 0 8.7 11l-.16 1.01-.99-.01H7a2 2 0 0 0 0 4h3v2H7z"></path>
             <path d="M11 10h2v6h3l-4 4-4-4h3z"></path>
           </svg>
         </span>`;
       const floppy = `
-        <span class="catalog-icon" aria-hidden="true">
+        <span class="catalog-icon catalog-icon--installed" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false">
             <path d="M4 3h12l4 4v14H4z"></path>
             <path d="M7 3h8v5H7z" fill="none" stroke="currentColor" stroke-width="1.5"></path>
