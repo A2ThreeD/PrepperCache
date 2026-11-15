@@ -10,6 +10,27 @@ Use this checklist when validating PrepperCache on a fresh Raspberry Pi or prepa
    git status --short
    ```
 
+## Automated Checks
+
+GitHub Actions runs the unit, syntax, web installer, and browser smoke checks on pushes and pull requests. Run the same checks locally from the repository root. The first command needs Bash, Python, and Node.js. Use a Python virtual environment for the optional browser dependencies.
+
+```bash
+bash scripts/check.sh
+python3 -m pip install -r tests/requirements-smoke.txt
+python3 -m playwright install chromium
+bash scripts/check.sh --browser
+```
+
+The installer check stages web files in a temporary directory. The browser suite serves the checked-out pages locally and uses simulated API and map responses. It exercises setup, Settings links, download review, job progress, and missing-map feedback without starting downloads or changing a device. On Linux, install Chromium system dependencies if needed with `python3 -m playwright install --with-deps chromium`.
+
+After a Pi deployment, check the live pages, assets, API responses, and library route with a read-only smoke test.
+
+```bash
+bash scripts/check.sh --live http://preppercache.local
+```
+
+Use the hardware checklist below to verify OS installation, access-point behavior, and real downloads on a Raspberry Pi.
+
 ## Fresh Pi Setup
 
 1. Clone the repository on the Pi:
@@ -47,7 +68,7 @@ Use this checklist when validating PrepperCache on a fresh Raspberry Pi or prepa
    - `http://<pi-ip>/`
    - or `http://preppercache.local/` if mDNS resolves
 2. Complete setup in the browser.
-3. Click `Apply Configuration`.
+3. Click **Complete Setup**.
 4. Confirm the dashboard becomes the default homepage after setup.
 
 ## Route Checks

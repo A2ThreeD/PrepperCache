@@ -1,0 +1,2 @@
+# PrepperCache browser smoke test dependency.
+playwright==1.55.0
