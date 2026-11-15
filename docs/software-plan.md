@@ -213,10 +213,22 @@ These are the main areas still worth iterating on next:
 - media hosting (plex/jellyfin)
 - NAS capabilities
 - optional battery/power awareness in the dashboard
-- richer offline search for maps
+- [offline address search](#planned-offline-address-search)
 - better local diagnostics and recovery tools in `/admin`
 - a more formal update channel for catalogs and application assets
 - additional packaged offline services beyond Kiwix and maps when they fit PrepperCache’s storage and reliability goals
+
+### Planned offline address search
+
+Start with an Oregon pilot. Offer address indexes as optional downloads alongside map regions. Keep the address index separate from the PMTiles archive so each can be updated independently. The basemap includes some house numbers, but it does not contain a complete address index for search. [Protomaps basemap layers](https://docs.protomaps.com/basemaps/layers)
+
+1. **Build the index off the Pi.** Start with points from the U.S. Department of Transportation’s National Address Database. Verify coverage in Oregon, including rural areas. Preserve the house number, street, city, state, ZIP code, and coordinates. Normalize common suffixes and directionals for matching while keeping the original address for display. Package a compressed SQLite index per state with the source, data date, and coverage information. [National Address Database](https://www.transportation.gov/gis/national-address-database)
+2. **Search on the Pi.** Use SQLite FTS5 to query the installed indexes. Rank exact matches first and use the selected map to favor nearby matches. Return a short list with city and state so people can tell identical street addresses apart. [SQLite FTS5](https://www.sqlite.org/fts5.html)
+3. **Add a search field to the viewer.** Put **Find an address** above **Choose a map**. Selecting a result drops a pin and zooms to it. If the address index is missing, link to Map Settings to install it. If an index is present and no address matches, show a separate message.
+
+The pilot passes when a known Oregon address can be found and pinned with the Pi disconnected from the internet and the browser still connected to the local network. Measure the compressed download size, installed size, search latency on the Pi, and coverage on a sample of urban and rural addresses before expanding.
+
+Use address points for the first version. Consider Census TIGER/Line ranges later where point coverage is sparse. Label interpolated results **Approximate** because the location is estimated along a street segment. [Census address ranges](https://www.census.gov/newsroom/blogs/research-matters/2016/04/understanding-census-bureau-address-ranges.html)
 
 ## Operational Guidance
 
