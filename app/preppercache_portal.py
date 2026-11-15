@@ -1563,11 +1563,34 @@ class PortalState:
         if not selected_items:
             raise ValueError("None of the selected ZIM files are available in the current catalog. Select an available edition.")
         catalog_root = catalog["source"]["root_url"]
-        self.write_custom_zim_selection(selected_items, catalog_root)
-        self.write_extra_zim_manifest(selected_items, catalog_root)
-        content = self.content_status()
-        apply = self.start_apply("download-extra-content")
-        return {"content": content, "apply": apply, "skipped_paths": skipped_paths}
+        with self.apply_lock, self.map_sync_lock:
+            if self.load_apply_state().get("status") == "running":
+                raise RuntimeError("A content job is already running.")
+            installed = {item["name"] for item in self.list_installed_zims()}
+            missing = [item for item in selected_items if item["name"] not in installed]
+            if not missing:
+                raise ValueError("All selected files are already installed.")
+            self.write_custom_zim_selection(selected_items, catalog_root)
+            self.write_extra_zim_manifest(missing, catalog_root)
+            apply = self.launch_apply("download-extra-content", clear_log=True)
+        return {"content": self.content_status(), "apply": apply, "skipped_paths": skipped_paths}
+
+    def retry_extra_content(self) -> dict:
+        with self.apply_lock, self.map_sync_lock:
+            state = self.load_apply_state()
+            failures = set(state.get("failed_download_names", []))
+            if state.get("status") == "running":
+                raise RuntimeError("A content job is already running.")
+            if state.get("action") != "download-extra-content" or not failures:
+                raise ValueError("No failed extra content downloads to retry.")
+            manifest = self.extra_zim_manifest_path()
+            urls = [url for url in self.read_manifest_urls(manifest) if url.rsplit("/", 1)[-1] in failures]
+            if not urls:
+                raise ValueError("The failed files are no longer in the download list.")
+            pending = manifest.with_suffix(".retry.tmp")
+            pending.write_text("\n".join(urls) + "\n")
+            pending.replace(manifest)
+            return self.launch_apply("download-extra-content", clear_log=True)
 
     def remove_zim_files(self, filenames: list[str]) -> dict:
         if not isinstance(filenames, list) or not filenames:
@@ -3278,6 +3301,7 @@ class PortalState:
             "download_total": None,
             "active_downloads": [],
             "download_failed": 0,
+            "failed_download_names": [],
         }
 
         total_steps = state.get("total_steps") or 0
@@ -3320,6 +3344,7 @@ class PortalState:
                 download_total = int(total_match.group(1))
                 active_downloads.clear()
                 progress["download_failed"] = 0
+                progress["failed_download_names"].clear()
                 continue
 
             file_match = file_pattern.match(line)
@@ -3337,6 +3362,7 @@ class PortalState:
 
             if line.startswith(failed_prefix):
                 progress["download_failed"] += 1
+                progress["failed_download_names"].append(line[len(failed_prefix):])
                 continue
 
             done_match = done_pattern.match(line)
@@ -3960,6 +3986,18 @@ class PortalHandler(BaseHTTPRequestHandler):
                 self.send_json({"error": str(exc)}, status=502)
                 return
             self.send_json(state)
+            return
+
+        if self.path == "/api/content/retry-downloads":
+            try:
+                state = self.portal_state.retry_extra_content()
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, status=400)
+                return
+            except RuntimeError as exc:
+                self.send_json({"error": str(exc)}, status=409)
+                return
+            self.send_json(state, status=202)
             return
 
         if self.path == "/api/content/download-selected":

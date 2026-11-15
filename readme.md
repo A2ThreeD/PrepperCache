@@ -122,6 +122,8 @@ To apply interface updates to an existing Pi checkout without restarting Prepper
 
 For a fresh install, use the steps above. For an in-place cutover, back up the current configuration, library index, and service definitions first. Existing ZIM and PMTiles archives can be reused without downloading them again. Set their locations in `config/preppercache.env` before activating the new services. Rebuild the Kiwix index to regenerate category tags and verify that all map archives appear in Settings. The old stack and PrepperCache cannot serve the same ports at the same time; plan the cutover after all active jobs finish.
 
+Settings tabs have direct links such as `/admin/#content` and `/admin/#maps`. **Add Content** and **Add Maps** open their respective catalogs. Review the items, destination, and storage estimate before starting a selected download. Failed files from an extra content batch and failed country or regional maps can be retried from their job status.
+
 ## Appearance
 
 PrepperCache defaults to **Charcoal / Blue**. Choose **Light** under **Appearance** at the top right of **Settings**. See the [branding guide](docs/branding.md) for the artwork, palette, and styling conventions.

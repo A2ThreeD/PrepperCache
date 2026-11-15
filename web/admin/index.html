@@ -286,6 +286,16 @@
       border-color: var(--border-primary, #8da9a5);
     }
 
+    .download-review {
+      width: min(36rem, calc(100% - 2rem));
+      max-height: calc(100% - 2rem);
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    .download-review::backdrop { background: rgba(0, 0, 0, 0.55); }
+    #download-review-items { max-height: 35vh; overflow: auto; overflow-wrap: anywhere; }
+
     .section-tabs {
       display: flex;
       gap: 0;
@@ -1392,15 +1402,15 @@
       PrepperCache system controls, content updates, and maintenance actions.
     </p>
 
-    <div class="section-tabs">
-      <button class="button tab-button active" data-icon="⚙" type="button" data-panel="system">System</button>
-      <button class="button tab-button" data-icon="📶" type="button" data-panel="wifi">WiFi</button>
-      <button class="button tab-button" data-icon="⌘" type="button" data-panel="content">Content</button>
-      <button class="button tab-button" data-icon="⌖" type="button" data-panel="maps">Maps</button>
-      <button class="button tab-button" data-icon="🗂" type="button" data-panel="files">Files</button>
-      <button class="button tab-button" data-icon="🖴" type="button" data-panel="storage">Storage</button>
-      <button class="button tab-button" data-icon="ⓘ" type="button" data-panel="about">About</button>
-    </div>
+    <nav class="section-tabs" aria-label="Settings sections">
+      <a class="button tab-button active" data-icon="⚙" href="#system" data-panel="system">System</a>
+      <a class="button tab-button" data-icon="📶" href="#wifi" data-panel="wifi">WiFi</a>
+      <a class="button tab-button" data-icon="⌘" href="#content" data-panel="content">Content</a>
+      <a class="button tab-button" data-icon="⌖" href="#maps" data-panel="maps">Maps</a>
+      <a class="button tab-button" data-icon="🗂" href="#files" data-panel="files">Files</a>
+      <a class="button tab-button" data-icon="🖴" href="#storage" data-panel="storage">Storage</a>
+      <a class="button tab-button" data-icon="ⓘ" href="#about" data-panel="about">About</a>
+    </nav>
 
     <section class="panel-group active" data-panel-group="system">
       <div class="grid">
@@ -1541,19 +1551,17 @@
           </div>
           <div class="actions">
             <button class="button" data-icon="▤" id="toggle-apply-log-button" type="button">Show Content Log</button>
+            <button class="button hidden" id="retry-content-downloads" type="button">Retry Failed Downloads</button>
           </div>
           <div class="log-panel hidden" id="apply-log-panel">
             <strong>Recent Log</strong>
             <pre id="apply-log">No active download log.</pre>
           </div>
           <div id="content-library-details" class="hidden">
-            <p class="muted">
-              Review what is already on the device, remove files you no longer want, and rebuild the Kiwix library from what is on disk.
-            </p>
             <div class="content-set-box">
               <div class="content-set-top">
                 <strong>Installed Content Set</strong>
-                <button class="button" data-icon="＋" id="toggle-add-content-button" type="button">Add More Content</button>
+                <button class="button" data-icon="＋" id="toggle-add-content-button" type="button" aria-controls="add-more-content-card" aria-expanded="false">Add Content</button>
               </div>
               <div class="content-set-tile" id="content-set-tile">Loading...</div>
               <p class="substatus" id="content-set-status">Loading installed content set.</p>
@@ -1605,7 +1613,7 @@
               <button class="button" data-icon="⌘" id="rebuild-library-button" type="button">Rebuild Kiwix Library</button>
             </div>
             <section class="hidden" id="add-more-content-card">
-              <h2>Add More Content</h2>
+              <h2>Add Content</h2>
               <p class="muted">
                 Browse the online Kiwix catalog here and add more ZIM files to this device whenever you want.
               </p>
@@ -1639,7 +1647,7 @@
                 <div id="zim-catalog-list" class="log-panel muted">Online catalog is idle. Click Check Online Catalog when you want to query Kiwix.</div>
               </div>
               <div class="actions">
-                <button class="button" data-icon="↓" id="download-selected-zims-button" type="button">DOWNLOAD SELECTED</button>
+                <button class="button" data-icon="↓" id="download-selected-zims-button" type="button">Review Download</button>
                 <button class="button" data-icon="☑" id="select-all-zims-button" type="button">SELECT ALL</button>
                 <button class="button" data-icon="☐" id="clear-all-zims-button" type="button">CLEAR ALL</button>
               </div>
@@ -1658,7 +1666,10 @@
     <section class="panel-group" data-panel-group="maps">
       <div class="grid">
         <section class="card">
-          <h2>Installed Maps</h2>
+          <div class="content-set-top">
+            <h2>Installed Maps</h2>
+            <button class="button" data-icon="＋" id="toggle-add-maps-button" type="button" aria-controls="add-maps-card" aria-expanded="false">Add Maps</button>
+          </div>
           <div class="map-installed-summary">
             <p class="muted" id="active-map-file">Active map: loading</p>
             <p class="muted" id="maps-storage-summary">Checking disk usage.</p>
@@ -1688,8 +1699,8 @@
             <p class="substatus" id="maps-status-note">Loading map package status.</p>
           </details>
         </section>
-        <section class="card">
-          <h2>Download Maps</h2>
+        <section class="card hidden" id="add-maps-card">
+          <h2>Add Maps</h2>
           <div class="field">
             <label for="maps-install-target">Install New Maps To</label>
             <select id="maps-install-target"></select>
@@ -1708,7 +1719,7 @@
               <div id="country-map-list" class="log-panel muted" tabindex="0" role="region" aria-label="Available countries"></div>
             </div>
             <div class="actions">
-              <button class="button" id="install-country-maps" type="button" disabled>Install Selected</button>
+              <button class="button" id="install-country-maps" type="button" disabled>Review Countries</button>
               <button class="button" id="clear-country-maps" type="button">Clear</button>
             </div>
             <p class="substatus" id="country-map-note" aria-live="polite"></p>
@@ -1720,13 +1731,14 @@
             <p class="status" id="regional-map-summary" aria-live="polite"></p>
             <div class="actions">
               <button class="button" id="select-all-maps-button" type="button" disabled>Select All</button>
-              <button class="button" id="sync-maps-button" type="button" disabled>Install Selected Regions</button>
+              <button class="button" id="sync-maps-button" type="button" disabled>Review Regions</button>
             </div>
           </details>
         </section>
         <section class="card">
           <h2>Map Jobs</h2>
-          <p class="status" id="maps-sync-status">Map job: idle</p>
+          <p class="status" id="maps-sync-status" role="status">No active map job</p>
+          <button class="button hidden" id="retry-map-downloads" type="button">Retry Failed Maps</button>
           <div class="actions">
             <button class="button hidden" id="cancel-map-build" type="button">Cancel Install</button>
           </div>
@@ -1841,6 +1853,18 @@
       </div>
     </section>
 
+    <dialog class="card download-review" id="download-review" aria-labelledby="download-review-title">
+      <form method="dialog">
+        <h2 id="download-review-title">Review download</h2>
+        <p id="download-review-space"></p>
+        <ul id="download-review-items"></ul>
+        <div class="actions">
+          <button class="button" value="cancel" autofocus>Back</button>
+          <button class="button" id="download-review-confirm" value="download">Start Download</button>
+        </div>
+      </form>
+    </dialog>
+
     <div class="actions">
       <button class="button" data-icon="⚙" id="run-setup-again-button" type="button">Run Setup Again</button>
     </div>
@@ -1903,7 +1927,10 @@
         panel.classList.toggle("active", panel.dataset.panelGroup === panelName);
       });
       document.querySelectorAll(".tab-button").forEach((button) => {
-        button.classList.toggle("active", button.dataset.panel === panelName);
+        const active = button.dataset.panel === panelName;
+        button.classList.toggle("active", active);
+        if (active) button.setAttribute("aria-current", "page");
+        else button.removeAttribute("aria-current");
       });
       if (panelName === "wifi" || panelName === "system" || panelName === "storage") {
         loadSystemPanelData();
@@ -1918,6 +1945,7 @@
     }
 
     function renderApplyState(apply) {
+      latestContentApply = apply;
       const running = apply.status === "running";
       const failed = apply.status === "failed";
       const setupRunning = running && apply.action === "full";
@@ -1937,6 +1965,8 @@
           : apply.status === "succeeded" ? "Finished." : "",
         running || failed || apply.status === "succeeded"
       );
+      document.getElementById("retry-content-downloads").classList.toggle("hidden",
+        running || apply.action !== "download-extra-content" || !apply.failed_download_names?.length);
       document.getElementById("progress-label").textContent = apply.step || "Preparing";
       const percent = Number(apply.progress_percent) || 0;
       document.getElementById("progress-value").textContent = `${percent}%`;
@@ -2010,7 +2040,8 @@
       const card = document.getElementById("add-more-content-card");
       const button = document.getElementById("toggle-add-content-button");
       card.classList.toggle("hidden", !addMoreContentVisible);
-      button.textContent = addMoreContentVisible ? "Hide Add More Content" : "Add More Content";
+      button.setAttribute("aria-expanded", String(addMoreContentVisible));
+      button.textContent = addMoreContentVisible ? "Hide Catalog" : "Add Content";
     }
 
     function setContentActionStatus(text = "", visible = false) {
@@ -3791,7 +3822,83 @@
       renderCountryMapSummary();
     }
 
-    async function installSelectedCountries() {
+    function reviewDownload({ title, items, destination, freeBytes, start, enforceSpace = false }) {
+      if (!items.length) return;
+      const dialog = document.getElementById("download-review");
+      if (dialog.open) return;
+      const knownBytes = items.reduce((total, item) => total + (item.bytes || 0), 0);
+      const unknownCount = items.filter(({ bytes }) => !(bytes > 0)).length;
+      const hasSpaceInfo = Number.isFinite(freeBytes);
+      const overCapacity = hasSpaceInfo && knownBytes > freeBytes;
+      document.getElementById("download-review-title").textContent = title;
+      document.getElementById("download-review-space").textContent = [
+        destination,
+        knownBytes ? `About ${formatBytes(knownBytes)}` : "Size unavailable",
+        unknownCount && knownBytes ? `${unknownCount} item(s) without size estimates` : "",
+        overCapacity ? "Estimated download exceeds available space" : hasSpaceInfo
+          ? `About ${formatBytes(freeBytes - knownBytes)} free afterward${unknownCount ? " before unknown sizes" : ""}`
+          : "Remaining space unavailable"
+      ].filter(Boolean).join(" · ");
+      document.getElementById("download-review-items").replaceChildren(...items.map(({ name }) => {
+        const row = document.createElement("li");
+        row.textContent = name;
+        return row;
+      }));
+      document.getElementById("download-review-confirm").disabled = enforceSpace && overCapacity;
+      dialog.returnValue = "";
+      dialog.addEventListener("close", () => {
+        if (dialog.returnValue === "download") start();
+      }, { once: true });
+      dialog.showModal();
+    }
+
+    function reviewMapDownload(operation, ids) {
+      if (mapJobRunning) return;
+      const countries = operation === "countries";
+      const items = countries
+        ? (countryMapCatalog?.countries || []).filter(({ id, installed }) => ids.includes(id) && !installed)
+          .map(({ name, missing_bytes }) => ({ name, bytes: missing_bytes }))
+        : regionalMapCatalog.filter(({ id }) => ids.includes(id)).flatMap(({ states }) => states)
+          .filter(({ installed, filename }, index, all) => !installed && all.findIndex((item) => item.filename === filename) === index)
+          .map(({ name, estimated_bytes }) => ({ name, bytes: estimated_bytes }));
+      const target = currentMaps?.install_destinations?.find(({ path }) => path === currentMaps.install_dir);
+      reviewDownload({
+        title: "Review map download",
+        items,
+        destination: target?.label || "Selected map storage",
+        freeBytes: target?.free_bytes,
+        start: () => countries ? installSelectedCountries(ids) : installSelectedRegions(ids)
+      });
+    }
+
+    function reviewContentDownload() {
+      if (!pendingCustomSelection.size) {
+        document.getElementById("zim-catalog-note").textContent = "Select one or more files from the online catalog first.";
+        return;
+      }
+      const paths = selectedCatalogPaths();
+      const installed = new Set((currentContent?.installed_items || []).map(({ name }) => name));
+      const catalog = new Map((currentContentCatalog?.items || []).map((item) => [item.path, item]));
+      const items = paths.map((path) => {
+        const item = catalog.get(path);
+        return { name: item?.name || path, bytes: item?.size_bytes, installed: item?.installed || installed.has(item?.name) };
+      }).filter((item) => !item.installed);
+      if (!items.length) {
+        document.getElementById("zim-catalog-note").textContent = "All selected files are already installed.";
+        return;
+      }
+      const target = currentContent?.install_destinations?.find(({ path }) => path === currentContent.install_dir);
+      reviewDownload({
+        title: "Review content download",
+        items,
+        destination: target?.label || "Selected library storage",
+        freeBytes: target?.free_bytes ?? currentState?.storage?.disk?.free_bytes,
+        enforceSpace: true,
+        start: () => downloadSelectedZims(paths)
+      });
+    }
+
+    async function installSelectedCountries(ids) {
       const note = document.getElementById("country-map-note");
       const button = document.getElementById("install-country-maps");
       button.disabled = true;
@@ -3799,7 +3906,7 @@
       try {
         const { response, payload } = await fetchJsonWithTimeout("/api/maps/countries", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ country_ids: [...selectedCountries] })
+          body: JSON.stringify({ country_ids: ids })
         });
         if (!response.ok) throw new Error(payload.error || "Unable to start installing countries.");
         renderMapSyncState(payload);
@@ -3967,6 +4074,7 @@
         const { response, payload } = await fetchJsonWithTimeout("/api/maps/regions");
         if (!response.ok) throw new Error(payload.error || "Unable to load U.S. regions.");
         regionalMapCatalog = payload.regions;
+        if (latestMapJob) renderMapSyncState(latestMapJob);
         for (const region of regionalMapCatalog) {
           if (region.states.every(({ installed }) => installed)) selectedRegions.delete(region.id);
         }
@@ -4007,7 +4115,11 @@
       renderRegionalMapSummary();
     }
 
+    let mapRetry = { operation: "", ids: [] };
+    let latestMapJob = null;
+
     function renderMapSyncState(state) {
+      latestMapJob = state;
       const countries = state.operation === "countries";
       const building = state.operation === "build";
       const regions = state.operation === "regions";
@@ -4018,7 +4130,7 @@
       document.getElementById("maps-sync-status").textContent =
         state.status === "running" ? "Map job in progress"
           : state.status === "succeeded" ? "Map job finished"
-          : state.status === "failed" ? "Map job stopped"
+          : state.status === "failed" ? (state.completed_files?.length ? `Installed ${state.completed_files.length} maps · ${state.failed_files?.length || 0} failed` : "Map install failed")
           : state.status === "cancelled" ? "Map job cancelled" : "No active map job";
       document.getElementById("maps-progress-label").textContent =
         state.status === "running" ? (regions ? "Installing U.S. regions" : countries ? "Installing countries" : building ? "Building custom map" : "Syncing map packages") : "Waiting for a map job";
@@ -4054,6 +4166,15 @@
           : "No map sync activity yet.";
 
       const running = state.status === "running";
+      const failedFiles = new Set((state.failed_files || []).map(({ file }) => file));
+      const retryIds = countries
+        ? [...new Set([...failedFiles].flatMap((file) => {
+          const match = /^country-([a-z]{2})(?:-|\.)/.exec(file);
+          return match ? [match[1].toUpperCase()] : [];
+        }))]
+        : regions ? regionalMapCatalog.filter(({ states }) => states.some(({ filename }) => failedFiles.has(filename))).map(({ id }) => id) : [];
+      mapRetry = { operation: state.operation, ids: retryIds };
+      document.getElementById("retry-map-downloads").classList.toggle("hidden", running || !retryIds.length);
       const cancelButton = document.getElementById("cancel-map-build");
       cancelButton.classList.toggle("hidden", !running || !extracting);
       cancelButton.disabled = Boolean(state.cancel_requested);
@@ -4084,7 +4205,7 @@
       return Array.from(pendingCustomSelection).sort();
     }
 
-    async function downloadSelectedZims() {
+    async function downloadSelectedZims(paths) {
       if (!pendingCustomSelection.size) {
         document.getElementById("zim-catalog-note").textContent = "Select one or more ZIM files from the online catalog first.";
         return;
@@ -4110,7 +4231,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            selected_paths: selectedCatalogPaths()
+            selected_paths: paths
           })
         });
         const settingsPayload = await settingsResponse.json();
@@ -4135,8 +4256,8 @@
       } catch (error) {
         document.getElementById("zim-catalog-note").textContent = error.message;
       } finally {
-        button.disabled = false;
-        button.textContent = "Download Selected ZIMs";
+        button.disabled = latestContentApply?.status === "running";
+        button.textContent = "Review Download";
       }
     }
 
@@ -4501,7 +4622,7 @@
       }
     }
 
-    async function installSelectedRegions() {
+    async function installSelectedRegions(ids) {
       const button = document.getElementById("sync-maps-button");
       const note = document.getElementById("maps-sync-status");
       button.disabled = true;
@@ -4509,7 +4630,7 @@
         const { response, payload } = await fetchJsonWithTimeout("/api/maps/regions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ region_ids: [...selectedRegions] })
+          body: JSON.stringify({ region_ids: ids })
         });
         if (!response.ok) throw new Error(payload.error || "Unable to start installing U.S. regions.");
         renderMapSyncState(payload);
@@ -4604,7 +4725,22 @@
     document.getElementById("select-all-zims-button").addEventListener("click", selectAllCatalogZims);
     document.getElementById("clear-all-zims-button").addEventListener("click", clearAllCatalogZims);
     document.getElementById("refresh-zim-catalog-button").addEventListener("click", refreshZimCatalog);
-    document.getElementById("download-selected-zims-button").addEventListener("click", downloadSelectedZims);
+    document.getElementById("retry-content-downloads").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/content/retry-downloads", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: "{}"
+        });
+        if (!response.ok) throw new Error(payload.error || "Unable to retry failed downloads.");
+        renderApplyState(payload);
+      } catch (error) {
+        setContentActionStatus(error.message, true);
+      } finally {
+        button.disabled = false;
+      }
+    });
+    document.getElementById("download-selected-zims-button").addEventListener("click", reviewContentDownload);
     document.getElementById("content-zim-mirror").addEventListener("change", saveZimMirror);
     document.getElementById("content-install-target").addEventListener("change", saveContentInstallTarget);
     document.getElementById("toggle-add-content-button").addEventListener("click", () => {
@@ -4672,12 +4808,23 @@
       restartApplicationService(button.dataset.serviceId || "");
     });
     document.getElementById("save-map-button").addEventListener("click", saveMapSelection);
+    document.getElementById("toggle-add-maps-button").addEventListener("click", (event) => {
+      const hidden = document.getElementById("add-maps-card").classList.toggle("hidden");
+      event.currentTarget.setAttribute("aria-expanded", String(!hidden));
+      event.currentTarget.textContent = hidden ? "Add Maps" : "Hide Map Catalog";
+    });
+
+    document.getElementById("retry-map-downloads").addEventListener("click", () => {
+      const { operation, ids } = mapRetry;
+      reviewMapDownload(operation, ids);
+    });
+
     document.getElementById("maps-install-target").addEventListener("change", saveMapsInstallTarget);
     document.getElementById("select-all-maps-button").addEventListener("click", selectAllMaps);
     document.getElementById("select-all-local-maps-button").addEventListener("click", selectAllLocalMaps);
     document.getElementById("clear-local-maps-button").addEventListener("click", clearLocalMapsSelection);
     document.getElementById("remove-local-maps-button").addEventListener("click", removeSelectedLocalMaps);
-    document.getElementById("sync-maps-button").addEventListener("click", installSelectedRegions);
+    document.getElementById("sync-maps-button").addEventListener("click", () => reviewMapDownload("regions", [...selectedRegions]));
     document.getElementById("maps-catalog-list").addEventListener("change", (event) => {
       if (!event.target.classList.contains("map-catalog-checkbox")) return;
       if (event.target.checked) selectedRegions.add(event.target.value);
@@ -4691,9 +4838,6 @@
     });
     document.getElementById("toggle-maps-log-button").addEventListener("click", () => {
       togglePanel("maps-log-panel", "toggle-maps-log-button", "Show Map Sync Log", "Hide Map Sync Log");
-    });
-    document.querySelectorAll(".tab-button").forEach((button) => {
-      button.addEventListener("click", () => setActivePanel(button.dataset.panel));
     });
     document.getElementById("back-button").addEventListener("click", () => {
       if (window.history.length > 1) {
@@ -4746,7 +4890,7 @@
       selectedCountries.clear();
       renderCountryMapPicker();
     });
-    document.getElementById("install-country-maps").addEventListener("click", installSelectedCountries);
+    document.getElementById("install-country-maps").addEventListener("click", () => reviewMapDownload("countries", [...selectedCountries]));
     document.getElementById("cancel-map-build").addEventListener("click", cancelMapExtraction);
     window.addEventListener("hashchange", () => setActivePanel(initialPanelFromLocation()));
     setActivePanel(initialPanelFromLocation());
