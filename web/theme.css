@@ -1,0 +1,107 @@
+/*
+ * PrepperCache
+ * Copyright (c) 2026 Aaron Morris / A2ThreeD.
+ * Portal appearance and theme tokens.
+ */
+
+[data-theme="charcoal-blue"] {
+  color-scheme: dark;
+  --bg-primary: #151b21;
+  --bg-secondary: #1b232b;
+  --bg-card: #212a33;
+  --bg-card-hover: #293641;
+  --bg-sidebar: #171e25;
+  --accent-primary: #38b6ff;
+  --accent-secondary: #52bfff;
+  --accent-hover: #72ceff;
+  --accent-subtle: rgba(56, 182, 255, 0.12);
+  --text-primary: #f4f8fa;
+  --text-secondary: #b7c7d2;
+  --text-muted: #91a4b2;
+  --text-on-accent: #071d2a;
+  --border-primary: #40505d;
+  --border-subtle: #303e49;
+  --border-focus: #38b6ff;
+  --button-primary-bg: #168dd0;
+  --button-primary-hover: #27a9f0;
+  --button-secondary-bg: #283641;
+  --button-secondary-hover: #344552;
+  --status-success: #4ade80;
+  --status-warning: #fbbf24;
+  --status-error: #f87171;
+  --status-info: #38b6ff;
+  --status-error-bg: #38262c;
+  --status-warning-bg: #382f20;
+  --status-success-bg: #22362e;
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.20);
+  --radius-card: 8px;
+  --radius-button: 6px;
+  --shadow-strong-tint: rgba(0, 0, 0, 0.18);
+  --shadow-soft-tint: rgba(0, 0, 0, 0.09);
+}
+
+[data-theme="charcoal-blue"] body { background: var(--bg-primary); }
+[data-theme="charcoal-blue"] .sidebar,
+[data-theme="charcoal-blue"] .section-tabs { background: var(--bg-sidebar); }
+[data-theme="charcoal-blue"] .masthead {
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-subtle);
+}
+[data-theme="charcoal-blue"] .masthead img {
+  width: auto;
+  max-width: 100%;
+  max-height: 138px;
+  margin: auto;
+}
+[data-theme="charcoal-blue"] .card,
+[data-theme="charcoal-blue"] .dashboard-tile {
+  background: var(--bg-card);
+  border-color: var(--border-primary);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+html[data-theme="charcoal-blue"] .button.button {
+  border-radius: var(--radius-button);
+  border-color: var(--border-primary);
+  background: var(--button-secondary-bg);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+html[data-theme="charcoal-blue"] .button.button:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--button-secondary-hover);
+  border-color: var(--text-muted);
+  box-shadow: none;
+}
+html[data-theme="charcoal-blue"] .button.button:is(.primary, .success, .tab-button.active):where(:not(:disabled, [aria-disabled="true"])) {
+  background: var(--button-primary-bg);
+  color: var(--text-on-accent);
+}
+html[data-theme="charcoal-blue"] .button.button:is(.primary, .success, .tab-button.active):hover:not(:disabled, [aria-disabled="true"]) {
+  background: var(--button-primary-hover);
+  color: var(--text-on-accent);
+}
+[data-theme="charcoal-blue"] .tab-button.active[data-icon]::before {
+  color: var(--text-on-accent);
+}
+[data-theme="charcoal-blue"] .tab-button:not(.active) { color: var(--text-secondary); }
+html[data-theme="charcoal-blue"] .button.button:is(:disabled, [aria-disabled="true"]) {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  opacity: 1;
+}
+[data-theme="charcoal-blue"] :focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 3px;
+}
+[data-theme="charcoal-blue"] .progress-track { background: var(--border-subtle); }
+[data-theme="charcoal-blue"] .progress-fill { background: var(--accent-primary); }
+
+.appearance-control {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin: 0 0 1rem;
+}
+.appearance-control label { font-weight: 600; }
+.appearance-control select { width: auto; }

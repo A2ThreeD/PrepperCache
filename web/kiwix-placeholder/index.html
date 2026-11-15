@@ -2,6 +2,8 @@
 <!-- PrepperCache. Copyright (c) 2026 Aaron Morris / A2ThreeD. -->
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="theme.css">
+  <script src="theme.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PrepperCache Library</title>
@@ -9,8 +11,8 @@
     body {
       margin: 0;
       font-family: "Segoe UI", "Noto Sans", sans-serif;
-      background: #ffffff;
-      color: #172b2d;
+      background: var(--bg-secondary, #ffffff);
+      color: var(--text-primary, #172b2d);
       padding: 40px 16px;
     }
 
@@ -18,21 +20,21 @@
       max-width: 760px;
       margin: 0 auto;
       padding: 24px;
-      border: 1px solid #8da9a5;
+      border: 1px solid var(--border-primary, #8da9a5);
       border-radius: 18px;
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
     }
 
     img { display: block; width: min(100%, 360px); height: auto; margin-bottom: 1rem; border-radius: 6px; }
 
     p {
-      color: #172b2d;
+      color: var(--text-primary, #172b2d);
     }
   </style>
 </head>
 <body>
   <main>
-    <a href="/"><img src="images/preppercache.png" alt="PrepperCache home" width="2172" height="724"></a>
+    <a href="/"><img src="images/preppercache.png" data-light-src="images/preppercache.png" data-blue-src="images/preppercache-blue.png" alt="PrepperCache home" width="2172" height="724"></a>
     <h1>Kiwix Content Not Ready Yet</h1>
     <p>The Kiwix service is online, but the library is still empty. Use the setup/apply flow or the download script to load ZIM content.</p>
   </main>

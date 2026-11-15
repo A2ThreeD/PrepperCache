@@ -4,21 +4,23 @@
      Offline portal interface. -->
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/theme.css">
+  <script src="/theme.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PrepperCache Offline Maps</title>
   <link rel="stylesheet" href="/maps/vendor/maplibre-gl/maplibre-gl.css">
   <style>
     :root {
-      --bg: #f3f7f6;
-      --panel: #ffffff;
-      --panel-2: #edf5f3;
-      --text: #172b2d;
-      --muted: #496163;
-      --accent: #006e68;
-      --border: #a9bfbb;
-      --scrollbar-thumb: #789793;
-      --scrollbar-track: #e5eeec;
+      --bg: var(--bg-primary, #f3f7f6);
+      --panel: var(--bg-card, #ffffff);
+      --panel-2: var(--bg-secondary, #edf5f3);
+      --text: var(--text-primary, #172b2d);
+      --muted: var(--text-secondary, #496163);
+      --accent: var(--accent-primary, #006e68);
+      --border: var(--border-primary, #a9bfbb);
+      --scrollbar-thumb: var(--text-muted, #789793);
+      --scrollbar-track: var(--border-subtle, #e5eeec);
       --shadow: 0 22px 54px rgba(0, 0, 0, 0.34);
       --ui-display: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
       --ui-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
@@ -49,8 +51,8 @@
       min-height: 100vh;
       color: var(--text);
       background:
-        radial-gradient(900px 420px at 50% -10%, rgba(96, 159, 153, 0.12), transparent 60%),
-        linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+        radial-gradient(900px 420px at 50% -10%, var(--accent-subtle, rgba(96, 159, 153, 0.12)), transparent 60%),
+        linear-gradient(180deg, var(--bg-secondary, #ffffff) 0%, var(--bg) 100%);
       font-family: var(--ui-body);
       letter-spacing: 0.02em;
     }
@@ -65,8 +67,8 @@
       padding: 22px;
       border-right: 1px solid var(--border);
       background:
-        linear-gradient(180deg, rgba(96, 159, 153, 0.12), rgba(96, 159, 153, 0.12)),
-        #ffffff;
+        linear-gradient(180deg, var(--accent-subtle, rgba(96, 159, 153, 0.12)), var(--accent-subtle, rgba(96, 159, 153, 0.12))),
+        var(--bg-secondary, #ffffff);
       box-shadow: var(--shadow);
       position: relative;
       z-index: 2;
@@ -111,7 +113,7 @@
       border: 1px solid var(--border);
       background: var(--panel);
       border-radius: 0;
-      box-shadow: inset 0 0 0 1px rgba(23, 43, 45, 0.06);
+      box-shadow: inset 0 0 0 1px var(--shadow-soft-tint, rgba(23, 43, 45, 0.06));
     }
 
     .card h2 {
@@ -150,21 +152,21 @@
       justify-content: center;
       min-width: 142px;
       padding: 11px 14px;
-      border: 1px solid #8da9a5;
-      background: #e0efec;
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--button-secondary-bg, #e0efec);
       color: var(--text);
       text-decoration: none;
       cursor: pointer;
       font: inherit;
       border-radius: 0;
-      border-top-color: #8da9a5;
-      border-left-color: #8da9a5;
-      border-right-color: #8da9a5;
-      border-bottom-color: #8da9a5;
+      border-top-color: var(--border-primary, #8da9a5);
+      border-left-color: var(--border-primary, #8da9a5);
+      border-right-color: var(--border-primary, #8da9a5);
+      border-bottom-color: var(--border-primary, #8da9a5);
       box-shadow:
-        inset 1px 1px 0 rgba(23, 43, 45, 0.06),
-        inset -1px -2px 0 rgba(23, 43, 45, 0.12),
-        0 8px 18px rgba(23, 43, 45, 0.12);
+        inset 1px 1px 0 var(--shadow-soft-tint, rgba(23, 43, 45, 0.06)),
+        inset -1px -2px 0 var(--shadow-strong-tint, rgba(23, 43, 45, 0.12)),
+        0 8px 18px var(--shadow-strong-tint, rgba(23, 43, 45, 0.12));
       transition:
         background-color 0.14s ease,
         border-color 0.14s ease,
@@ -178,7 +180,7 @@
     }
 
     .button.secondary {
-      background: linear-gradient(180deg, #e0efec, #ffffff);
+      background: linear-gradient(180deg, var(--button-secondary-bg, #e0efec), var(--bg-secondary, #ffffff));
     }
 
     .home-link,
@@ -192,29 +194,29 @@
     }
 
     .button:hover {
-      border-color: #8da9a5;
+      border-color: var(--border-primary, #8da9a5);
       box-shadow:
-        inset 1px 1px 0 rgba(23, 43, 45, 0.06),
-        inset -1px -2px 0 rgba(23, 43, 45, 0.12),
-        0 10px 22px rgba(23, 43, 45, 0.12);
+        inset 1px 1px 0 var(--shadow-soft-tint, rgba(23, 43, 45, 0.06)),
+        inset -1px -2px 0 var(--shadow-strong-tint, rgba(23, 43, 45, 0.12)),
+        0 10px 22px var(--shadow-strong-tint, rgba(23, 43, 45, 0.12));
     }
 
     .button:active {
       transform: translateY(2px);
-      border-top-color: #8da9a5;
-      border-left-color: #8da9a5;
-      border-right-color: #8da9a5;
-      border-bottom-color: #8da9a5;
+      border-top-color: var(--border-primary, #8da9a5);
+      border-left-color: var(--border-primary, #8da9a5);
+      border-right-color: var(--border-primary, #8da9a5);
+      border-bottom-color: var(--border-primary, #8da9a5);
       box-shadow:
-        inset -1px -1px 0 rgba(23, 43, 45, 0.06),
-        inset 1px 1px 0 rgba(23, 43, 45, 0.12),
-        0 3px 8px rgba(23, 43, 45, 0.12);
+        inset -1px -1px 0 var(--shadow-soft-tint, rgba(23, 43, 45, 0.06)),
+        inset 1px 1px 0 var(--shadow-strong-tint, rgba(23, 43, 45, 0.12)),
+        0 3px 8px var(--shadow-strong-tint, rgba(23, 43, 45, 0.12));
     }
 
     .button:focus-visible {
       outline: 2px solid #8da9a5;
       outline-offset: 2px;
-      border-color: #8da9a5;
+      border-color: var(--border-primary, #8da9a5);
     }
 
     .field {
@@ -243,7 +245,7 @@
       width: 100%;
       padding: 11px 12px;
       border: 1px solid var(--border);
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
       color: var(--text);
       font: inherit;
       border-radius: 0;
@@ -259,7 +261,7 @@
       width: 100%;
       padding: 11px 12px;
       border: 1px solid var(--border);
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
       color: var(--text);
       font: inherit;
       border-radius: 0;
@@ -288,7 +290,7 @@
       min-width: 46px;
       padding: 8px 10px;
       border: 1px solid var(--border);
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
       text-align: center;
       font-family: var(--ui-display);
       letter-spacing: 0.05em;
@@ -306,9 +308,9 @@
       align-items: center;
       gap: 8px;
       padding: 7px 10px;
-      border: 1px solid #8da9a5;
-      background: #ffffff;
-      color: #172b2d;
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--bg-secondary, #ffffff);
+      color: var(--text-primary, #172b2d);
       font: 0.76rem/1 var(--ui-display);
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -320,28 +322,28 @@
       width: 8px;
       height: 8px;
       border: 1px solid currentColor;
-      background: rgba(96, 159, 153, 0.12);
+      background: var(--accent-subtle, rgba(96, 159, 153, 0.12));
       flex: 0 0 auto;
     }
 
     .status-chip.ok {
-      border-color: #8da9a5;
-      color: #21653e;
+      border-color: var(--border-primary, #8da9a5);
+      color: var(--status-success, #21653e);
     }
 
     .status-chip.warn {
-      border-color: #8da9a5;
-      color: #6e4b0d;
+      border-color: var(--border-primary, #8da9a5);
+      color: var(--status-warning, #6e4b0d);
     }
 
     .status-chip.error {
-      border-color: #b96767;
-      color: #8a2828;
+      border-color: var(--status-error, #b96767);
+      color: var(--status-error, #8a2828);
     }
 
     .status-chip.muted {
-      border-color: #8da9a5;
-      color: #172b2d;
+      border-color: var(--border-primary, #8da9a5);
+      color: var(--text-primary, #172b2d);
     }
 
     .map-shell {
@@ -364,7 +366,7 @@
       z-index: 500;
       padding: 12px 14px;
       border: 1px solid var(--border);
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
       box-shadow: var(--shadow);
       color: var(--text);
       border-radius: 0;
@@ -418,7 +420,7 @@
         <a class="button home-link" href="/" aria-label="Return to main page" title="Home"><span aria-hidden="true">🏠</span></a>
         <a class="button secondary settings-link" href="/admin#maps" aria-label="Open map settings" title="Map Settings"><span aria-hidden="true">⚙️</span></a>
       </div>
-      <a class="brand-link" href="/"><img src="/images/preppercache.png" alt="PrepperCache home" width="2172" height="724"></a>
+      <a class="brand-link" href="/"><img src="/images/preppercache.png" data-light-src="/images/preppercache.png" data-blue-src="/images/preppercache-blue.png" alt="PrepperCache home" width="2172" height="724"></a>
       <h1>Offline Maps</h1>
 
       <section class="card">

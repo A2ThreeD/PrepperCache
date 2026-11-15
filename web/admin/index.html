@@ -4,20 +4,22 @@
      Offline portal interface. -->
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/theme.css">
+  <script src="/theme.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PrepperCache Settings</title>
   <style>
     :root {
-      --bg: #f3f7f6;
-      --panel: #ffffff;
-      --panel-2: #edf5f3;
-      --text: #172b2d;
-      --muted: #496163;
-      --accent: #006e68;
-      --border: #a9bfbb;
-      --scrollbar-thumb: #789793;
-      --scrollbar-track: #e5eeec;
+      --bg: var(--bg-primary, #f3f7f6);
+      --panel: var(--bg-card, #ffffff);
+      --panel-2: var(--bg-secondary, #edf5f3);
+      --text: var(--text-primary, #172b2d);
+      --muted: var(--text-secondary, #496163);
+      --accent: var(--accent-primary, #006e68);
+      --border: var(--border-primary, #a9bfbb);
+      --scrollbar-thumb: var(--text-muted, #789793);
+      --scrollbar-track: var(--border-subtle, #e5eeec);
       --ui-display: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
       --ui-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
     }
@@ -46,8 +48,8 @@
       margin: 0;
       min-height: 100vh;
       background:
-        radial-gradient(900px 420px at 50% -10%, rgba(96, 159, 153, 0.12), transparent 60%),
-        linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+        radial-gradient(900px 420px at 50% -10%, var(--accent-subtle, rgba(96, 159, 153, 0.12)), transparent 60%),
+        linear-gradient(180deg, var(--bg-secondary, #ffffff) 0%, var(--bg) 100%);
       color: var(--text);
       font-family: var(--ui-body);
       letter-spacing: 0.02em;
@@ -66,9 +68,9 @@
       border: 1px solid var(--border);
       border-radius: 0;
       background:
-        linear-gradient(180deg, rgba(96, 159, 153, 0.12), rgba(96, 159, 153, 0.12)),
+        linear-gradient(180deg, var(--accent-subtle, rgba(96, 159, 153, 0.12)), var(--accent-subtle, rgba(96, 159, 153, 0.12))),
         var(--panel);
-      box-shadow: 0 24px 60px rgba(23, 43, 45, 0.12);
+      box-shadow: 0 24px 60px var(--shadow-strong-tint, rgba(23, 43, 45, 0.12));
     }
 
     .top-actions {
@@ -125,7 +127,7 @@
       border-radius: 0;
       padding: 18px;
       background: var(--panel-2);
-      box-shadow: inset 0 0 0 1px rgba(23, 43, 45, 0.06);
+      box-shadow: inset 0 0 0 1px var(--shadow-soft-tint, rgba(23, 43, 45, 0.06));
     }
 
     .wifi-summary {
@@ -134,8 +136,8 @@
       margin-top: 12px;
       margin-bottom: 16px;
       padding: 12px 14px;
-      border: 1px solid #8da9a5;
-      background: #ffffff;
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--bg-secondary, #ffffff);
     }
 
     .wifi-summary-row {
@@ -176,20 +178,20 @@
       min-width: 160px;
       text-decoration: none;
       color: var(--text);
-      border: 1px solid #8da9a5;
+      border: 1px solid var(--border-primary, #8da9a5);
       border-radius: 0;
       padding: 12px 16px;
-      background: #e0efec;
+      background: var(--button-secondary-bg, #e0efec);
       cursor: pointer;
       font: inherit;
-      border-top-color: #8da9a5;
-      border-left-color: #8da9a5;
-      border-right-color: #8da9a5;
-      border-bottom-color: #8da9a5;
+      border-top-color: var(--border-primary, #8da9a5);
+      border-left-color: var(--border-primary, #8da9a5);
+      border-right-color: var(--border-primary, #8da9a5);
+      border-bottom-color: var(--border-primary, #8da9a5);
       box-shadow:
-        inset 1px 1px 0 rgba(23, 43, 45, 0.06),
-        inset -1px -2px 0 rgba(23, 43, 45, 0.12),
-        0 8px 18px rgba(23, 43, 45, 0.12);
+        inset 1px 1px 0 var(--shadow-soft-tint, rgba(23, 43, 45, 0.06)),
+        inset -1px -2px 0 var(--shadow-strong-tint, rgba(23, 43, 45, 0.12)),
+        0 8px 18px var(--shadow-strong-tint, rgba(23, 43, 45, 0.12));
       transition:
         background-color 0.14s ease,
         border-color 0.14s ease,
@@ -249,29 +251,29 @@
     }
 
     .button:hover:not(:disabled) {
-      border-color: #8da9a5;
+      border-color: var(--border-primary, #8da9a5);
       box-shadow:
-        inset 1px 1px 0 rgba(23, 43, 45, 0.06),
-        inset -1px -2px 0 rgba(23, 43, 45, 0.12),
-        0 10px 22px rgba(23, 43, 45, 0.12);
+        inset 1px 1px 0 var(--shadow-soft-tint, rgba(23, 43, 45, 0.06)),
+        inset -1px -2px 0 var(--shadow-strong-tint, rgba(23, 43, 45, 0.12)),
+        0 10px 22px var(--shadow-strong-tint, rgba(23, 43, 45, 0.12));
     }
 
     .button:active:not(:disabled) {
       transform: translateY(2px);
-      border-top-color: #8da9a5;
-      border-left-color: #8da9a5;
-      border-right-color: #8da9a5;
-      border-bottom-color: #8da9a5;
+      border-top-color: var(--border-primary, #8da9a5);
+      border-left-color: var(--border-primary, #8da9a5);
+      border-right-color: var(--border-primary, #8da9a5);
+      border-bottom-color: var(--border-primary, #8da9a5);
       box-shadow:
-        inset -1px -1px 0 rgba(23, 43, 45, 0.06),
-        inset 1px 1px 0 rgba(23, 43, 45, 0.12),
-        0 3px 8px rgba(23, 43, 45, 0.12);
+        inset -1px -1px 0 var(--shadow-soft-tint, rgba(23, 43, 45, 0.06)),
+        inset 1px 1px 0 var(--shadow-strong-tint, rgba(23, 43, 45, 0.12)),
+        0 3px 8px var(--shadow-strong-tint, rgba(23, 43, 45, 0.12));
     }
 
     .button:focus-visible {
       outline: 2px solid #8da9a5;
       outline-offset: 2px;
-      border-color: #8da9a5;
+      border-color: var(--border-primary, #8da9a5);
     }
 
     .section-tabs {
@@ -279,26 +281,26 @@
       gap: 0;
       flex-wrap: wrap;
       margin-top: 20px;
-      border-bottom: 1px solid #8da9a5;
+      border-bottom: 1px solid var(--border-primary, #8da9a5);
     }
 
     .tab-button {
       min-width: 0;
       margin: 0 8px -1px 0;
       padding: 11px 16px;
-      border-bottom-color: #8da9a5;
-      background: #ffffff;
+      border-bottom-color: var(--border-primary, #8da9a5);
+      background: var(--bg-secondary, #ffffff);
       box-shadow: none;
     }
 
     .tab-button.active {
-      background: #ffffff;
-      color: #172b2d;
-      border-color: #8da9a5;
-      border-bottom-color: #8da9a5;
+      background: var(--bg-secondary, #ffffff);
+      color: var(--text-primary, #172b2d);
+      border-color: var(--border-primary, #8da9a5);
+      border-bottom-color: var(--border-primary, #8da9a5);
       box-shadow:
-        inset 1px 1px 0 rgba(23, 43, 45, 0.06),
-        inset -1px 0 0 rgba(23, 43, 45, 0.12);
+        inset 1px 1px 0 var(--shadow-soft-tint, rgba(23, 43, 45, 0.06)),
+        inset -1px 0 0 var(--shadow-strong-tint, rgba(23, 43, 45, 0.12));
       font-weight: 700;
     }
 
@@ -336,9 +338,9 @@
       align-items: center;
       gap: 8px;
       padding: 7px 10px;
-      border: 1px solid #8da9a5;
-      background: #ffffff;
-      color: #172b2d;
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--bg-secondary, #ffffff);
+      color: var(--text-primary, #172b2d);
       font: 0.76rem/1 var(--ui-display);
       letter-spacing: 0.09em;
       text-transform: uppercase;
@@ -350,39 +352,39 @@
       width: 8px;
       height: 8px;
       border: 1px solid currentColor;
-      background: rgba(96, 159, 153, 0.12);
+      background: var(--accent-subtle, rgba(96, 159, 153, 0.12));
       flex: 0 0 auto;
     }
 
     .status-chip-key {
-      color: #324e50;
+      color: var(--text-secondary, #324e50);
     }
 
     .status-chip-value {
-      color: #172b2d;
+      color: var(--text-primary, #172b2d);
     }
 
     .status-chip--ok {
-      border-color: #8da9a5;
-      color: #21653e;
-      box-shadow: inset 0 0 0 1px rgba(23, 43, 45, 0.06);
+      border-color: var(--border-primary, #8da9a5);
+      color: var(--status-success, #21653e);
+      box-shadow: inset 0 0 0 1px var(--shadow-soft-tint, rgba(23, 43, 45, 0.06));
     }
 
     .status-chip--warn {
-      border-color: #8da9a5;
-      color: #6e4b0d;
-      box-shadow: inset 0 0 0 1px rgba(23, 43, 45, 0.06);
+      border-color: var(--border-primary, #8da9a5);
+      color: var(--status-warning, #6e4b0d);
+      box-shadow: inset 0 0 0 1px var(--shadow-soft-tint, rgba(23, 43, 45, 0.06));
     }
 
     .status-chip--error {
-      border-color: #b96767;
-      color: #8a2828;
-      box-shadow: inset 0 0 0 1px rgba(23, 43, 45, 0.06);
+      border-color: var(--status-error, #b96767);
+      color: var(--status-error, #8a2828);
+      box-shadow: inset 0 0 0 1px var(--shadow-soft-tint, rgba(23, 43, 45, 0.06));
     }
 
     .status-chip--muted {
-      border-color: #8da9a5;
-      color: #172b2d;
+      border-color: var(--border-primary, #8da9a5);
+      color: var(--text-primary, #172b2d);
     }
 
     .system-services {
@@ -394,7 +396,7 @@
     .system-service-card {
       padding: 12px 14px;
       border: 1px solid var(--border);
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
     }
 
     .system-service-top {
@@ -445,7 +447,7 @@
       margin-top: 16px;
       padding: 12px 14px;
       border: 1px solid var(--border);
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
     }
 
     .power-controls-label {
@@ -467,14 +469,14 @@
       padding: 14px;
       border-radius: 0;
       border: 1px solid var(--border);
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
     }
 
     .content-storage {
       margin-top: 14px;
       padding: 12px 14px;
       border: 1px solid var(--border);
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
     }
 
     .content-storage-summary {
@@ -487,8 +489,8 @@
       display: flex;
       width: 100%;
       min-height: 14px;
-      border: 1px solid #8da9a5;
-      background: #ffffff;
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--bg-secondary, #ffffff);
       overflow: hidden;
     }
 
@@ -501,7 +503,7 @@
     }
 
     .content-storage-segment.content {
-      background: #007e76;
+      background: var(--accent-primary, #007e76);
     }
 
     .content-storage-segment.content-external {
@@ -509,7 +511,7 @@
     }
 
     .content-storage-segment.free {
-      background: #d8e8e4;
+      background: var(--border-subtle, #d8e8e4);
     }
 
     .content-storage-legend {
@@ -520,8 +522,8 @@
     }
 
     .content-storage-chip {
-      border: 1px solid #8da9a5;
-      background: #ffffff;
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--bg-secondary, #ffffff);
       padding: 8px 10px;
       font-size: 0.8rem;
     }
@@ -535,24 +537,24 @@
     .content-storage-swatch {
       width: 10px;
       height: 10px;
-      border: 1px solid #8da9a5;
+      border: 1px solid var(--border-primary, #8da9a5);
       flex: 0 0 auto;
     }
 
     .content-storage-swatch.other {
-      background: #e0efec;
+      background: var(--button-secondary-bg, #e0efec);
     }
 
     .content-storage-swatch.content {
-      background: #e2f1e7;
+      background: var(--status-success-bg, #e2f1e7);
     }
 
     .content-storage-swatch.content-external {
-      background: #fbefd6;
+      background: var(--status-warning-bg, #fbefd6);
     }
 
     .content-storage-swatch.free {
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
     }
 
     .content-storage-chip span {
@@ -571,24 +573,24 @@
       display: none;
       margin-top: 8px;
       padding: 8px 10px;
-      border: 1px solid #8da9a5;
-      background: #ffffff;
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--bg-secondary, #ffffff);
       font-size: 0.8rem;
       line-height: 1.35;
     }
 
     .content-storage-warning.warn {
       display: block;
-      border-color: #8da9a5;
-      background: #fbefd6;
-      color: #6e4b0d;
+      border-color: var(--border-primary, #8da9a5);
+      background: var(--status-warning-bg, #fbefd6);
+      color: var(--status-warning, #6e4b0d);
     }
 
     .content-storage-warning.danger {
       display: block;
-      border-color: #b96767;
-      background: #f7e4e4;
-      color: #8a2828;
+      border-color: var(--status-error, #b96767);
+      background: var(--status-error-bg, #f7e4e4);
+      color: var(--status-error, #8a2828);
     }
 
     .external-storage-breakdowns {
@@ -599,8 +601,8 @@
 
     .external-storage-breakdown {
       padding: 12px;
-      border: 1px solid #8da9a5;
-      background: rgba(96, 159, 153, 0.12);
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--accent-subtle, rgba(96, 159, 153, 0.12));
     }
 
     .external-storage-breakdown-header {
@@ -653,8 +655,8 @@
       height: 12px;
       overflow: hidden;
       border-radius: 0;
-      background: rgba(96, 159, 153, 0.12);
-      border: 1px solid #8da9a5;
+      background: var(--accent-subtle, rgba(96, 159, 153, 0.12));
+      border: 1px solid var(--border-primary, #8da9a5);
     }
 
     .progress-fill {
@@ -662,7 +664,7 @@
       width: 0%;
       border-radius: 0;
       background: var(--accent);
-      box-shadow: 0 0 20px rgba(23, 43, 45, 0.06);
+      box-shadow: 0 0 20px var(--shadow-soft-tint, rgba(23, 43, 45, 0.06));
       transition: width 0.25s ease;
     }
 
@@ -670,7 +672,7 @@
       margin-top: 14px;
       border-radius: 0;
       border: 1px solid var(--border);
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
       padding: 12px 14px;
     }
 
@@ -681,7 +683,7 @@
       gap: 6px 10px;
       margin-bottom: 0;
       padding: 8px 0;
-      border-bottom: 1px solid #8da9a5;
+      border-bottom: 1px solid var(--border-primary, #8da9a5);
       font-size: 0.75rem;
       line-height: 1.2;
     }
@@ -716,9 +718,9 @@
       align-items: center;
       margin-left: 0.45rem;
       padding: 0.08rem 0.38rem;
-      border: 1px solid #8da9a5;
-      background: #fbefd6;
-      color: #6e4b0d;
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--status-warning-bg, #fbefd6);
+      color: var(--status-warning, #6e4b0d);
       font-size: 0.62rem;
       font-weight: 700;
       letter-spacing: 0.04em;
@@ -744,9 +746,9 @@
       overflow: auto;
       white-space: pre-wrap;
       word-break: break-word;
-      color: #172b2d;
-      background: #ffffff;
-      border: 1px solid #8da9a5;
+      color: var(--text-primary, #172b2d);
+      background: var(--bg-secondary, #ffffff);
+      border: 1px solid var(--border-primary, #8da9a5);
       padding: 10px 12px;
       font: 0.8rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
@@ -767,7 +769,7 @@
     .map-download-source {
       margin-top: 0.85rem;
       padding: 0.7rem 0.85rem;
-      border: 1px solid #8da9a5;
+      border: 1px solid var(--border-primary, #8da9a5);
       border-radius: 0.6rem;
       min-width: 0;
     }
@@ -851,8 +853,8 @@
     .content-set-box {
       margin-top: 14px;
       padding: 12px 14px;
-      border: 1px solid #8da9a5;
-      background: #ffffff;
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--bg-secondary, #ffffff);
     }
 
     .content-set-box strong {
@@ -876,8 +878,8 @@
       min-width: 180px;
       padding: 10px 14px;
       margin: 8px 0 10px;
-      border: 1px solid #8da9a5;
-      background: #e0efec;
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--button-secondary-bg, #e0efec);
       color: var(--text);
       font-family: var(--ui-display);
       font-size: 0.9rem;
@@ -920,8 +922,8 @@
     }
 
     .files-pane {
-      border: 1px solid #8da9a5;
-      background: rgba(96, 159, 153, 0.12);
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--accent-subtle, rgba(96, 159, 153, 0.12));
       padding: 12px;
     }
 
@@ -956,8 +958,8 @@
       min-height: 420px;
       max-height: 620px;
       overflow: auto;
-      border: 1px solid #8da9a5;
-      background: #ffffff;
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--bg-secondary, #ffffff);
     }
 
     .files-header,
@@ -973,8 +975,8 @@
       top: 0;
       z-index: 1;
       padding: 8px 12px;
-      border-bottom: 1px solid #8da9a5;
-      background: #ffffff;
+      border-bottom: 1px solid var(--border-primary, #8da9a5);
+      background: var(--bg-secondary, #ffffff);
     }
 
     .files-header-button {
@@ -1014,7 +1016,7 @@
       width: 100%;
       padding: 10px 12px;
       border: 0;
-      border-bottom: 1px solid #8da9a5;
+      border-bottom: 1px solid var(--border-primary, #8da9a5);
       background: transparent;
       color: var(--text);
       text-align: left;
@@ -1023,11 +1025,11 @@
     }
 
     .files-entry:hover {
-      background: rgba(96, 159, 153, 0.12);
+      background: var(--accent-subtle, rgba(96, 159, 153, 0.12));
     }
 
     .files-entry.selected {
-      background: rgba(96, 159, 153, 0.12);
+      background: var(--accent-subtle, rgba(96, 159, 153, 0.12));
     }
 
     .files-entry-name {
@@ -1053,8 +1055,8 @@
       min-height: 180px;
       max-height: 460px;
       overflow: auto;
-      border: 1px solid #8da9a5;
-      background: #ffffff;
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--bg-secondary, #ffffff);
     }
 
     .zim-installed-header {
@@ -1066,8 +1068,8 @@
       top: 0;
       z-index: 1;
       padding: 8px 12px;
-      border-bottom: 1px solid #8da9a5;
-      background: #ffffff;
+      border-bottom: 1px solid var(--border-primary, #8da9a5);
+      background: var(--bg-secondary, #ffffff);
     }
 
     .zim-installed-header-button {
@@ -1094,7 +1096,7 @@
       gap: 6px 10px;
       margin-bottom: 0;
       padding: 8px 12px;
-      border-bottom: 1px solid #8da9a5;
+      border-bottom: 1px solid var(--border-primary, #8da9a5);
       font-size: 0.75rem;
       line-height: 1.2;
     }
@@ -1137,7 +1139,7 @@
     .health-card {
       padding: 14px;
       border: 1px solid var(--border);
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
     }
 
     .health-card strong {
@@ -1168,8 +1170,8 @@
       width: 100%;
       height: 8px;
       overflow: hidden;
-      border: 1px solid #8da9a5;
-      background: rgba(96, 159, 153, 0.12);
+      border: 1px solid var(--border-primary, #8da9a5);
+      background: var(--accent-subtle, rgba(96, 159, 153, 0.12));
     }
 
     .meter-fill {
@@ -1180,20 +1182,20 @@
     }
 
     .meter-fill.temp-cool {
-      background: #21653e;
+      background: var(--status-success, #21653e);
     }
 
     .meter-fill.temp-warm {
-      background: #9b6516;
+      background: var(--status-warning, #9b6516);
     }
 
     .meter-fill.temp-hot {
-      background: #a13b3b;
+      background: var(--status-error, #a13b3b);
     }
 
     .storage-row {
       padding: 10px 0;
-      border-bottom: 1px solid #8da9a5;
+      border-bottom: 1px solid var(--border-primary, #8da9a5);
     }
 
     .storage-row:first-child {
@@ -1294,7 +1296,7 @@
       width: 100%;
       border-radius: 0;
       border: 1px solid var(--border);
-      background: #ffffff;
+      background: var(--bg-secondary, #ffffff);
       color: var(--text);
       padding: 12px 14px;
       font: inherit;
@@ -1353,7 +1355,7 @@
     }
 
     .tab-button.active, .files-entry.selected {
-      background: #e1f2ee;
+      background: var(--accent-subtle, #e1f2ee);
       border-color: var(--accent);
       box-shadow: inset 0 -3px var(--accent);
     }
@@ -1365,7 +1367,7 @@
       <button class="button back-link" id="back-button" type="button" aria-label="Go back" title="Back">←</button>
       <a class="button home-link" href="/" aria-label="Return to main page" title="Home">⌂</a>
     </div>
-    <a class="brand-link" href="/"><img src="/images/preppercache.png" alt="PrepperCache home" width="2172" height="724"></a>
+    <a class="brand-link" href="/"><img src="/images/preppercache.png" data-light-src="/images/preppercache.png" data-blue-src="/images/preppercache-blue.png" alt="PrepperCache home" width="2172" height="724"></a>
     <h1>Settings</h1>
     <p class="muted">
       PrepperCache system controls, content updates, and maintenance actions.
@@ -1405,6 +1407,13 @@
               <div class="subvalue" id="system-memory-detail">Available: loading</div>
               <div class="meter"><div class="meter-track"><div class="meter-fill" id="system-memory-fill"></div></div></div>
             </div>
+          </div>
+          <div class="appearance-control">
+            <label for="portal-theme">Appearance</label>
+            <select id="portal-theme">
+              <option value="charcoal-blue">Charcoal / Blue</option>
+              <option value="light">Light</option>
+            </select>
           </div>
           <div class="system-services" id="system-services-list">Checking application services...</div>
           <div class="actions">

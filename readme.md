@@ -1,6 +1,6 @@
 # PrepperCache
 
-![PrepperCache](images/preppercache.png)
+![PrepperCache](images/preppercache-blue.png)
 
 PrepperCache is an offline-first Raspberry Pi project for serving emergency preparedness, medical, survival, and general reference material on a local network.
 
@@ -121,6 +121,10 @@ To apply interface updates to an existing Pi checkout without restarting Prepper
 ## Moving an existing offline library
 
 For a fresh install, use the steps above. For an in-place cutover, back up the current configuration, library index, and service definitions first. Existing ZIM and PMTiles archives can be reused without downloading them again. Set their locations in `config/preppercache.env` before activating the new services. Rebuild the Kiwix index to regenerate category tags and verify that all map archives appear in Settings. The old stack and PrepperCache cannot serve the same ports at the same time; plan the cutover after all active jobs finish.
+
+## Appearance
+
+PrepperCache defaults to **Charcoal / Blue**. Choose **Light** under **Settings → System → Appearance**. See the [branding guide](docs/branding.md) for the artwork, palette, and styling conventions.
 
 ## Notes
 
