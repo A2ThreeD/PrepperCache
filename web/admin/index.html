@@ -233,11 +233,10 @@
     .button[data-icon="↻"]::before,
     .button[data-icon="↓"]::before { color: #006e68; }
 
-    .home-link, .back-link { color: #24558e; }
+    .back-link { color: #24558e; }
     .catalog-icon--download { color: #006e68; }
     .catalog-icon--installed { color: #56368e; }
 
-    .home-link,
     .back-link {
       width: 42px;
       height: 42px;
@@ -1367,7 +1366,7 @@
   <main>
     <div class="top-actions">
       <button class="button back-link" id="back-button" type="button" aria-label="Go back" title="Back">←</button>
-      <a class="button home-link" href="/" aria-label="Return to main page" title="Home">⌂</a>
+      <a class="button home-button home-button--icon" href="/" aria-label="Home" title="Home"><span class="home-icon" aria-hidden="true"></span></a>
       <div class="appearance-control">
         <label for="portal-theme">Appearance</label>
         <select id="portal-theme">
