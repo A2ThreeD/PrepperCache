@@ -12,7 +12,8 @@ permissions:
 
 jobs:
   checks:
-    runs-on: ubuntu-latest
+    # Keep the runner on a Linux image supported by the pinned Playwright release.
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
