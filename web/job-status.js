@@ -54,7 +54,11 @@
       const title = map ? "Offline maps" : setup ? "PrepperCache installation" : "Offline content";
       if (problem) {
         const failed = Number(state.download_failed);
-        return { title, detail: state.error || `Finished with ${failed} failed download${failed === 1 ? "" : "s"}.` };
+        const summary = state.error || `Finished with ${failed} failed download${failed === 1 ? "" : "s"}.`;
+        const filenames = state.failed_download_names || [];
+        const files = filenames.slice(0, 2).join(", ");
+        const more = filenames.length > 2 ? ` and ${filenames.length - 2} more` : "";
+        return { title, detail: files ? `${summary} ${files}${more}` : summary, problem: true };
       }
       const percent = map && state.total_files && state.current_index && Number.isFinite(state.current_percent)
         ? Math.floor(((state.current_index - 1) * 100 + state.current_percent) / state.total_files)
@@ -73,7 +77,7 @@
     function render() {
       const mapProblem = mapCanvas?.dataset.problem;
       const views = jobs.map((job, index) => displayJob(job, index === 1));
-      views.push(mapProblem ? { title: "Offline map problem", detail: mapProblem, problem: true } : null);
+      views.push(mapProblem ? { title: "Offline map problem", detail: mapProblem, problem: true, mapSettings: true } : null);
       const serialized = JSON.stringify(views);
       if (lastView === serialized) return;
       lastView = serialized;
@@ -88,8 +92,8 @@
         const title = document.createElement("strong");
         title.textContent = view.title;
         const link = document.createElement("a");
-        link.href = view.problem || index === 1 ? "/admin/#maps" : "/admin/#content";
-        link.textContent = view.problem ? "Map Settings" : "Details";
+        link.href = view.mapSettings || index === 1 ? "/admin/#maps" : "/admin/#content";
+        link.textContent = view.mapSettings ? "Map Settings" : "Details";
         const detail = document.createElement("p");
         detail.textContent = view.detail;
         header.append(title, link);

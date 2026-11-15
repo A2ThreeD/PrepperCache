@@ -2157,6 +2157,9 @@
         : state.status === "failed" ? (state.error || "Installation stopped. Check the log below.")
         : state.status === "succeeded" ? (failedDownloads ? `Setup finished with ${failedDownloads} failed download${failedDownloads === 1 ? "" : "s"}.` : "Setup finished.")
         : "Waiting to start.";
+      if (state.status !== "running" && state.failed_download_names?.length) {
+        applyStatusText.textContent += ` Failed files: ${state.failed_download_names.join(", ")}.`;
+      }
       renderZimProgress(state);
       applyLogText.textContent = state.log_tail && state.log_tail.length
         ? state.log_tail.join("\n")

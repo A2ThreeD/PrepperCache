@@ -1459,6 +1459,71 @@ class PortalState:
             "install_destinations": self.install_destinations("zims"),
         }
 
+    def content_set_plan(self, profile: str) -> tuple[dict, list[str]]:
+        if profile not in ("essential", "standard", "comprehensive"):
+            raise ValueError("Choose Essential, Standard, or Comprehensive.")
+
+        env = self.maps_env()
+        seen = {item["name"] for item in self.list_installed_zims()}
+        resources = self.curated_resources(profile, env.get("PREPPERCACHE_WIKIPEDIA_OPTION", "top-mini"))
+        library = self.preferred_zim_install_dir()
+        wikipedia = self.preferred_wikipedia_install_dir()
+        mounted = {Path(item["path"]) for item in self.install_destinations("zims") if item["mounted"]}
+        requirements: dict[Path, int] = {}
+        urls = []
+        unknown_sizes = 0
+        for resource in resources:
+            name, url = resource["filename"], resource["url"]
+            if name in seen:
+                continue
+            seen.add(name)
+            urls.append(url)
+            directory = wikipedia if "/zim/wikipedia/" in url or name.startswith("wikipedia_") else library
+            size = max(0, resource["size_mb"]) * 1024**2
+            unknown_sizes += size == 0
+            requirements[directory] = requirements.get(directory, 0) + size
+
+        disks = {}
+        problem = None
+        for directory, required_bytes in requirements.items():
+            try:
+                if directory not in mounted:
+                    raise FileNotFoundError(directory)
+                device = directory.stat().st_dev
+                free_bytes = shutil.disk_usage(directory).free
+            except OSError:
+                problem = f"Download destination unavailable: {directory}. Connect the drive or choose another destination."
+                continue
+            disk = disks.setdefault(device, {"destinations": [], "required_bytes": 0, "free_bytes": free_bytes})
+            disk["destinations"].append(str(directory))
+            disk["required_bytes"] += required_bytes
+
+        if not problem and any(disk["required_bytes"] > disk["free_bytes"] for disk in disks.values()):
+            problem = "Not enough free space. Free up space or choose another download destination."
+        return {
+            "download_count": len(urls),
+            "required_bytes": sum(requirements.values()),
+            "unknown_sizes": unknown_sizes,
+            "disks": list(disks.values()),
+            "problem": problem,
+        }, urls
+
+    def change_content_set(self, profile: str) -> dict:
+        with self.apply_lock, self.map_sync_lock:
+            if self.load_apply_state().get("status") == "running":
+                raise RuntimeError("Wait for the current content job to finish.")
+            plan, urls = self.content_set_plan(profile)
+            if plan["problem"]:
+                raise ValueError(plan["problem"])
+            if urls:
+                (self.data_dir / "content-set-urls.txt").write_text("\n".join(urls) + "\n")
+            update_env_file(self.preppercache_env, {
+                "PREPPERCACHE_ZIM_MODE": "full",
+                "PREPPERCACHE_ZIM_PROFILE": profile,
+            })
+            apply = self.launch_apply("change-content-set", clear_log=True) if urls else None
+        return {"content": self.content_status(), "apply": apply}
+
     def save_content_settings(self, payload: dict) -> dict:
         if "zim_mirror" in payload:
             mirror = self.validate_zim_mirror(payload["zim_mirror"])
@@ -1491,6 +1556,9 @@ class PortalState:
             # The Content settings page exposes a single destination selector for
             # new ZIM downloads, so keep the Wikipedia-specific path aligned too.
             updates["PREPPERCACHE_WIKIPEDIA_INSTALL_DIR"] = validated_install_dir
+            if not any(key in payload for key in ("library_preset", "custom_base_preset", "selected_paths")):
+                update_env_file(self.preppercache_env, updates)
+                return self.content_status()
         if library_preset == "quick-test":
             updates["PREPPERCACHE_ZIM_MODE"] = "quick-test"
         elif library_preset == "custom":
@@ -3067,6 +3135,7 @@ class PortalState:
                 "exit_code": None,
                 "error": None,
                 "resumed_from_interruption": resumed,
+                "result_message": None,
             }
         )
         self.apply_thread = threading.Thread(
@@ -3104,7 +3173,7 @@ class PortalState:
             return
 
         action = state.get("action", "full")
-        if action not in {"full", "refresh-content", "rebuild-library", "download-extra-content", "update-content"}:
+        if action not in {"full", "refresh-content", "rebuild-library", "download-extra-content", "update-content", "change-content-set"}:
             return
 
         self.launch_apply(
@@ -3134,7 +3203,7 @@ class PortalState:
                 ),
             ]
 
-        if action == "refresh-content":
+        if action in {"refresh-content", "change-content-set"}:
             return [
                 (
                     "Downloading selected Kiwix content",
@@ -3210,8 +3279,12 @@ class PortalState:
             env["PREPPERCACHE_ZIM_MODE"] = "custom"
             env["PREPPERCACHE_JOB_ZIM_MANIFEST"] = str(self.extra_zim_manifest_path())
 
+        if action == "change-content-set":
+            env["PREPPERCACHE_JOB_ZIM_MANIFEST"] = str(self.data_dir / "content-set-urls.txt")
+
         exit_code = 0
         error_message = None
+        result_message = None
 
         with self.apply_log_file.open("a", encoding="utf-8") as log_handle:
             for index, (step, command) in enumerate(commands, start=1):
@@ -3231,6 +3304,7 @@ class PortalState:
                         exit_code, error_message = 1, str(exc)
                         break
                     if not self.read_manifest_urls(manifest):
+                        result_message = "Your installed content is up to date."
                         log_handle.write("No newer editions found for the installed ZIM files.\n")
                         break
                     env["PREPPERCACHE_ZIM_MODE"] = "custom"
@@ -3256,6 +3330,7 @@ class PortalState:
                 "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "exit_code": exit_code,
                 "error": error_message,
+                "result_message": result_message,
                 "step": None if exit_code == 0 else step,
             }
         )
@@ -3906,6 +3981,14 @@ class PortalHandler(BaseHTTPRequestHandler):
         if path == "/api/content":
             self.send_json(self.portal_state.content_status())
             return
+        if path == "/api/content/set":
+            try:
+                plan, _ = self.portal_state.content_set_plan(query.get("profile", [""])[0])
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, status=400)
+                return
+            self.send_json(plan)
+            return
         if path == "/api/content/catalog":
             try:
                 force_refresh = query.get("refresh", ["0"])[0] == "1"
@@ -3967,6 +4050,18 @@ class PortalHandler(BaseHTTPRequestHandler):
             self.send_json(state, status=202)
             return
 
+        if self.path == "/api/content/set":
+            try:
+                result = self.portal_state.change_content_set(payload.get("profile"))
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, status=400)
+                return
+            except RuntimeError as exc:
+                self.send_json({"error": str(exc)}, status=409)
+                return
+            self.send_json(result, status=202 if result["apply"] else 200)
+            return
+
         if self.path == "/api/content/automatic-updates":
             try:
                 settings = self.portal_state.set_automatic_content_updates(payload.get("enabled"))
@@ -3978,7 +4073,10 @@ class PortalHandler(BaseHTTPRequestHandler):
 
         if self.path == "/api/content/settings":
             try:
-                state = self.portal_state.save_content_settings(payload)
+                with self.portal_state.apply_lock:
+                    if self.portal_state.load_apply_state().get("status") == "running":
+                        raise RuntimeError("Wait for the current content job to finish.")
+                    state = self.portal_state.save_content_settings(payload)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, status=400)
                 return

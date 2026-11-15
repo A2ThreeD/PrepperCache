@@ -112,7 +112,9 @@ The ZIM library is stored at `/library/zims/content`. Large libraries can take c
 
 While setup runs, **Settings → Content** shows the current step and download progress. The installed library and disk usage appear automatically when setup finishes. A status panel at the bottom of PrepperCache pages follows active setup, content, and map jobs as you navigate. It links to job details and hides when there is nothing to show.
 
-**Settings → Content → Update Content** checks the configured mirror for newer editions of installed ZIMs. Enable **Check for content updates weekly** to run the same check automatically while the Pi is on. This setting is off by default. New editions require extra space because PrepperCache keeps the older files until you remove them. Use **Add More Content** to browse the mirror or retry missing downloads. It opens below the installed content on the same page.
+Use **Settings → Content → Change Content Set** to switch between Essential, Standard, and Comprehensive. The preview shows how much extra space the missing files are estimated to need and how much is free on each destination drive. PrepperCache blocks the change when the estimate exceeds the available space. Changing sets keeps your existing files, so switching to a smaller set does not free space.
+
+**Update Content Now** checks the configured mirror and downloads newer editions alongside your existing files. Open **Update Schedule** to enable weekly updates while the Pi is on. The schedule is off by default. Failed downloads appear by filename in Content. Use **Add Content** to browse the mirror or download missing files.
 
 For troubleshooting, use **Settings → System → Export Troubleshooting Logs** to download recent setup, content, and map logs. Review the file before sharing it.
 

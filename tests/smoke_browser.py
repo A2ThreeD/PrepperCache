@@ -2,6 +2,7 @@
 # Copyright (c) 2026 Aaron Morris / A2ThreeD.
 # Browser smoke checks using local pages and deterministic fixtures.
 
+from datetime import datetime, timezone
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -60,7 +61,7 @@ class BrowserSmokeTests(unittest.TestCase):
             "/api/state": {"setup_complete": self.completed_setup, "profile": {}, "storage": {"disk": disk}},
             "/api/apply": self.jobs,
             "/api/maps/sync": {"status": "idle"},
-            "/api/content": {"installed_count": 4, "automatic_updates": {"enabled": False}},
+            "/api/content": {"mode": "full", "profile": "essential", "installed_count": 4, "automatic_updates": {"enabled": False}},
             "/api/content/catalog": {
                 "items": [{
                     "path": "test/handbook.zim", "name": "handbook.zim", "category": "test",
@@ -99,6 +100,36 @@ class BrowserSmokeTests(unittest.TestCase):
         expect(review).to_contain_text("free afterward")
         review.get_by_role("button", name="Back").click()
         expect(review).to_be_hidden()
+        self.assertEqual(self.posts, [])
+
+    def test_content_set_review_blocks_oversized_download_and_names_failed_file(self):
+        def content_set(route):
+            too_large = route.request.url.endswith("comprehensive")
+            route.fulfill(json={
+                "download_count": 1, "required_bytes": 2 * 1024**3, "unknown_sizes": 0,
+                "problem": "Not enough free space." if too_large else None,
+                "disks": [{
+                    "destinations": ["/library"], "required_bytes": 2 * 1024**3,
+                    "free_bytes": (1 if too_large else 4) * 1024**3,
+                }],
+            })
+
+        self.page.route("**/api/content/set?profile=*", content_set)
+        self.jobs = {
+            "status": "succeeded", "action": "refresh-content", "download_failed": 1,
+            "failed_download_names": ["handbook.zim"], "finished_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self.page.goto(self.origin + "/admin/#content")
+        expect(self.page.locator("#content-failed-files")).to_contain_text("handbook.zim")
+        self.page.get_by_text("Change Content Set", exact=True).click()
+        select = self.page.get_by_label("New content set")
+        confirm = self.page.get_by_role("button", name="Apply Content Set")
+        select.select_option("comprehensive")
+        expect(self.page.locator("#content-set-estimate")).to_contain_text("Not enough free space")
+        expect(confirm).to_be_disabled()
+        select.select_option("standard")
+        expect(self.page.locator("#content-set-estimate")).to_contain_text("2.0 GB estimated additional space")
+        expect(confirm).to_be_enabled()
         self.assertEqual(self.posts, [])
 
     def test_download_progress_survives_navigation_and_clears(self):

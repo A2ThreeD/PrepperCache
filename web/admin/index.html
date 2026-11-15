@@ -1143,6 +1143,9 @@
       flex-wrap: wrap;
     }
 
+    .content-options { margin-block: .85rem; }
+    .content-options summary { cursor: pointer; font-weight: 600; }
+    #content-failed-files, #content-set-disk-space { overflow-wrap: anywhere; }
     #content-library-note:empty { display: none; }
 
     .substatus {
@@ -1538,6 +1541,7 @@
           <h2>Installed Content</h2>
           <p class="muted" id="content-setup-note" role="status">Checking installation status…</p>
           <p class="status hidden" id="content-action-status" role="status">Content actions: ready</p>
+          <ul class="hidden" id="content-failed-files" aria-label="Failed downloads"></ul>
           <div class="progress-shell hidden" id="content-progress-shell">
             <div class="progress-top">
               <span class="progress-label" id="progress-label">Waiting for action</span>
@@ -1550,7 +1554,7 @@
             <p class="substatus" id="content-summary-status">No active operation.</p>
           </div>
           <div class="actions">
-            <button class="button" data-icon="▤" id="toggle-apply-log-button" type="button">Show Content Log</button>
+            <button class="button hidden" data-icon="▤" id="toggle-apply-log-button" type="button">Show Content Log</button>
             <button class="button hidden" id="retry-content-downloads" type="button">Retry Failed Downloads</button>
           </div>
           <div class="log-panel hidden" id="apply-log-panel">
@@ -1560,11 +1564,33 @@
           <div id="content-library-details" class="hidden">
             <div class="content-set-box">
               <div class="content-set-top">
-                <strong>Installed Content Set</strong>
+                <strong>Selected Content Set</strong>
                 <button class="button" data-icon="＋" id="toggle-add-content-button" type="button" aria-controls="add-more-content-card" aria-expanded="false">Add Content</button>
               </div>
               <div class="content-set-tile" id="content-set-tile">Loading...</div>
               <p class="substatus" id="content-set-status">Loading installed content set.</p>
+              <details class="content-options" id="content-set-options">
+                <summary>Change Content Set</summary>
+                <div class="field">
+                  <label for="new-content-set">New content set</label>
+                  <select id="new-content-set">
+                    <option value="">Choose a content set</option>
+                    <option value="essential">Essential</option>
+                    <option value="standard">Standard</option>
+                    <option value="comprehensive">Comprehensive</option>
+                  </select>
+                </div>
+                <p class="substatus">Changing sets keeps your existing ZIM files.</p>
+                <p class="status" id="content-set-estimate" role="status"></p>
+                <ul class="substatus hidden" id="content-set-disk-space"></ul>
+                <div class="actions">
+                  <button class="button" id="confirm-content-set" type="button" disabled>Apply Content Set</button>
+                </div>
+              </details>
+            </div>
+            <div class="field">
+              <label for="content-install-target">Install New Content To</label>
+              <select id="content-install-target"></select>
             </div>
             <div class="content-storage">
               <p class="content-storage-summary" id="content-storage-summary">Checking disk usage.</p>
@@ -1595,14 +1621,17 @@
               <div class="content-storage-warning" id="content-storage-warning"></div>
             </div>
             <div class="actions">
-              <button class="button" id="update-content-button" type="button">Update Content</button>
-              <label><input id="automatic-content-updates" type="checkbox" disabled> Check for content updates weekly</label>
+              <button class="button" id="update-content-button" type="button">Update Content Now</button>
             </div>
-            <p class="substatus" id="automatic-content-update-note">Updates download newer editions of installed ZIMs. Older files stay on disk until you remove them.</p>
-            <div class="status-cluster" id="content-status" aria-live="polite"></div>
-            <p class="substatus" id="content-library-note">Loading content library state.</p>
+            <details class="content-options">
+              <summary>Update Schedule</summary>
+              <label><input id="automatic-content-updates" type="checkbox" disabled> Automatically download updates weekly</label>
+              <p class="substatus" id="automatic-content-update-note">New editions are downloaded alongside your existing files.</p>
+              <p class="status" id="update-schedule-error" role="status"></p>
+            </details>
+            <p class="substatus" id="content-library-note" role="status"></p>
             <div class="field">
-              <label>Installed ZIM Files</label>
+              <label id="installed-zim-heading">Installed ZIM Files</label>
               <div id="content-local-list" class="log-panel muted">Checking local ZIM files...</div>
             </div>
             <div class="actions">
@@ -1625,10 +1654,6 @@
               <div class="actions">
                 <button class="button" data-icon="☁" id="refresh-zim-catalog-button" type="button">Check Online Catalog</button>
                 <button class="button" data-icon="↓" id="refresh-content-button" type="button">Download Missing Content</button>
-              </div>
-              <div class="field">
-                <label for="content-install-target">Install New Content To</label>
-                <select id="content-install-target"></select>
               </div>
               <div class="field-grid">
                 <div class="field">
@@ -1894,6 +1919,9 @@
     let applyPollHandle = null;
     let systemPollHandle = null;
     let currentContent = null;
+    let contentSetPlan = null;
+    let contentSetRequest = 0;
+    let changingContentSet = false;
     let contentPanelLoading = false;
     let contentNeedsRefresh = true;
     let latestContentApply = null;
@@ -1962,9 +1990,19 @@
         running ? (setupRunning ? "Installing PrepperCache" : "Working on your content")
           : failed ? (apply.error || "The last operation failed.")
           : failures ? `Finished with ${failures} failed download${failures === 1 ? "" : "s"}.`
-          : apply.status === "succeeded" ? "Finished." : "",
-        running || failed || apply.status === "succeeded"
+          : apply.status === "succeeded" ? (apply.result_message || (apply.action === "update-content" ? "Content update complete." : "")) : "",
+        running || failed || failures > 0 || Boolean(apply.result_message) || apply.action === "update-content" && apply.status === "succeeded"
       );
+      const failedFiles = document.getElementById("content-failed-files");
+      const names = running ? [] : [...new Set(apply.failed_download_names || [])];
+      failedFiles.replaceChildren(...names.map((name) => {
+        const item = document.createElement("li");
+        item.textContent = name;
+        return item;
+      }));
+      failedFiles.classList.toggle("hidden", !names.length);
+      document.getElementById("toggle-apply-log-button").classList.toggle("hidden", !apply.log_tail?.length);
+      renderContentSetControls();
       document.getElementById("retry-content-downloads").classList.toggle("hidden",
         running || apply.action !== "download-extra-content" || !apply.failed_download_names?.length);
       document.getElementById("progress-label").textContent = apply.step || "Preparing";
@@ -2027,15 +2065,6 @@
       }).join("");
     }
 
-    function formatBytes(bytes) {
-      const value = Number(bytes || 0);
-      if (!Number.isFinite(value) || value <= 0) return "0 GB";
-      const gb = value / (1024 ** 3);
-      if (gb >= 10) return `${gb.toFixed(0)} GB`;
-      if (gb >= 1) return `${gb.toFixed(1)} GB`;
-      return `${(value / (1024 ** 2)).toFixed(0)} MB`;
-    }
-
     function updateContentPaneVisibility() {
       const card = document.getElementById("add-more-content-card");
       const button = document.getElementById("toggle-add-content-button");
@@ -2070,12 +2099,83 @@
         const extras = Number(content.custom_selected_count || 0);
         return `Custom: ${base}${extras > 0 ? ` plus ${extras} saved extra ZIM ${extras === 1 ? "selection" : "selections"}` : ""}.`;
       }
-      const profileName = ({
-        essential: "Essential",
-        standard: "Standard",
-        comprehensive: "Comprehensive"
-      })[String(content.profile || "").toLowerCase()] || "Installed";
-      return `${profileName} tier is installed${(content.custom_selected_count || 0) > 0 ? ` with ${content.custom_selected_count} saved extra ZIM ${content.custom_selected_count === 1 ? "selection" : "selections"}` : ""}.`;
+      const extras = Number(content.custom_selected_count || 0);
+      return extras ? `${extras} saved extra ZIM ${extras === 1 ? "selection" : "selections"}.` : "";
+    }
+
+    function renderContentSetControls() {
+      const select = document.getElementById("new-content-set");
+      const selectedProfile = currentContent?.mode === "full" ? currentContent.profile : "";
+      for (const option of select.options) {
+        option.disabled = option.value !== "" && option.value === selectedProfile;
+      }
+      const busy = changingContentSet || !currentContent || latestContentApply?.status === "running";
+      select.disabled = busy;
+      document.getElementById("confirm-content-set").disabled =
+        busy || !contentSetPlan || Boolean(contentSetPlan.problem) || select.selectedOptions[0]?.disabled;
+    }
+
+    async function reviewContentSet() {
+      const { value: profile } = document.getElementById("new-content-set");
+      const estimate = document.getElementById("content-set-estimate");
+      const disks = document.getElementById("content-set-disk-space");
+      const request = ++contentSetRequest;
+      contentSetPlan = null;
+      disks.replaceChildren();
+      disks.classList.add("hidden");
+      estimate.textContent = profile ? "Checking additional space…" : "";
+      renderContentSetControls();
+      if (!profile) return;
+      try {
+        const { response, payload } = await fetchJsonWithTimeout(`/api/content/set?profile=${encodeURIComponent(profile)}`, {}, 10000);
+        if (request !== contentSetRequest) return;
+        if (!response.ok) throw new Error(payload.error || "Unable to estimate the download size.");
+        contentSetPlan = payload;
+        estimate.textContent = payload.download_count
+          ? `${payload.download_count} ${payload.download_count === 1 ? "new download" : "new downloads"}${payload.required_bytes ? ` · ${formatBytes(payload.required_bytes)} estimated additional space` : ""}.`
+          : "No additional downloads or space needed.";
+        if (payload.unknown_sizes) estimate.textContent += ` Size unavailable for ${payload.unknown_sizes} file(s).`;
+        if (payload.problem) estimate.textContent += ` ${payload.problem}`;
+        disks.replaceChildren(...payload.disks.map((disk) => {
+          const row = document.createElement("li");
+          row.textContent = `${disk.destinations.join(" and ")} · ${formatBytes(disk.required_bytes)} needed · ${formatBytes(disk.free_bytes)} free`;
+          return row;
+        }));
+        disks.classList.toggle("hidden", !payload.disks.length);
+      } catch (error) {
+        if (request === contentSetRequest) estimate.textContent = error.message;
+      } finally {
+        renderContentSetControls();
+      }
+    }
+
+    async function changeContentSet() {
+      const select = document.getElementById("new-content-set");
+      const label = select.selectedOptions[0].textContent;
+      changingContentSet = true;
+      renderContentSetControls();
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/content/set", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profile: select.value })
+        });
+        if (!response.ok) throw new Error(payload.error || "Unable to change the content set.");
+        select.value = "";
+        reviewContentSet();
+        document.getElementById("content-set-options").open = false;
+        currentContent = payload.content;
+        renderContentState(currentContent, payload.apply ? "" : `Content set changed to ${label}.`);
+        if (payload.apply) renderApplyState(payload.apply);
+      } catch (error) {
+        contentSetPlan = null;
+        document.getElementById("content-set-estimate").textContent = `${error.message} Select a set again to refresh the estimate.`;
+        document.getElementById("content-set-disk-space").classList.add("hidden");
+        select.value = "";
+      } finally {
+        changingContentSet = false;
+        renderContentSetControls();
+      }
     }
 
     function contentSetTileLabel(content) {
@@ -3284,6 +3384,7 @@
 
     function formatBytes(value) {
       const size = Number(value || 0);
+      if (size >= 1024 ** 3) return `${(size / 1024 ** 3).toFixed(1)} GB`;
       if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
       if (size >= 1024) return `${(size / 1024).toFixed(1)} KB`;
       return `${size} B`;
@@ -3474,13 +3575,15 @@
       checkbox.disabled = !settings;
       const next = settings?.enabled && settings.next_at ? new Date(settings.next_at * 1000) : null;
       document.getElementById("automatic-content-update-note").textContent =
-        "Updates download newer editions of installed ZIMs. Older files stay on disk until you remove them."
-        + (next ? ` Next check: ${next.toLocaleString()}.` : "");
+        "New editions are downloaded alongside your existing files."
+        + (next ? ` Next automatic update: ${next.toLocaleString()}.` : "");
     }
 
     async function saveAutomaticContentUpdates(event) {
       const checkbox = event.currentTarget;
       checkbox.disabled = true;
+      const errorNote = document.getElementById("update-schedule-error");
+      errorNote.textContent = "";
       try {
         const { response, payload } = await fetchJsonWithTimeout("/api/content/automatic-updates", {
           method: "POST",
@@ -3490,7 +3593,7 @@
         if (!response.ok) throw new Error(payload.error || "Could not save the update schedule.");
         currentContent.automatic_updates = payload;
       } catch (error) {
-        document.getElementById("content-library-note").textContent = error.message;
+        errorNote.textContent = error.message;
       } finally {
         renderAutomaticContentUpdates(currentContent?.automatic_updates);
       }
@@ -3508,36 +3611,17 @@
       mirrorSelect.value = content.catalog_root || "";
       populateInstallTargetSelect("content-install-target", content.install_destinations || [], content.install_dir || "");
 
-      setStatusChips("content-status", [
-        {
-          label: "Installed",
-          value: `${content.installed_count || 0} ZIMs`,
-          tone: "status-chip--muted"
-        },
-        {
-          label: "Storage",
-          value: content.installed_size_label || "0 B",
-          tone: "status-chip--muted"
-        },
-        {
-          label: "Extras",
-          value: `${content.custom_selected_count || 0} saved`,
-          tone: (content.custom_selected_count || 0) > 0 ? "status-chip--ok" : "status-chip--muted"
-        }
-      ]);
-
-      document.getElementById("content-library-note").textContent = note || (
-        content.mode === "quick-test"
-          ? "Quick test mode is active with the tiny validation library."
-          : (content.custom_selected_count || 0) > 0
-            ? `This device has ${content.custom_selected_count || 0} saved extra ZIM ${content.custom_selected_count === 1 ? "selection" : "selections"} in addition to the installed library.`
-            : ""
-      );
+      document.getElementById("installed-zim-heading").textContent =
+        `Installed ZIM Files · ${content.installed_count || 0} files · ${content.installed_size_label || "0 B"}`;
+      document.getElementById("content-library-note").textContent = note;
       document.getElementById("content-set-tile").textContent = contentSetTileLabel(content);
-      document.getElementById("content-set-status").textContent = describeInstalledContentSet(content);
+      const setNote = document.getElementById("content-set-status");
+      setNote.textContent = describeInstalledContentSet(content);
+      setNote.classList.toggle("hidden", !setNote.textContent);
 
       updateCustomLibraryVisibility(true);
       renderLocalInstalledZims(content);
+      renderContentSetControls();
     }
 
     function updateCustomLibraryVisibility(_enabled = true, running = false) {
@@ -4655,6 +4739,7 @@
         }
         currentContent = payload;
         renderContentState(payload, `New ZIM downloads will install to ${chosen}.`);
+        reviewContentSet();
         renderContentStorage(currentState, payload);
         if (currentContentCatalog) {
           renderZimCatalog(currentContentCatalog);
@@ -4709,6 +4794,8 @@
       submitAccessPointAction(action);
     });
     document.getElementById("toggle-ap-clients-button").addEventListener("click", toggleAccessPointClients);
+    document.getElementById("new-content-set").addEventListener("change", reviewContentSet);
+    document.getElementById("confirm-content-set").addEventListener("click", changeContentSet);
     document.getElementById("update-content-button").addEventListener("click", () => triggerApplyAction("update-content"));
     document.getElementById("automatic-content-updates").addEventListener("change", saveAutomaticContentUpdates);
     document.getElementById("refresh-installed-zims-button").addEventListener("click", refreshInstalledZims);
