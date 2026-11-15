@@ -10,15 +10,15 @@
   <link rel="stylesheet" href="/maps/vendor/maplibre-gl/maplibre-gl.css">
   <style>
     :root {
-      --bg: #0b1519;
-      --panel: rgba(22, 46, 50, 0.9);
-      --panel-2: rgba(31, 63, 68, 0.88);
-      --text: #edf9f8;
-      --muted: #a6bebf;
-      --accent: #28e1d7;
-      --border: rgba(143, 209, 204, 0.38);
-      --scrollbar-thumb: #7ba5a4;
-      --scrollbar-track: rgba(10, 21, 23, 0.62);
+      --bg: #f3f7f6;
+      --panel: #ffffff;
+      --panel-2: #edf5f3;
+      --text: #172b2d;
+      --muted: #496163;
+      --accent: #006e68;
+      --border: #a9bfbb;
+      --scrollbar-thumb: #789793;
+      --scrollbar-track: #e5eeec;
       --shadow: 0 22px 54px rgba(0, 0, 0, 0.34);
       --ui-display: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
       --ui-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
@@ -49,8 +49,8 @@
       min-height: 100vh;
       color: var(--text);
       background:
-        radial-gradient(900px 420px at 50% -10%, rgba(93, 164, 161, 0.24), transparent 60%),
-        linear-gradient(180deg, #101d22 0%, var(--bg) 100%);
+        radial-gradient(900px 420px at 50% -10%, rgba(96, 159, 153, 0.12), transparent 60%),
+        linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
       font-family: var(--ui-body);
       letter-spacing: 0.02em;
     }
@@ -65,8 +65,8 @@
       padding: 22px;
       border-right: 1px solid var(--border);
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
-        rgba(14, 31, 33, 0.94);
+        linear-gradient(180deg, rgba(96, 159, 153, 0.12), rgba(96, 159, 153, 0.12)),
+        #ffffff;
       box-shadow: var(--shadow);
       position: relative;
       z-index: 2;
@@ -111,7 +111,7 @@
       border: 1px solid var(--border);
       background: var(--panel);
       border-radius: 0;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(23, 43, 45, 0.06);
     }
 
     .card h2 {
@@ -150,21 +150,21 @@
       justify-content: center;
       min-width: 142px;
       padding: 11px 14px;
-      border: 1px solid #e8fbfa;
-      background: linear-gradient(180deg, rgba(109, 154, 152, 0.96), rgba(45, 72, 77, 0.98));
+      border: 1px solid #8da9a5;
+      background: #e0efec;
       color: var(--text);
       text-decoration: none;
       cursor: pointer;
       font: inherit;
       border-radius: 0;
-      border-top-color: rgba(250, 254, 254, 0.98);
-      border-left-color: rgba(239, 252, 251, 0.98);
-      border-right-color: rgba(22, 39, 42, 0.96);
-      border-bottom-color: rgba(10, 20, 21, 0.98);
+      border-top-color: #8da9a5;
+      border-left-color: #8da9a5;
+      border-right-color: #8da9a5;
+      border-bottom-color: #8da9a5;
       box-shadow:
-        inset 1px 1px 0 rgba(255, 255, 255, 0.34),
-        inset -1px -2px 0 rgba(0, 0, 0, 0.42),
-        0 8px 18px rgba(0, 0, 0, 0.2);
+        inset 1px 1px 0 rgba(23, 43, 45, 0.06),
+        inset -1px -2px 0 rgba(23, 43, 45, 0.12),
+        0 8px 18px rgba(23, 43, 45, 0.12);
       transition:
         background-color 0.14s ease,
         border-color 0.14s ease,
@@ -178,7 +178,7 @@
     }
 
     .button.secondary {
-      background: linear-gradient(180deg, rgba(90, 122, 121, 0.96), rgba(33, 52, 56, 0.98));
+      background: linear-gradient(180deg, #e0efec, #ffffff);
     }
 
     .home-link,
@@ -192,29 +192,29 @@
     }
 
     .button:hover {
-      border-color: rgba(255, 255, 255, 1);
+      border-color: #8da9a5;
       box-shadow:
-        inset 1px 1px 0 rgba(255, 255, 255, 0.38),
-        inset -1px -2px 0 rgba(0, 0, 0, 0.46),
-        0 10px 22px rgba(0, 0, 0, 0.24);
+        inset 1px 1px 0 rgba(23, 43, 45, 0.06),
+        inset -1px -2px 0 rgba(23, 43, 45, 0.12),
+        0 10px 22px rgba(23, 43, 45, 0.12);
     }
 
     .button:active {
       transform: translateY(2px);
-      border-top-color: rgba(22, 39, 42, 0.96);
-      border-left-color: rgba(13, 24, 26, 0.96);
-      border-right-color: rgba(249, 254, 254, 0.98);
-      border-bottom-color: rgba(239, 252, 251, 0.98);
+      border-top-color: #8da9a5;
+      border-left-color: #8da9a5;
+      border-right-color: #8da9a5;
+      border-bottom-color: #8da9a5;
       box-shadow:
-        inset -1px -1px 0 rgba(255, 255, 255, 0.16),
-        inset 1px 1px 0 rgba(0, 0, 0, 0.58),
-        0 3px 8px rgba(0, 0, 0, 0.24);
+        inset -1px -1px 0 rgba(23, 43, 45, 0.06),
+        inset 1px 1px 0 rgba(23, 43, 45, 0.12),
+        0 3px 8px rgba(23, 43, 45, 0.12);
     }
 
     .button:focus-visible {
-      outline: 2px solid rgba(255, 255, 255, 0.95);
+      outline: 2px solid #8da9a5;
       outline-offset: 2px;
-      border-color: rgba(255, 255, 255, 1);
+      border-color: #8da9a5;
     }
 
     .field {
@@ -243,7 +243,7 @@
       width: 100%;
       padding: 11px 12px;
       border: 1px solid var(--border);
-      background: rgba(6, 15, 17, 0.42);
+      background: #ffffff;
       color: var(--text);
       font: inherit;
       border-radius: 0;
@@ -252,14 +252,14 @@
     input[type="range"] {
       padding: 0;
       height: auto;
-      accent-color: #abefec;
+      accent-color: var(--accent);
     }
 
     select {
       width: 100%;
       padding: 11px 12px;
       border: 1px solid var(--border);
-      background: rgba(6, 15, 17, 0.42);
+      background: #ffffff;
       color: var(--text);
       font: inherit;
       border-radius: 0;
@@ -288,7 +288,7 @@
       min-width: 46px;
       padding: 8px 10px;
       border: 1px solid var(--border);
-      background: rgba(6, 15, 17, 0.42);
+      background: #ffffff;
       text-align: center;
       font-family: var(--ui-display);
       letter-spacing: 0.05em;
@@ -306,9 +306,9 @@
       align-items: center;
       gap: 8px;
       padding: 7px 10px;
-      border: 1px solid rgba(255, 255, 255, 0.88);
-      background: rgba(10, 21, 23, 0.54);
-      color: #f2fcfc;
+      border: 1px solid #8da9a5;
+      background: #ffffff;
+      color: #172b2d;
       font: 0.76rem/1 var(--ui-display);
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -320,28 +320,28 @@
       width: 8px;
       height: 8px;
       border: 1px solid currentColor;
-      background: rgba(255, 255, 255, 0.14);
+      background: rgba(96, 159, 153, 0.12);
       flex: 0 0 auto;
     }
 
     .status-chip.ok {
-      border-color: rgba(179, 255, 210, 0.95);
-      color: #dffff0;
+      border-color: #8da9a5;
+      color: #21653e;
     }
 
     .status-chip.warn {
-      border-color: rgba(255, 216, 154, 0.95);
-      color: #fff0d0;
+      border-color: #8da9a5;
+      color: #6e4b0d;
     }
 
     .status-chip.error {
-      border-color: rgba(255, 178, 178, 0.95);
-      color: #ffe1e1;
+      border-color: #b96767;
+      color: #8a2828;
     }
 
     .status-chip.muted {
-      border-color: rgba(213, 240, 239, 0.5);
-      color: rgba(235, 248, 247, 0.88);
+      border-color: #8da9a5;
+      color: #172b2d;
     }
 
     .map-shell {
@@ -364,7 +364,7 @@
       z-index: 500;
       padding: 12px 14px;
       border: 1px solid var(--border);
-      background: rgba(11, 25, 27, 0.82);
+      background: #ffffff;
       box-shadow: var(--shadow);
       color: var(--text);
       border-radius: 0;
@@ -399,6 +399,15 @@
       .field-row {
         grid-template-columns: 1fr;
       }
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    input[type="checkbox"], input[type="radio"], progress {
+      accent-color: var(--accent);
     }
   </style>
 </head>

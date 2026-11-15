@@ -18,17 +18,17 @@
         }
         aside {
           box-sizing: border-box; max-height: 37vh; overflow: auto; padding: .75rem 1rem;
-          background: #13262b; color: #edf9f8; border: 1px solid #478d8c;
+          background: #ffffff; color: #172b2d; border: 1px solid #8da9a5;
           border-radius: .65rem; box-shadow: 0 .4rem 1.4rem rgba(0, 0, 0,.45);
           visibility: hidden; opacity: 0; transform: translateY(110%);
           transition: transform .2s, opacity .2s, visibility .2s;
         }
         aside.open { visibility: visible; opacity: 1; transform: translateY(0); pointer-events: auto; }
-        section + section { margin-top: .65rem; padding-top: .65rem; border-top: 1px solid #315155; }
+        section + section { margin-top: .65rem; padding-top: .65rem; border-top: 1px solid #a9bfbb; }
         header { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
-        a { color: #a0fff5; }
+        a { color: #006e68; }
         p { margin: .2rem 0; overflow-wrap: anywhere; }
-        progress { display: block; width: 100%; height: .55rem; accent-color: #28e1d7; margin-top: .35rem; }
+        progress { display: block; width: 100%; height: .55rem; accent-color: #006e68; margin-top: .35rem; }
         @media (prefers-reduced-motion: reduce) { aside { transition: none; } }
       </style>
       <aside aria-label="PrepperCache job progress"></aside>
