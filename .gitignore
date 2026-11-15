@@ -1,0 +1,10 @@
+.DS_Store
+__pycache__/
+*.pyc
+
+# Local runtime/config state
+config/preppercache.env
+config/install-profile.env
+config/kiwix-zim-urls.txt
+config/kiwix-zim-selection.json
+config/kiwix-zim-urls.custom.txt

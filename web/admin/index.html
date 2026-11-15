@@ -1,0 +1,4680 @@
+<!DOCTYPE html>
+<!-- PrepperCache
+     Copyright (c) 2026 Aaron Morris / A2ThreeD.
+     Offline portal interface. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PrepperCache Settings</title>
+  <style>
+    :root {
+      --bg: #0b1519;
+      --panel: #13262b;
+      --panel-2: #19343a;
+      --text: #edf9f8;
+      --muted: #a6bebf;
+      --accent: #28e1d7;
+      --border: rgba(143, 209, 204, 0.38);
+      --scrollbar-thumb: #7ba5a4;
+      --scrollbar-track: rgba(10, 21, 23, 0.62);
+      --ui-display: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      --ui-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    *::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: var(--scrollbar-track);
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border: 2px solid var(--scrollbar-track);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 420px at 50% -10%, rgba(93, 164, 161, 0.24), transparent 60%),
+        linear-gradient(180deg, #101d22 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: var(--ui-body);
+      letter-spacing: 0.02em;
+      padding: 24px;
+    }
+
+    .brand-link { display: block; max-width: 340px; margin-bottom: 1rem; }
+    .brand-link img { display: block; width: 100%; height: auto; border-radius: 6px; }
+
+    main {
+      max-width: none;
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      min-height: calc(100vh - 48px);
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+        var(--panel);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-bottom: 10px;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-bottom: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 12px;
+      font-family: var(--ui-display);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .catalog-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1rem;
+      height: 1rem;
+      margin-right: 0.18rem;
+      vertical-align: -0.1rem;
+    }
+    .catalog-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: currentColor;
+      stroke: currentColor;
+      stroke-width: 0;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      margin-top: 18px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 0;
+      padding: 18px;
+      background: var(--panel-2);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+
+    .wifi-summary {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(10, 21, 23, 0.28);
+    }
+
+    .wifi-summary-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .wifi-summary-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-family: var(--ui-display);
+    }
+
+    .wifi-summary-value {
+      color: var(--text);
+      font-size: 1.08rem;
+      line-height: 1.3;
+      font-family: var(--ui-display);
+      word-break: break-word;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.48rem;
+      min-width: 160px;
+      text-decoration: none;
+      color: var(--text);
+      border: 1px solid #e8fbfa;
+      border-radius: 0;
+      padding: 12px 16px;
+      background: linear-gradient(180deg, rgba(109, 154, 152, 0.96), rgba(45, 72, 77, 0.98));
+      cursor: pointer;
+      font: inherit;
+      border-top-color: rgba(250, 254, 254, 0.98);
+      border-left-color: rgba(239, 252, 251, 0.98);
+      border-right-color: rgba(22, 39, 42, 0.96);
+      border-bottom-color: rgba(10, 20, 21, 0.98);
+      box-shadow:
+        inset 1px 1px 0 rgba(255, 255, 255, 0.34),
+        inset -1px -2px 0 rgba(0, 0, 0, 0.42),
+        0 8px 18px rgba(0, 0, 0, 0.2);
+      transition:
+        background-color 0.14s ease,
+        border-color 0.14s ease,
+        box-shadow 0.14s ease,
+        color 0.14s ease,
+        transform 0.08s ease;
+      font-family: var(--ui-display);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+    }
+
+    .button[data-icon]::before {
+      content: attr(data-icon);
+      display: inline-block;
+      line-height: 1;
+      font-size: 0.95em;
+      flex: 0 0 auto;
+    }
+
+    .home-link,
+    .back-link {
+      width: 42px;
+      height: 42px;
+      min-width: 42px;
+      padding: 0;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .button:hover:not(:disabled) {
+      border-color: rgba(255, 255, 255, 1);
+      box-shadow:
+        inset 1px 1px 0 rgba(255, 255, 255, 0.38),
+        inset -1px -2px 0 rgba(0, 0, 0, 0.46),
+        0 10px 22px rgba(0, 0, 0, 0.24);
+    }
+
+    .button:active:not(:disabled) {
+      transform: translateY(2px);
+      border-top-color: rgba(22, 39, 42, 0.96);
+      border-left-color: rgba(13, 24, 26, 0.96);
+      border-right-color: rgba(249, 254, 254, 0.98);
+      border-bottom-color: rgba(239, 252, 251, 0.98);
+      box-shadow:
+        inset -1px -1px 0 rgba(255, 255, 255, 0.16),
+        inset 1px 1px 0 rgba(0, 0, 0, 0.58),
+        0 3px 8px rgba(0, 0, 0, 0.24);
+    }
+
+    .button:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.95);
+      outline-offset: 2px;
+      border-color: rgba(255, 255, 255, 1);
+    }
+
+    .section-tabs {
+      display: flex;
+      gap: 0;
+      flex-wrap: wrap;
+      margin-top: 20px;
+      border-bottom: 1px solid rgba(169, 216, 214, 0.28);
+    }
+
+    .tab-button {
+      min-width: 0;
+      margin: 0 8px -1px 0;
+      padding: 11px 16px;
+      border-bottom-color: rgba(12, 22, 24, 0.98);
+      background: linear-gradient(180deg, rgba(37, 58, 62, 0.96), rgba(17, 29, 31, 0.98));
+      box-shadow: none;
+    }
+
+    .tab-button.active {
+      background: linear-gradient(180deg, rgba(22, 37, 39, 0.98), rgba(11, 20, 21, 1));
+      color: #f5fdfd;
+      border-color: rgba(205, 241, 240, 0.7);
+      border-bottom-color: rgba(11, 20, 21, 1);
+      box-shadow:
+        inset 1px 1px 0 rgba(255, 255, 255, 0.16),
+        inset -1px 0 0 rgba(0, 0, 0, 0.48);
+      font-weight: 700;
+    }
+
+    h1,
+    h2 {
+      font-family: var(--ui-display);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .panel-group {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .panel-group.active {
+      display: block;
+    }
+
+    .status {
+      margin-top: 12px;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .status-cluster {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.88);
+      background: rgba(10, 21, 23, 0.54);
+      color: #f2fcfc;
+      font: 0.76rem/1 var(--ui-display);
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .status-chip::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border: 1px solid currentColor;
+      background: rgba(255, 255, 255, 0.16);
+      flex: 0 0 auto;
+    }
+
+    .status-chip-key {
+      color: rgba(219, 243, 242, 0.72);
+    }
+
+    .status-chip-value {
+      color: #ffffff;
+    }
+
+    .status-chip--ok {
+      border-color: rgba(179, 255, 210, 0.95);
+      color: #dffff0;
+      box-shadow: inset 0 0 0 1px rgba(121, 255, 180, 0.16);
+    }
+
+    .status-chip--warn {
+      border-color: rgba(255, 216, 154, 0.95);
+      color: #fff0d0;
+      box-shadow: inset 0 0 0 1px rgba(255, 215, 128, 0.16);
+    }
+
+    .status-chip--error {
+      border-color: rgba(255, 178, 178, 0.95);
+      color: #ffe1e1;
+      box-shadow: inset 0 0 0 1px rgba(255, 128, 128, 0.14);
+    }
+
+    .status-chip--muted {
+      border-color: rgba(213, 240, 239, 0.5);
+      color: rgba(235, 248, 247, 0.88);
+    }
+
+    .system-services {
+      margin-top: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .system-service-card {
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      background: rgba(6, 15, 17, 0.32);
+    }
+
+    .system-service-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .system-service-top strong {
+      display: block;
+      font-family: var(--ui-display);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+    }
+
+    .system-service-top span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.35;
+    }
+
+    .system-service-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .system-service-actions .button {
+      width: auto;
+      min-width: 0;
+      padding: 8px 10px;
+      font-size: 0.72rem;
+    }
+
+    .system-service-note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.35;
+    }
+
+    .power-controls-box {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      background: rgba(6, 15, 17, 0.32);
+    }
+
+    .power-controls-label {
+      display: block;
+      margin-bottom: 10px;
+      font-family: var(--ui-display);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      color: var(--text);
+    }
+
+    #system-power-status:empty {
+      display: none;
+    }
+
+    .progress-shell {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 0;
+      border: 1px solid var(--border);
+      background: rgba(6, 15, 17, 0.32);
+    }
+
+    .content-storage {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      background: rgba(6, 15, 17, 0.32);
+    }
+
+    .content-storage-summary {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .content-storage-bar {
+      display: flex;
+      width: 100%;
+      min-height: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(8, 17, 18, 0.92);
+      overflow: hidden;
+    }
+
+    .content-storage-segment {
+      min-width: 0;
+    }
+
+    .content-storage-segment.other {
+      background: linear-gradient(180deg, rgba(137, 206, 203, 0.92), rgba(74, 133, 131, 0.98));
+    }
+
+    .content-storage-segment.content {
+      background: linear-gradient(180deg, rgba(154, 214, 179, 0.94), rgba(74, 143, 101, 0.98));
+    }
+
+    .content-storage-segment.content-external {
+      background: linear-gradient(180deg, rgba(232, 194, 120, 0.94), rgba(164, 112, 42, 0.98));
+    }
+
+    .content-storage-segment.free {
+      background: linear-gradient(180deg, rgba(30, 50, 53, 0.95), rgba(13, 24, 26, 0.98));
+    }
+
+    .content-storage-legend {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .content-storage-chip {
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      background: rgba(10, 22, 24, 0.58);
+      padding: 8px 10px;
+      font-size: 0.8rem;
+    }
+
+    .content-storage-chip strong {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .content-storage-swatch {
+      width: 10px;
+      height: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.38);
+      flex: 0 0 auto;
+    }
+
+    .content-storage-swatch.other {
+      background: linear-gradient(180deg, rgba(137, 206, 203, 0.92), rgba(74, 133, 131, 0.98));
+    }
+
+    .content-storage-swatch.content {
+      background: linear-gradient(180deg, rgba(154, 214, 179, 0.94), rgba(74, 143, 101, 0.98));
+    }
+
+    .content-storage-swatch.content-external {
+      background: linear-gradient(180deg, rgba(232, 194, 120, 0.94), rgba(164, 112, 42, 0.98));
+    }
+
+    .content-storage-swatch.free {
+      background: linear-gradient(180deg, rgba(30, 50, 53, 0.95), rgba(13, 24, 26, 0.98));
+    }
+
+    .content-storage-chip span {
+      display: block;
+    }
+
+    .content-storage-chip strong {
+      margin-bottom: 2px;
+      font-family: var(--ui-display);
+      font-size: 0.72rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .content-storage-warning {
+      display: none;
+      margin-top: 8px;
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      background: rgba(10, 22, 24, 0.58);
+      font-size: 0.8rem;
+      line-height: 1.35;
+    }
+
+    .content-storage-warning.warn {
+      display: block;
+      border-color: rgba(255, 214, 102, 0.65);
+      background: rgba(255, 214, 102, 0.12);
+      color: #ffe29f;
+    }
+
+    .content-storage-warning.danger {
+      display: block;
+      border-color: rgba(255, 122, 122, 0.78);
+      background: rgba(255, 122, 122, 0.14);
+      color: #ffd5d5;
+    }
+
+    .external-storage-breakdowns {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .external-storage-breakdown {
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .external-storage-breakdown-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .external-storage-breakdown-header strong {
+      font-family: var(--ui-display);
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .external-storage-breakdown-header span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-align: right;
+    }
+
+    .external-storage-breakdown-note {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      line-height: 1.35;
+    }
+
+    .progress-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .progress-label {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .progress-value {
+      font-weight: 700;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 12px;
+      overflow: hidden;
+      border-radius: 0;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(169, 216, 214, 0.12);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 0;
+      background: linear-gradient(90deg, #78e5e1, #99ece8);
+      box-shadow: 0 0 20px rgba(144, 234, 230, 0.35);
+      transition: width 0.25s ease;
+    }
+
+    .log-panel {
+      margin-top: 14px;
+      border-radius: 0;
+      border: 1px solid var(--border);
+      background: rgba(6, 15, 17, 0.4);
+      padding: 12px 14px;
+    }
+
+    .zim-entry {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 6px 10px;
+      margin-bottom: 0;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 0.75rem;
+      line-height: 1.2;
+    }
+
+    .zim-entry:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .zim-entry:first-child {
+      padding-top: 0;
+    }
+
+    .zim-entry input[type="checkbox"] {
+      margin-top: 0;
+    }
+
+    .zim-entry-body {
+      min-width: 0;
+      line-height: 1.2;
+    }
+
+    .zim-entry-title {
+      display: inline;
+      color: var(--text);
+      font-size: 0.8rem;
+      line-height: 1.2;
+    }
+
+    .zim-entry-badge {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 0.45rem;
+      padding: 0.08rem 0.38rem;
+      border: 1px solid rgba(255, 183, 77, 0.55);
+      background: rgba(255, 183, 77, 0.12);
+      color: #ffd79a;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+
+    .zim-entry-desc {
+      display: inline;
+      margin-left: 0.35rem;
+      color: var(--muted);
+      font-size: 0.68rem;
+      line-height: 1.2;
+    }
+
+    .log-panel.hidden {
+      display: none;
+    }
+
+    .log-panel pre {
+      margin: 8px 0 0;
+      max-height: 240px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #dff3f2;
+      background: rgba(4, 11, 12, 0.58);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 10px 12px;
+      font: 0.8rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    #ap-clients-panel {
+      max-height: 240px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    #maps-local-list {
+      max-height: 16rem;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .map-download-source {
+      margin-top: 0.85rem;
+      padding: 0.7rem 0.85rem;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 0.6rem;
+      min-width: 0;
+    }
+
+    .map-download-source > summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .map-download-source[open] > summary {
+      margin-bottom: 0.75rem;
+    }
+
+    #country-map-bundles {
+      gap: 0.35rem;
+      margin: 0;
+    }
+
+    #country-map-bundles .button {
+      min-width: 0;
+      min-height: 2rem;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.72rem;
+      letter-spacing: 0;
+    }
+
+    #country-map-list {
+      max-height: min(37rem, 60vh);
+      overflow-y: scroll;
+      overflow-x: hidden;
+      scrollbar-gutter: stable;
+      padding-block: 0.25rem;
+    }
+
+    #country-map-list .zim-entry {
+      min-height: 1.8rem;
+      padding: 0.2rem 0;
+    }
+
+    #country-map-list .zim-entry-body {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.4rem;
+    }
+
+    #country-map-list .zim-entry-desc {
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    #maps-catalog-list {
+      max-height: 21rem;
+      overflow: auto;
+      scrollbar-gutter: stable;
+    }
+
+    #content-local-list,
+    #zim-catalog-list {
+      height: clamp(24rem, 58vh, 44rem);
+      max-height: none;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .panel-group[data-panel-group="content"] > .grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    #add-more-content-card {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .panel-group[data-panel-group="content"] .card {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content-set-box {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(10, 21, 23, 0.28);
+    }
+
+    .content-set-box strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.86rem;
+    }
+
+    .content-set-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .content-set-tile {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 180px;
+      padding: 10px 14px;
+      margin: 8px 0 10px;
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      background: linear-gradient(180deg, rgba(106, 155, 153, 0.98), rgba(48, 78, 83, 0.98));
+      color: var(--text);
+      font-family: var(--ui-display);
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .panel-group[data-panel-group="maps"] > .grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .map-settings-toolbar {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .map-settings-toolbar .field {
+      min-width: 9rem;
+      margin: 0;
+    }
+
+    .map-installed-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 1rem;
+      margin: 0.4rem 0 0.75rem;
+    }
+
+    .map-installed-summary p {
+      margin: 0;
+    }
+
+    .files-dual-pane {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .files-pane {
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(10, 21, 23, 0.22);
+      padding: 12px;
+    }
+
+    .files-pane.active {
+      outline: 2px solid rgba(144, 234, 230, 0.92);
+      outline-offset: 0;
+    }
+
+    .files-pane-head {
+      margin-bottom: 8px;
+    }
+
+    .files-pane-head h3 {
+      margin: 0 0 6px;
+      font-size: 0.95rem;
+    }
+
+    .files-shortcuts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .files-shortcut-button {
+      min-width: 0;
+      padding: 8px 10px;
+      font-size: 0.78rem;
+    }
+
+    .files-list {
+      min-height: 420px;
+      max-height: 620px;
+      overflow: auto;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(6, 14, 16, 0.5);
+    }
+
+    .files-header,
+    .files-entry {
+      display: grid;
+      grid-template-columns: minmax(180px, var(--files-name-col-width, 320px)) 80px 120px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .files-header {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(15, 30, 32, 0.95);
+    }
+
+    .files-header-button {
+      border: 0;
+      background: transparent;
+      color: var(--accent);
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0;
+    }
+
+    .files-name-header {
+      position: relative;
+      padding-right: 14px;
+    }
+
+    .files-column-resizer {
+      position: absolute;
+      top: -8px;
+      right: -7px;
+      width: 14px;
+      height: calc(100% + 16px);
+      cursor: col-resize;
+    }
+
+    .files-sort-indicator {
+      margin-left: 6px;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .files-entry {
+      width: 100%;
+      padding: 10px 12px;
+      border: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .files-entry:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .files-entry.selected {
+      background: rgba(144, 234, 230, 0.2);
+    }
+
+    .files-entry-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .files-entry-kind,
+    .files-entry-size,
+    .files-entry-modified {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .files-empty {
+      padding: 14px;
+      color: var(--muted);
+    }
+
+    .zim-installed-list {
+      min-height: 180px;
+      max-height: 460px;
+      overflow: auto;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(6, 14, 16, 0.5);
+    }
+
+    .zim-installed-header {
+      display: grid;
+      grid-template-columns: auto minmax(220px, 1fr) 96px;
+      gap: 10px;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(15, 30, 32, 0.95);
+    }
+
+    .zim-installed-header-button {
+      border: 0;
+      background: transparent;
+      color: var(--accent);
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0;
+    }
+
+    .zim-installed-header-spacer {
+      width: 16px;
+    }
+
+    .zim-installed-entry {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) 96px;
+      align-items: center;
+      gap: 6px 10px;
+      margin-bottom: 0;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 0.75rem;
+      line-height: 1.2;
+    }
+
+    .zim-installed-entry:last-child {
+      border-bottom: 0;
+    }
+
+    .zim-installed-size {
+      display: block;
+      justify-self: end;
+      color: var(--muted);
+      font-size: 0.74rem;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .pager {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .substatus {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .health-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 18px;
+    }
+
+    .health-card {
+      padding: 14px;
+      border: 1px solid var(--border);
+      background: rgba(6, 15, 17, 0.32);
+    }
+
+    .health-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-family: var(--ui-display);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+    }
+
+    .health-card .value {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .health-card .subvalue {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .meter {
+      margin-top: 10px;
+    }
+
+    .meter-track {
+      width: 100%;
+      height: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .meter-fill {
+      width: 0%;
+      height: 100%;
+      transition: width 0.25s ease, background 0.25s ease;
+      background: linear-gradient(90deg, #74e5e0, #acefec);
+    }
+
+    .meter-fill.temp-cool {
+      background: linear-gradient(90deg, #8ee9e6, #66e0a6);
+    }
+
+    .meter-fill.temp-warm {
+      background: linear-gradient(90deg, #e4cf72, #ffc86a);
+    }
+
+    .meter-fill.temp-hot {
+      background: linear-gradient(90deg, #ff946f, #ff5d5d);
+    }
+
+    .storage-row {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .storage-row:first-child {
+      padding-top: 0;
+    }
+
+    .storage-row:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .storage-row-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--text);
+      font-size: 0.84rem;
+      line-height: 1.2;
+    }
+
+    .storage-row-main strong {
+      font-family: var(--ui-display);
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .storage-row-main span:last-child {
+      color: var(--muted);
+      font-size: 0.74rem;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .storage-row-meta,
+    .storage-row-note {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      line-height: 1.3;
+    }
+
+    .storage-row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .storage-row-actions .button {
+      width: auto;
+      min-width: 0;
+      padding: 8px 10px;
+      font-size: 0.72rem;
+    }
+
+    .status-cursor::after {
+      content: "_";
+      display: inline-block;
+      margin-left: 0.2rem;
+      animation: blink-cursor 1s steps(1) infinite;
+    }
+
+    @keyframes blink-cursor {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    #storage-targets-list,
+    #storage-volumes-list {
+      max-height: 18rem;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    code {
+      color: var(--accent);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      word-break: break-word;
+    }
+
+    .field {
+      margin-top: 14px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+
+    select,
+    input[type="text"],
+    input[type="password"],
+    input[type="number"] {
+      width: 100%;
+      border-radius: 0;
+      border: 1px solid var(--border);
+      background: rgba(6, 15, 17, 0.44);
+      color: var(--text);
+      padding: 12px 14px;
+      font: inherit;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .card p,
+    .card li,
+    .status,
+    .muted {
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 14px 10px;
+      }
+
+      main {
+        padding: 16px;
+      }
+
+      .card {
+        padding: 14px;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .health-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .files-dual-pane {
+        grid-template-columns: 1fr;
+      }
+
+      .button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="top-actions">
+      <button class="button back-link" id="back-button" type="button" aria-label="Go back" title="Back">←</button>
+      <a class="button home-link" href="/" aria-label="Return to main page" title="Home">⌂</a>
+    </div>
+    <a class="brand-link" href="/"><img src="/images/preppercache.png" alt="PrepperCache home" width="2172" height="724"></a>
+    <h1>Settings</h1>
+    <p class="muted">
+      PrepperCache system controls, content updates, and maintenance actions.
+    </p>
+
+    <div class="section-tabs">
+      <button class="button tab-button active" data-icon="⚙" type="button" data-panel="system">System</button>
+      <button class="button tab-button" data-icon="📶" type="button" data-panel="wifi">WiFi</button>
+      <button class="button tab-button" data-icon="⌘" type="button" data-panel="content">Content</button>
+      <button class="button tab-button" data-icon="⌖" type="button" data-panel="maps">Maps</button>
+      <button class="button tab-button" data-icon="🗂" type="button" data-panel="files">Files</button>
+      <button class="button tab-button" data-icon="🖴" type="button" data-panel="storage">Storage</button>
+    </div>
+
+    <section class="panel-group active" data-panel-group="system">
+      <div class="grid">
+        <section class="card">
+          <h2>System</h2>
+          <p class="muted">
+            Live Raspberry Pi health and power controls live here so the main page can stay focused on navigation.
+          </p>
+          <div class="health-grid">
+            <div class="health-card">
+              <strong>Temp</strong>
+              <div class="value" id="system-temp-status">Loading</div>
+              <div class="meter"><div class="meter-track"><div class="meter-fill temp-cool" id="system-temp-fill"></div></div></div>
+            </div>
+            <div class="health-card">
+              <strong>CPU</strong>
+              <div class="value" id="system-cpu-status">Loading</div>
+              <div class="subvalue" id="system-uptime-status">Uptime: loading</div>
+              <div class="meter"><div class="meter-track"><div class="meter-fill" id="system-cpu-fill"></div></div></div>
+            </div>
+            <div class="health-card">
+              <strong>Memory</strong>
+              <div class="value" id="system-memory-status">Loading</div>
+              <div class="subvalue" id="system-memory-detail">Available: loading</div>
+              <div class="meter"><div class="meter-track"><div class="meter-fill" id="system-memory-fill"></div></div></div>
+            </div>
+          </div>
+          <div class="system-services" id="system-services-list">Checking application services...</div>
+          <div class="actions">
+            <a class="button" href="/api/diagnostics/logs" download>Export Troubleshooting Logs</a>
+          </div>
+          <div class="power-controls-box">
+            <strong class="power-controls-label">Power Controls</strong>
+            <div class="actions">
+              <button class="button secondary" data-icon="↻" id="restart-system-button" type="button">Restart</button>
+              <button class="button secondary" data-icon="⏻" id="shutdown-system-button" type="button">Shutdown</button>
+            </div>
+            <p class="status" id="system-power-status"></p>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="panel-group" data-panel-group="wifi">
+      <div class="grid">
+        <section class="card">
+          <h2>Wireless Access Point</h2>
+          <p class="muted">
+            Configure and enable direct Wi-Fi access so phones, tablets, and laptops can join the Pi and reach local content without another router.
+          </p>
+          <div class="wifi-summary">
+            <div class="wifi-summary-row">
+              <span class="wifi-summary-label">Hotspot Name</span>
+              <span class="wifi-summary-value" id="ap-summary-ssid">Loading...</span>
+            </div>
+            <div class="wifi-summary-row">
+              <span class="wifi-summary-label">Web Address</span>
+              <span class="wifi-summary-value" id="ap-summary-address">Loading...</span>
+            </div>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="ap-ssid">SSID</label>
+              <input id="ap-ssid" type="text" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="ap-passphrase">Passphrase</label>
+              <input id="ap-passphrase" type="password" autocomplete="new-password">
+            </div>
+            <div class="field">
+              <label for="ap-interface">Interface</label>
+              <input id="ap-interface" type="text" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="ap-country">Country</label>
+              <input id="ap-country" type="text" maxlength="2" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="ap-channel">Channel</label>
+              <input id="ap-channel" type="number" min="1" step="1">
+            </div>
+            <div class="field">
+              <label for="ap-address">Gateway Address</label>
+              <input id="ap-address" type="text" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="ap-netmask">Netmask</label>
+              <input id="ap-netmask" type="text" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="ap-cidr">CIDR</label>
+              <input id="ap-cidr" type="number" min="1" max="32" step="1">
+            </div>
+            <div class="field">
+              <label for="ap-dhcp-start">DHCP Start</label>
+              <input id="ap-dhcp-start" type="text" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="ap-dhcp-end">DHCP End</label>
+              <input id="ap-dhcp-end" type="text" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="ap-lease">Lease</label>
+              <input id="ap-lease" type="text" autocomplete="off">
+            </div>
+          </div>
+          <div class="actions">
+            <button class="button" data-icon="💾" id="save-ap-button" type="button">Save AP Config</button>
+            <button class="button" data-icon="✓" id="apply-ap-button" type="button">Apply AP Config</button>
+            <button class="button" data-icon="📶" id="toggle-ap-button" type="button">Enable / Start Access Point</button>
+            <button class="button" data-icon="◫" id="toggle-ap-clients-button" type="button">Show Connected Clients</button>
+          </div>
+          <div class="status-cluster" id="ap-status" aria-live="polite"></div>
+          <p class="status" id="ap-action-status">Access point controls ready.</p>
+          <div class="log-panel hidden" id="ap-clients-panel">
+            No connected access point clients detected.
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="panel-group" data-panel-group="content">
+      <div class="grid">
+        <section class="card">
+          <h2>Installed Content</h2>
+          <p class="muted" id="content-setup-note" role="status">Checking installation status…</p>
+          <p class="status hidden" id="content-action-status" role="status">Content actions: ready</p>
+          <div class="progress-shell hidden" id="content-progress-shell">
+            <div class="progress-top">
+              <span class="progress-label" id="progress-label">Waiting for action</span>
+              <span class="progress-value" id="progress-value">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <p class="status" id="current-file-status">Current file: none</p>
+            <p class="substatus" id="content-summary-status">No active operation.</p>
+          </div>
+          <div class="actions">
+            <button class="button" data-icon="▤" id="toggle-apply-log-button" type="button">Show Content Log</button>
+          </div>
+          <div class="log-panel hidden" id="apply-log-panel">
+            <strong>Recent Log</strong>
+            <pre id="apply-log">No active download log.</pre>
+          </div>
+          <div id="content-library-details" class="hidden">
+            <p class="muted">
+              Review what is already on the device, remove files you no longer want, and rebuild the Kiwix library from what is on disk.
+            </p>
+            <div class="content-set-box">
+              <div class="content-set-top">
+                <strong>Installed Content Set</strong>
+                <button class="button" data-icon="＋" id="toggle-add-content-button" type="button">Add More Content</button>
+              </div>
+              <div class="content-set-tile" id="content-set-tile">Loading...</div>
+              <p class="substatus" id="content-set-status">Loading installed content set.</p>
+            </div>
+            <div class="content-storage">
+              <p class="content-storage-summary" id="content-storage-summary">Checking disk usage.</p>
+              <div class="content-storage-bar" aria-hidden="true">
+                <div class="content-storage-segment other" id="content-storage-other"></div>
+                <div class="content-storage-segment content" id="content-storage-library-internal"></div>
+                <div class="content-storage-segment content-external" id="content-storage-library-external"></div>
+                <div class="content-storage-segment free" id="content-storage-free"></div>
+              </div>
+              <div class="content-storage-legend">
+                <div class="content-storage-chip">
+                  <strong><span class="content-storage-swatch other" aria-hidden="true"></span>Other Used</strong>
+                  <span id="content-storage-other-label">-</span>
+                </div>
+                <div class="content-storage-chip">
+                  <strong><span class="content-storage-swatch content" aria-hidden="true"></span>Internal Content</strong>
+                  <span id="content-storage-library-internal-label">-</span>
+                </div>
+                <div class="content-storage-chip">
+                  <strong><span class="content-storage-swatch content-external" aria-hidden="true"></span>External Content</strong>
+                  <span id="content-storage-library-external-label">-</span>
+                </div>
+                <div class="content-storage-chip">
+                  <strong><span class="content-storage-swatch free" aria-hidden="true"></span>Free</strong>
+                  <span id="content-storage-free-label">-</span>
+                </div>
+              </div>
+              <div class="content-storage-warning" id="content-storage-warning"></div>
+            </div>
+            <div class="actions">
+              <button class="button" id="update-content-button" type="button">Update Content</button>
+              <label><input id="automatic-content-updates" type="checkbox" disabled> Check for content updates weekly</label>
+            </div>
+            <p class="substatus" id="automatic-content-update-note">Updates download newer editions of installed ZIMs. Older files stay on disk until you remove them.</p>
+            <div class="status-cluster" id="content-status" aria-live="polite"></div>
+            <p class="substatus" id="content-library-note">Loading content library state.</p>
+            <div class="field">
+              <label>Installed ZIM Files</label>
+              <div id="content-local-list" class="log-panel muted">Checking local ZIM files...</div>
+            </div>
+            <div class="actions">
+              <button class="button" data-icon="↻" id="refresh-installed-zims-button" type="button">Refresh Installed ZIMs</button>
+              <button class="button" data-icon="☑" id="select-all-local-zims-button" type="button">Select All</button>
+              <button class="button" data-icon="☐" id="clear-local-zims-button" type="button">Clear All</button>
+              <button class="button" data-icon="✖" id="remove-local-zims-button" type="button">Remove Selected ZIMs</button>
+              <button class="button" data-icon="⌘" id="rebuild-library-button" type="button">Rebuild Kiwix Library</button>
+            </div>
+            <section class="hidden" id="add-more-content-card">
+              <h2>Add More Content</h2>
+              <p class="muted">
+                Browse the online Kiwix catalog here and add more ZIM files to this device whenever you want.
+              </p>
+              <div class="field">
+                <label for="content-zim-mirror">ZIM Download Mirror</label>
+                <select id="content-zim-mirror"></select>
+              </div>
+              <p class="muted" id="zim-catalog-source">Catalog source: online check on demand</p>
+              <div class="actions">
+                <button class="button" data-icon="☁" id="refresh-zim-catalog-button" type="button">Check Online Catalog</button>
+                <button class="button" data-icon="↓" id="refresh-content-button" type="button">Download Missing Content</button>
+              </div>
+              <div class="field">
+                <label for="content-install-target">Install New Content To</label>
+                <select id="content-install-target"></select>
+              </div>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="zim-category-filter">Category</label>
+                  <select id="zim-category-filter">
+                    <option value="all">All Categories</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="zim-catalog-filter">Filter Catalog</label>
+                  <input id="zim-catalog-filter" type="text" placeholder="Filter by name">
+                </div>
+              </div>
+              <div class="field">
+                <label>Kiwix Download Catalog</label>
+                <div id="zim-catalog-list" class="log-panel muted">Online catalog is idle. Click Check Online Catalog when you want to query Kiwix.</div>
+              </div>
+              <div class="actions">
+                <button class="button" data-icon="↓" id="download-selected-zims-button" type="button">DOWNLOAD SELECTED</button>
+                <button class="button" data-icon="☑" id="select-all-zims-button" type="button">SELECT ALL</button>
+                <button class="button" data-icon="☐" id="clear-all-zims-button" type="button">CLEAR ALL</button>
+              </div>
+              <div class="pager">
+                <button class="button" data-icon="←" id="zim-prev-page-button" type="button">Previous 50</button>
+                <p class="substatus" id="zim-page-status">Page 1</p>
+                <button class="button" data-icon="→" id="zim-next-page-button" type="button">Next 50</button>
+              </div>
+              <p class="substatus" id="zim-catalog-note">Choose any ZIM files you want to add, then download them into the local library.</p>
+            </section>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="panel-group" data-panel-group="maps">
+      <div class="grid">
+        <section class="card">
+          <h2>Installed Maps</h2>
+          <div class="map-installed-summary">
+            <p class="muted" id="active-map-file">Active map: loading</p>
+            <p class="muted" id="maps-storage-summary">Checking disk usage.</p>
+          </div>
+          <div class="map-settings-toolbar">
+            <div class="field">
+              <label for="map-flavor">Map Theme</label>
+              <select id="map-flavor">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+            <button class="button" data-icon="💾" id="save-map-button" type="button">Save Theme</button>
+            <a class="button" href="/maps/">Open Map</a>
+          </div>
+          <details class="map-download-source">
+            <summary>Manage Installed Maps</summary>
+            <p class="muted" id="maps-root">PMTiles root: loading</p>
+            <div id="maps-local-list" class="log-panel muted">Checking local PMTiles packages...</div>
+            <div class="actions">
+              <button class="button" data-icon="↻" id="refresh-maps-button" type="button">Refresh Installed Maps</button>
+              <button class="button" data-icon="☑" id="select-all-local-maps-button" type="button">Select All</button>
+              <button class="button" data-icon="☐" id="clear-local-maps-button" type="button">Clear All</button>
+              <button class="button" data-icon="✖" id="remove-local-maps-button" type="button">Remove Selected Maps</button>
+            </div>
+            <div class="status-cluster" id="maps-status" aria-live="polite"></div>
+            <p class="substatus" id="maps-status-note">Loading map package status.</p>
+          </details>
+        </section>
+        <section class="card">
+          <h2>Download Maps</h2>
+          <div class="field">
+            <label for="maps-install-target">Install New Maps To</label>
+            <select id="maps-install-target"></select>
+          </div>
+          <details class="map-download-source" id="country-map-picker" name="map-download-source" open>
+            <summary>Available Countries</summary>
+            <p class="muted">Install countries from the configured basemap, one at a time. Estimates vary with the source and coverage.</p>
+            <div class="field">
+              <label>Quick-pick bundles</label>
+              <div class="actions" id="country-map-bundles"></div>
+            </div>
+            <p class="status" id="country-map-summary" aria-live="polite">Loading country catalog.</p>
+            <div class="field">
+              <label for="country-map-filter">Filter by country or ISO code</label>
+              <input id="country-map-filter" type="search" placeholder="Canada or CA">
+              <div id="country-map-list" class="log-panel muted" tabindex="0" role="region" aria-label="Available countries"></div>
+            </div>
+            <div class="actions">
+              <button class="button" id="install-country-maps" type="button" disabled>Install Selected</button>
+              <button class="button" id="clear-country-maps" type="button">Clear</button>
+            </div>
+            <p class="substatus" id="country-map-note" aria-live="polite"></p>
+          </details>
+          <details class="map-download-source" name="map-download-source">
+            <summary>U.S. Regions</summary>
+            <p class="muted">Download the states in each region directly from the configured Protomaps basemap.</p>
+            <div id="maps-catalog-list" class="log-panel muted">Loading U.S. regions…</div>
+            <p class="status" id="regional-map-summary" aria-live="polite"></p>
+            <div class="actions">
+              <button class="button" id="select-all-maps-button" type="button" disabled>Select All</button>
+              <button class="button" id="sync-maps-button" type="button" disabled>Install Selected Regions</button>
+            </div>
+          </details>
+        </section>
+        <section class="card">
+          <h2>Map Jobs</h2>
+          <p class="status" id="maps-sync-status">Map job: idle</p>
+          <div class="actions">
+            <button class="button hidden" id="cancel-map-build" type="button">Cancel Install</button>
+          </div>
+          <div class="progress-shell">
+            <div class="progress-top">
+              <span class="progress-label" id="maps-progress-label">Waiting for map sync</span>
+              <span class="progress-value" id="maps-progress-value">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="maps-progress-fill"></div>
+            </div>
+            <p class="status" id="maps-current-file-status">Current map: none</p>
+            <p class="substatus" id="maps-summary-status">No active map sync.</p>
+          </div>
+          <div class="actions">
+            <button class="button" data-icon="▤" id="toggle-maps-log-button" type="button">Show Map Sync Log</button>
+          </div>
+          <div class="log-panel hidden" id="maps-log-panel">
+            <strong>Map Sync Log</strong>
+            <pre id="maps-sync-log">No map sync activity yet.</pre>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="panel-group" data-panel-group="storage">
+      <div class="grid">
+        <section class="card">
+          <h2>Storage</h2>
+          <p class="muted">
+            See how much space is left on the device, which storage volumes are attached, and where PrepperCache currently keeps maps and library files.
+          </p>
+          <p class="muted">
+            When a prepared external drive is mounted, anything placed in its <code>maps</code> or <code>library</code> folders is added into PrepperCache automatically alongside the internal content.
+          </p>
+          <div class="content-storage">
+            <p class="content-storage-summary" id="storage-summary">Checking device storage.</p>
+            <div class="content-storage-bar" aria-hidden="true">
+              <div class="content-storage-segment other" id="storage-used"></div>
+              <div class="content-storage-segment content" id="storage-preppercache"></div>
+              <div class="content-storage-segment free" id="storage-free"></div>
+            </div>
+            <div class="content-storage-legend">
+              <div class="content-storage-chip">
+                <strong><span class="content-storage-swatch other" aria-hidden="true"></span>Other Used</strong>
+                <span id="storage-used-label">-</span>
+              </div>
+              <div class="content-storage-chip">
+                <strong><span class="content-storage-swatch content" aria-hidden="true"></span>PrepperCache Data</strong>
+                <span id="storage-preppercache-label">-</span>
+              </div>
+              <div class="content-storage-chip">
+                <strong><span class="content-storage-swatch free" aria-hidden="true"></span>Free</strong>
+                <span id="storage-free-label">-</span>
+              </div>
+            </div>
+            <div class="content-storage-warning" id="storage-warning"></div>
+            <div class="external-storage-breakdowns" id="external-storage-breakdowns"></div>
+          </div>
+          <div class="actions">
+            <button class="button" data-icon="↻" id="refresh-storage-button" type="button">Refresh Storage</button>
+          </div>
+          <div class="status-cluster" id="storage-action-status" aria-live="polite"></div>
+          <div class="field">
+            <label>Current Storage Paths</label>
+            <div id="storage-targets-list" class="log-panel muted">Checking current storage paths...</div>
+          </div>
+          <div class="field">
+            <label>Detected Volumes</label>
+            <div id="storage-volumes-list" class="log-panel muted">Checking attached storage volumes...</div>
+          </div>
+          <p class="substatus" id="storage-status-note">Use this page when you want to move maps or library data onto an external drive later.</p>
+        </section>
+      </div>
+    </section>
+
+    <section class="panel-group" data-panel-group="files">
+      <div class="grid">
+        <section class="card">
+          <h2>File Management</h2>
+          <p class="muted">
+            Browse PrepperCache storage locations in a dual-pane file manager. File operations are limited to approved PrepperCache roots and delete actions always require confirmation.
+          </p>
+          <div class="actions">
+            <button class="button" data-icon="↻" id="refresh-files-button" type="button">Refresh Files</button>
+            <button class="button" data-icon="📁" id="new-folder-button" type="button">New Folder</button>
+            <button class="button" data-icon="✎" id="rename-file-button" type="button">Rename</button>
+            <button class="button" data-icon="⎘" id="copy-file-button" type="button">Copy To Other Pane</button>
+            <button class="button" data-icon="⇄" id="move-file-button" type="button">Move To Other Pane</button>
+            <button class="button" data-icon="✖" id="delete-file-button" type="button">Delete</button>
+          </div>
+          <p class="status" id="files-action-status">File manager ready.</p>
+          <div class="files-dual-pane">
+            <section class="files-pane" id="files-pane-left">
+              <div class="files-pane-head">
+                <h3>Left Pane</h3>
+                <p class="substatus" id="files-left-path">Loading...</p>
+              </div>
+              <div class="files-shortcuts" id="files-left-shortcuts"></div>
+              <div class="files-list" id="files-left-list">Loading files...</div>
+            </section>
+            <section class="files-pane" id="files-pane-right">
+              <div class="files-pane-head">
+                <h3>Right Pane</h3>
+                <p class="substatus" id="files-right-path">Loading...</p>
+              </div>
+              <div class="files-shortcuts" id="files-right-shortcuts"></div>
+              <div class="files-list" id="files-right-list">Loading files...</div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="button" data-icon="⚙" id="run-setup-again-button" type="button">Run Setup Again</button>
+    </div>
+  </main>
+  <script>
+    let currentState = null;
+    let currentStatus = null;
+    let applyPollHandle = null;
+    let systemPollHandle = null;
+    let currentContent = null;
+    let contentPanelLoading = false;
+    let contentNeedsRefresh = true;
+    let latestContentApply = null;
+    let currentContentCatalog = null;
+    let contentCatalogPollHandle = null;
+    let installedZimSort = { by: "name", dir: "asc" };
+    let pendingCustomSelection = new Set();
+    let currentContentCategory = "all";
+    let currentContentPage = 1;
+    let currentMaps = null;
+    let regionalMapCatalog = [];
+    const selectedRegions = new Set();
+    let countryMapCatalog = null;
+    const selectedCountries = new Set();
+    let mapJobRunning = false;
+    let currentAccessPoint = null;
+    let mapsSyncPollHandle = null;
+    let currentPanel = "system";
+    let addMoreContentVisible = false;
+    let filesPaneState = {
+      left: { path: "", parentPath: "", selectedPath: "", entries: [], roots: [], sortBy: "name", sortDir: "asc", nameColumnWidth: 320 },
+      right: { path: "", parentPath: "", selectedPath: "", entries: [], roots: [], sortBy: "name", sortDir: "asc", nameColumnWidth: 320 }
+    };
+    let activeFilesPane = "left";
+    let apFormDirty = false;
+    let apClientsPanelVisible = false;
+
+    function setActivePanel(panelName) {
+      currentPanel = panelName;
+      document.querySelectorAll("[data-panel-group]").forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.panelGroup === panelName);
+      });
+      document.querySelectorAll(".tab-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.panel === panelName);
+      });
+      if (panelName === "wifi" || panelName === "system" || panelName === "storage") {
+        loadSystemPanelData();
+      } else if (panelName === "files") {
+        loadFilesPanelData();
+      } else if (panelName === "content") {
+        loadContentPanelData();
+      } else if (panelName === "maps") {
+        loadMapsPanelData();
+      }
+      updatePolling();
+    }
+
+    function renderApplyState(apply) {
+      const running = apply.status === "running";
+      const failed = apply.status === "failed";
+      const setupRunning = running && apply.action === "full";
+      const setupNote = document.getElementById("content-setup-note");
+      setupNote.textContent = setupRunning
+        ? "Installation is still in progress. Keep PrepperCache powered on. The content list and disk usage will appear automatically when setup finishes."
+        : failed && apply.action === "full"
+          ? "Installation stopped before it finished. See the error and content log below."
+          : "";
+      setupNote.classList.toggle("hidden", !setupNote.textContent);
+      document.getElementById("content-library-details").classList.toggle("hidden", setupRunning);
+      const failures = apply.download_failed || 0;
+      setContentActionStatus(
+        running ? (setupRunning ? "Installing PrepperCache" : "Working on your content")
+          : failed ? (apply.error || "The last operation failed.")
+          : failures ? `Finished with ${failures} failed download${failures === 1 ? "" : "s"}.`
+          : apply.status === "succeeded" ? "Finished." : "",
+        running || failed || apply.status === "succeeded"
+      );
+      document.getElementById("progress-label").textContent = apply.step || "Preparing";
+      const percent = Number(apply.progress_percent) || 0;
+      document.getElementById("progress-value").textContent = `${percent}%`;
+      document.getElementById("progress-fill").style.width = `${percent}%`;
+      const files = (apply.active_downloads || []).map(({ filename, downloaded_bytes, total_bytes }) => {
+        if (!total_bytes && !downloaded_bytes) return filename;
+        const downloaded = formatBytes(downloaded_bytes);
+        return total_bytes ? `${filename} (${downloaded} of ${formatBytes(total_bytes)})` : `${filename} (${downloaded} received)`;
+      });
+      if (running && !files.length && apply.current_file && apply.downloads_active) files.push(apply.current_file);
+      document.getElementById("current-file-status").textContent = files.length ? `Downloading: ${files.join(" · ")}` : "";
+      document.getElementById("content-summary-status").textContent = running && apply.downloads_active && apply.download_total
+        ? `${apply.download_current || 0} of ${apply.download_total} files processed${failures ? ` · ${failures} failed` : ""}`
+        : "";
+      document.getElementById("apply-log").textContent =
+        apply.log_tail && apply.log_tail.length
+          ? apply.log_tail.join("\n")
+          : "No active download log.";
+      setContentProgressVisibility(apply.status === "running" || apply.status === "failed");
+
+      document.getElementById("update-content-button").disabled = running || !currentContent?.automatic_updates;
+      document.getElementById("automatic-content-updates").disabled = running || !currentContent?.automatic_updates;
+      document.getElementById("refresh-installed-zims-button").disabled = running;
+      document.getElementById("remove-local-zims-button").disabled = running;
+      document.getElementById("select-all-local-zims-button").disabled = running;
+      document.getElementById("clear-local-zims-button").disabled = running;
+      document.getElementById("refresh-content-button").disabled = running;
+      document.getElementById("rebuild-library-button").disabled = running;
+      updateCustomLibraryVisibility(true, running);
+
+      updatePolling();
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function toneForServiceState(state) {
+      if (state === "active" || state === "enabled") return "status-chip--ok";
+      if (state === "inactive" || state === "disabled") return "status-chip--muted";
+      if (state === "failed" || state === "error" || state === "unavailable") return "status-chip--error";
+      return "status-chip--warn";
+    }
+
+    function setStatusChips(elementId, items) {
+      const container = document.getElementById(elementId);
+      container.innerHTML = items.map((item) => {
+        const tone = item.tone ? ` ${item.tone}` : "";
+        return `<span class="status-chip${tone}">
+          <span class="status-chip-key">${escapeHtml(item.label)}</span>
+          <span class="status-chip-value">${escapeHtml(item.value)}</span>
+        </span>`;
+      }).join("");
+    }
+
+    function formatBytes(bytes) {
+      const value = Number(bytes || 0);
+      if (!Number.isFinite(value) || value <= 0) return "0 GB";
+      const gb = value / (1024 ** 3);
+      if (gb >= 10) return `${gb.toFixed(0)} GB`;
+      if (gb >= 1) return `${gb.toFixed(1)} GB`;
+      return `${(value / (1024 ** 2)).toFixed(0)} MB`;
+    }
+
+    function updateContentPaneVisibility() {
+      const card = document.getElementById("add-more-content-card");
+      const button = document.getElementById("toggle-add-content-button");
+      card.classList.toggle("hidden", !addMoreContentVisible);
+      button.textContent = addMoreContentVisible ? "Hide Add More Content" : "Add More Content";
+    }
+
+    function setContentActionStatus(text = "", visible = false) {
+      const el = document.getElementById("content-action-status");
+      el.textContent = text;
+      el.classList.toggle("hidden", !visible);
+    }
+
+    function setContentProgressVisibility(visible = false) {
+      document.getElementById("content-progress-shell").classList.toggle("hidden", !visible);
+    }
+
+    function describeInstalledContentSet(content) {
+      if (!content) {
+        return "Installed content set unavailable.";
+      }
+      if (content.mode === "quick-test") {
+        return "Quick Test: tiny validation library for install testing.";
+      }
+      if (content.mode === "custom") {
+        const base = content.custom_base_preset === "full"
+          ? "Comprehensive base"
+          : content.custom_base_preset === "compact"
+            ? "Essential base"
+            : "No base tier";
+        const extras = Number(content.custom_selected_count || 0);
+        return `Custom: ${base}${extras > 0 ? ` plus ${extras} saved extra ZIM ${extras === 1 ? "selection" : "selections"}` : ""}.`;
+      }
+      const profileName = ({
+        essential: "Essential",
+        standard: "Standard",
+        comprehensive: "Comprehensive"
+      })[String(content.profile || "").toLowerCase()] || "Installed";
+      return `${profileName} tier is installed${(content.custom_selected_count || 0) > 0 ? ` with ${content.custom_selected_count} saved extra ZIM ${content.custom_selected_count === 1 ? "selection" : "selections"}` : ""}.`;
+    }
+
+    function contentSetTileLabel(content) {
+      if (!content) {
+        return "Unavailable";
+      }
+      if (content.mode === "quick-test") {
+        return "Quick Test";
+      }
+      if (content.mode === "custom") {
+        return "Custom";
+      }
+      return ({
+        essential: "Essential",
+        standard: "Standard",
+        comprehensive: "Comprehensive"
+      })[String(content.profile || "").toLowerCase()] || "Installed";
+    }
+
+    function activePaneState() {
+      return filesPaneState[activeFilesPane];
+    }
+
+    function inactivePaneKey() {
+      return activeFilesPane === "left" ? "right" : "left";
+    }
+
+    function sortedFilesEntries(side, entries) {
+      const pane = filesPaneState[side];
+      const sortBy = pane.sortBy || "name";
+      const sortDir = pane.sortDir === "desc" ? -1 : 1;
+      return [...entries].sort((left, right) => {
+        if (left.is_dir !== right.is_dir) {
+          return left.is_dir ? -1 : 1;
+        }
+
+        let comparison = 0;
+        if (sortBy === "size") {
+          comparison = Number(left.size_bytes || 0) - Number(right.size_bytes || 0);
+        } else if (sortBy === "modified") {
+          comparison = String(left.modified_at || "").localeCompare(String(right.modified_at || ""));
+        } else {
+          comparison = String(left.name || "").localeCompare(String(right.name || ""), undefined, { numeric: true, sensitivity: "base" });
+        }
+
+        if (comparison === 0) {
+          comparison = String(left.name || "").localeCompare(String(right.name || ""), undefined, { numeric: true, sensitivity: "base" });
+        }
+        return comparison * sortDir;
+      });
+    }
+
+    function updateFilesPaneSort(side, sortBy) {
+      const pane = filesPaneState[side];
+      if (pane.sortBy === sortBy) {
+        pane.sortDir = pane.sortDir === "asc" ? "desc" : "asc";
+      } else {
+        pane.sortBy = sortBy;
+        pane.sortDir = sortBy === "name" ? "asc" : "desc";
+      }
+      renderFilesPane("left", filesPaneState.left);
+      renderFilesPane("right", filesPaneState.right);
+    }
+
+    function beginFilesColumnResize(side, event) {
+      event.preventDefault();
+      const paneRoot = document.getElementById(`files-pane-${side}`);
+      const startX = event.clientX;
+      const startWidth = Number(filesPaneState[side].nameColumnWidth || 320);
+      const maxWidth = Math.max((paneRoot.getBoundingClientRect().width || 520) - 230, 220);
+
+      const onMove = (moveEvent) => {
+        const nextWidth = Math.max(180, Math.min(maxWidth, startWidth + (moveEvent.clientX - startX)));
+        filesPaneState[side].nameColumnWidth = nextWidth;
+        paneRoot.style.setProperty("--files-name-col-width", `${nextWidth}px`);
+      };
+
+      const onUp = () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    }
+
+    function renderFilesPane(side, payload) {
+      filesPaneState[side] = {
+        path: payload.path || "",
+        parentPath: payload.parent_path || "",
+        selectedPath: filesPaneState[side].selectedPath || "",
+        entries: Array.isArray(payload.entries) ? payload.entries : [],
+        roots: Array.isArray(payload.roots) ? payload.roots : [],
+        sortBy: filesPaneState[side].sortBy || "name",
+        sortDir: filesPaneState[side].sortDir || "asc",
+        nameColumnWidth: Number(filesPaneState[side].nameColumnWidth || 320)
+      };
+      const pane = filesPaneState[side];
+      const paneRoot = document.getElementById(`files-pane-${side}`);
+      const pathEl = document.getElementById(`files-${side}-path`);
+      const shortcutsEl = document.getElementById(`files-${side}-shortcuts`);
+      const listEl = document.getElementById(`files-${side}-list`);
+
+      paneRoot.classList.toggle("active", activeFilesPane === side);
+      paneRoot.style.setProperty("--files-name-col-width", `${pane.nameColumnWidth}px`);
+      pathEl.textContent = pane.path || "Unavailable";
+      shortcutsEl.innerHTML = "";
+
+      const roots = Array.isArray(pane.roots) ? pane.roots : [];
+      roots.forEach((root) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "button files-shortcut-button";
+        button.textContent = root.label || root.path || "Root";
+        button.addEventListener("click", () => loadFilesPane(side, root.path || ""));
+        shortcutsEl.appendChild(button);
+      });
+
+      listEl.textContent = "";
+      const entries = [];
+      if (pane.parentPath) {
+        entries.push({
+          name: "..",
+          path: pane.parentPath,
+          is_dir: true,
+          size_label: "",
+          modified_at: "Parent folder"
+        });
+      }
+      entries.push(...pane.entries);
+
+      if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "files-empty";
+        empty.textContent = "This folder is empty.";
+        listEl.appendChild(empty);
+        return;
+      }
+
+      const sortIndicator = pane.sortDir === "asc" ? "▲" : "▼";
+      const header = document.createElement("div");
+      header.className = "files-header";
+      header.innerHTML = `
+        <button class="files-header-button files-name-header" data-sort="name" type="button">
+          Name${pane.sortBy === "name" ? `<span class="files-sort-indicator">${sortIndicator}</span>` : ""}
+          <span class="files-column-resizer" data-resize="name" aria-hidden="true"></span>
+        </button>
+        <button class="files-header-button" data-sort="size" type="button">
+          Size${pane.sortBy === "size" ? `<span class="files-sort-indicator">${sortIndicator}</span>` : ""}
+        </button>
+        <button class="files-header-button" data-sort="modified" type="button">
+          Modified${pane.sortBy === "modified" ? `<span class="files-sort-indicator">${sortIndicator}</span>` : ""}
+        </button>
+      `;
+      header.querySelectorAll("[data-sort]").forEach((button) => {
+        button.addEventListener("click", () => updateFilesPaneSort(side, button.dataset.sort));
+      });
+      const resizer = header.querySelector("[data-resize='name']");
+      if (resizer) {
+        resizer.addEventListener("mousedown", (resizeEvent) => beginFilesColumnResize(side, resizeEvent));
+      }
+      listEl.appendChild(header);
+
+      sortedFilesEntries(side, entries).forEach((entry) => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "files-entry";
+        row.classList.toggle("selected", pane.selectedPath === entry.path);
+        row.innerHTML = `
+          <span class="files-entry-name">${escapeHtml(entry.is_dir ? `📁 ${entry.name}` : `📄 ${entry.name}`)}</span>
+          <span class="files-entry-size">${escapeHtml(entry.is_dir ? "DIR" : (entry.size_label || "--"))}</span>
+          <span class="files-entry-modified">${escapeHtml(entry.modified_at || "")}</span>
+        `;
+        row.addEventListener("click", () => {
+          activeFilesPane = side;
+          pane.selectedPath = entry.path;
+          renderFilesPane("left", filesPaneState.left);
+          renderFilesPane("right", filesPaneState.right);
+        });
+        row.addEventListener("dblclick", () => {
+          activeFilesPane = side;
+          pane.selectedPath = entry.path;
+          if (entry.is_dir) {
+            loadFilesPane(side, entry.path);
+          }
+        });
+        listEl.appendChild(row);
+      });
+    }
+
+    async function loadFilesPane(side, path = "") {
+      const listEl = document.getElementById(`files-${side}-list`);
+      listEl.textContent = "Loading files...";
+      try {
+        const encoded = path ? `?path=${encodeURIComponent(path)}` : "";
+        const { response, payload } = await fetchJsonWithTimeout(`/api/files${encoded}`, {}, 5000);
+        if (!response.ok) {
+          throw new Error(payload.error || "Unable to load files.");
+        }
+        renderFilesPane(side, payload);
+      } catch (error) {
+        listEl.textContent = error.message;
+      }
+    }
+
+    async function loadFilesPanelData() {
+      await Promise.all([
+        loadFilesPane("left", filesPaneState.left.path || ""),
+        loadFilesPane("right", filesPaneState.right.path || "")
+      ]);
+    }
+
+    function selectedFileEntry(side = activeFilesPane) {
+      const pane = filesPaneState[side];
+      return (pane.entries || []).find((entry) => entry.path === pane.selectedPath) || null;
+    }
+
+    async function submitFileAction(endpoint, payload, successMessage) {
+      const statusEl = document.getElementById("files-action-status");
+      statusEl.textContent = "File action running...";
+      try {
+        const { response, payload: result } = await fetchJsonWithTimeout(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }, 15000);
+        if (!response.ok) {
+          throw new Error(result.error || "File action failed.");
+        }
+        if (result.source) {
+          renderFilesPane(activeFilesPane, result.source);
+        }
+        if (result.target) {
+          renderFilesPane(inactivePaneKey(), result.target);
+        }
+        if (result.pane) {
+          renderFilesPane(activeFilesPane, result.pane);
+        }
+        statusEl.textContent = result.message || successMessage;
+      } catch (error) {
+        statusEl.textContent = error.message;
+      }
+    }
+
+    async function refreshFilesPanel() {
+      document.getElementById("files-action-status").textContent = "Refreshing file manager...";
+      await loadFilesPanelData();
+      document.getElementById("files-action-status").textContent = "File manager ready.";
+    }
+
+    async function createFolderInActivePane() {
+      const pane = activePaneState();
+      const name = window.prompt("Folder name:");
+      if (!name) {
+        document.getElementById("files-action-status").textContent = "Folder creation canceled.";
+        return;
+      }
+      await submitFileAction("/api/files/mkdir", {
+        parent_path: pane.path,
+        name
+      }, `Created folder ${name}.`);
+    }
+
+    async function renameSelectedFile() {
+      const entry = selectedFileEntry();
+      if (!entry) {
+        document.getElementById("files-action-status").textContent = "Select a file or folder first.";
+        return;
+      }
+      const name = window.prompt("New name:", entry.name);
+      if (!name || name === entry.name) {
+        document.getElementById("files-action-status").textContent = "Rename canceled.";
+        return;
+      }
+      await submitFileAction("/api/files/rename", {
+        source_path: entry.path,
+        new_name: name
+      }, `Renamed ${entry.name}.`);
+    }
+
+    async function copySelectedFile() {
+      const entry = selectedFileEntry();
+      if (!entry) {
+        document.getElementById("files-action-status").textContent = "Select a file or folder first.";
+        return;
+      }
+      await submitFileAction("/api/files/copy", {
+        source_path: entry.path,
+        target_dir: filesPaneState[inactivePaneKey()].path
+      }, `Copied ${entry.name}.`);
+    }
+
+    async function moveSelectedFile() {
+      const entry = selectedFileEntry();
+      if (!entry) {
+        document.getElementById("files-action-status").textContent = "Select a file or folder first.";
+        return;
+      }
+      const confirmed = window.confirm(`Move ${entry.name} to the other pane?`);
+      if (!confirmed) {
+        document.getElementById("files-action-status").textContent = "Move canceled.";
+        return;
+      }
+      await submitFileAction("/api/files/move", {
+        source_path: entry.path,
+        target_dir: filesPaneState[inactivePaneKey()].path
+      }, `Moved ${entry.name}.`);
+    }
+
+    async function deleteSelectedFile() {
+      const entry = selectedFileEntry();
+      if (!entry) {
+        document.getElementById("files-action-status").textContent = "Select a file or folder first.";
+        return;
+      }
+      const kind = entry.is_dir ? "folder" : "file";
+      const confirmed = window.confirm(`Delete this ${kind}?\n\n${entry.name}\n\nThis cannot be undone.`);
+      if (!confirmed) {
+        document.getElementById("files-action-status").textContent = "Delete canceled.";
+        return;
+      }
+      await submitFileAction("/api/files/delete", {
+        source_path: entry.path
+      }, `Deleted ${entry.name}.`);
+    }
+
+    function pendingDownloadBytes() {
+      if (!currentContentCatalog || !pendingCustomSelection.size) {
+        return 0;
+      }
+      const seenInstalled = new Set((currentContent && currentContent.installed_items || []).map((item) => item.name));
+      const byPath = new Map((currentContentCatalog.items || []).map((item) => [item.path, item]));
+      let total = 0;
+      pendingCustomSelection.forEach((path) => {
+        const item = byPath.get(path);
+        if (!item) return;
+        if (seenInstalled.has(item.name) || item.installed) return;
+        total += Number(item.size_bytes || 0);
+      });
+      return total;
+    }
+
+    function iconLabel(kind, text) {
+      const cloudDownload = `
+        <span class="catalog-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M7 18a4 4 0 0 1-.5-7.97A6.5 6.5 0 0 1 19 11a3.5 3.5 0 1 1 .5 7H14v-2h5.5a1.5 1.5 0 0 0 0-3h-1.77l-.18-.98A4.5 4.5 0 0 0 8.7 11l-.16 1.01-.99-.01H7a2 2 0 0 0 0 4h3v2H7z"></path>
+            <path d="M11 10h2v6h3l-4 4-4-4h3z"></path>
+          </svg>
+        </span>`;
+      const floppy = `
+        <span class="catalog-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M4 3h12l4 4v14H4z"></path>
+            <path d="M7 3h8v5H7z" fill="none" stroke="currentColor" stroke-width="1.5"></path>
+            <path d="M8 14h8v5H8z" fill="none" stroke="currentColor" stroke-width="1.5"></path>
+            <path d="M9 15.5h6" fill="none" stroke="currentColor" stroke-width="1.5"></path>
+          </svg>
+        </span>`;
+      return `${kind === "download" ? cloudDownload : floppy}${escapeHtml(text)}`;
+    }
+
+    function friendlyZimTitle(name) {
+      const raw = String(name || "").replace(/\.zim$/i, "");
+      const parts = raw.split("_").filter(Boolean);
+      if (!parts.length) {
+        return String(name || "");
+      }
+
+      const stopTokens = new Set([
+        "all", "nopic", "mini", "maxi", "novid", "withpics", "stackexchange.com"
+      ]);
+      const languageTokens = new Set(["en", "mul"]);
+      const versionPattern = /^\d{4}-\d{2}$/;
+
+      const cleaned = parts.filter((part, index) => {
+        const lower = part.toLowerCase();
+        if (index > 0 && languageTokens.has(lower)) return false;
+        if (versionPattern.test(lower)) return false;
+        return !stopTokens.has(lower);
+      });
+
+      if (!cleaned.length) {
+        return raw;
+      }
+
+      const acronyms = new Set(["cdc", "css", "html", "js", "nhs", "ted", "uk", "usa"]);
+      return cleaned.map((part) => {
+        const lower = part.toLowerCase();
+        if (acronyms.has(lower)) return lower.toUpperCase();
+        if (lower === "javascript") return "JavaScript";
+        if (lower === "freecodecamp") return "freeCodeCamp";
+        if (lower === "ifixit") return "iFixit";
+        if (lower === "devdocs") return "DevDocs";
+        if (lower === "wikibooks") return "Wikibooks";
+        if (lower === "wikiversity") return "Wikiversity";
+        return part
+          .split("-")
+          .map((piece) => piece ? piece.charAt(0).toUpperCase() + piece.slice(1) : piece)
+          .join("-");
+      }).join(" ");
+    }
+
+    function inferredZimDescription(name, category = "") {
+      const value = String(name || "").toLowerCase();
+      const categoryText = String(category || "").trim();
+      if (value.startsWith("wikipedia_")) return "Offline encyclopedia articles and general reference.";
+      if (value.startsWith("wikibooks_")) return "Open textbooks and study guides for offline learning.";
+      if (value.startsWith("wikiversity_")) return "Courses, lessons, and self-directed learning materials.";
+      if (value.startsWith("freecodecamp_")) return "Programming tutorials and coding practice lessons.";
+      if (value.startsWith("devdocs_")) return "Developer documentation and technical reference materials.";
+      if (value.includes("stackexchange.com")) return "Community questions and answers for practical problem-solving.";
+      if (value.startsWith("canadian_prepper_")) return "Preparedness and survival video content for emergencies.";
+      if (value.startsWith("nhs.uk_")) return "Medicine, dosage, and treatment reference information.";
+      if (value.startsWith("wwwnc.cdc.gov_")) return "Public health, disease prevention, and travel health guidance.";
+      if (value.startsWith("zimgit-medicine_")) return "Field medicine books and emergency care guides.";
+      if (value.startsWith("fas-military-medicine_")) return "Military and tactical medicine manuals.";
+      if (value.startsWith("foss.cooking_") || value.startsWith("based.cooking_")) return "Recipes, cooking methods, and kitchen reference.";
+      if (value.startsWith("ifixit_")) return "Repair manuals, troubleshooting steps, and teardown guides.";
+      if (categoryText) return `${categoryText} reference content for offline use.`;
+      return "Offline reference content.";
+    }
+
+    function zimVersionLabel(name) {
+      const value = String(name || "");
+      const match = value.match(/_(\d{4}-\d{2})\.zim$/i);
+      return match ? `v${match[1]}` : "";
+    }
+
+    function friendlyMapTitle(name) {
+      const raw = String(name || "").replace(/\.pmtiles$/i, "");
+      if (!raw) return String(name || "");
+      if (raw === "basemap") return "Base Map";
+      const usParts = { "country-us-alaska": "Alaska", "country-us-western-aleutians": "Western Aleutians", "country-us-hawaii": "Hawaii" };
+      if (Object.hasOwn(usParts, raw)) return usParts[raw];
+      const countryCode = /^country-([a-z]{2})$/.exec(raw)?.[1]?.toUpperCase();
+      if (countryCode) {
+        return countryMapCatalog?.countries.find((country) => country.id === countryCode)?.name
+          || new Intl.DisplayNames(["en"], { type: "region" }).of(countryCode);
+      }
+      if (raw.startsWith("custom-")) {
+        return raw.slice(7).split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+      }
+      const withoutVersion = raw.replace(/_\d{4}-\d{2}$/i, "");
+      return withoutVersion
+        .split("_")
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+    }
+
+    function installedZimDescription(item) {
+      const fromCatalog = currentContentCatalog && (currentContentCatalog.items || []).find((entry) => entry.name === item.name);
+      if (fromCatalog) {
+        return inferredZimDescription(item.name, fromCatalog.category);
+      }
+      if (item.selected) {
+        return "Extra Content";
+      }
+      return inferredZimDescription(item.name);
+    }
+
+    function catalogZimDescription(item) {
+      return inferredZimDescription(item.name, item.category);
+    }
+
+    function renderContentStorage(state, content) {
+      const summary = document.getElementById("content-storage-summary");
+      const other = document.getElementById("content-storage-other");
+      const libraryInternal = document.getElementById("content-storage-library-internal");
+      const libraryExternal = document.getElementById("content-storage-library-external");
+      const free = document.getElementById("content-storage-free");
+      const otherLabel = document.getElementById("content-storage-other-label");
+      const libraryInternalLabel = document.getElementById("content-storage-library-internal-label");
+      const libraryExternalLabel = document.getElementById("content-storage-library-external-label");
+      const freeLabel = document.getElementById("content-storage-free-label");
+      const warning = document.getElementById("content-storage-warning");
+      const downloadButton = document.getElementById("download-selected-zims-button");
+
+      const disk = state && state.storage && state.storage.disk;
+      if (!disk) {
+        summary.textContent = "Disk usage is unavailable right now.";
+        other.style.width = "0%";
+        libraryInternal.style.width = "0%";
+        libraryExternal.style.width = "0%";
+        free.style.width = "100%";
+        otherLabel.textContent = "-";
+        libraryInternalLabel.textContent = "-";
+        libraryExternalLabel.textContent = "-";
+        freeLabel.textContent = "-";
+        warning.className = "content-storage-warning";
+        warning.textContent = "";
+        return;
+      }
+
+      const totalBytes = Number(disk.total_bytes || 0);
+      const usedBytes = Number(disk.used_bytes || 0);
+      const freeBytes = Number(disk.free_bytes || 0);
+      const internalLibraryBytes = Number(content && content.installed_internal_size_bytes || 0);
+      const externalLibraryBytes = Number(content && content.installed_external_size_bytes || 0);
+      const libraryBytes = internalLibraryBytes + externalLibraryBytes;
+      const queuedBytes = pendingDownloadBytes();
+      const installTarget = Array.isArray(content && content.install_destinations)
+        ? content.install_destinations.find((item) => item.path === content.install_dir)
+        : null;
+      const targetLabel = installTarget && installTarget.label
+        ? String(installTarget.label)
+        : "selected storage";
+      const targetFreeBytes = installTarget && Number.isFinite(Number(installTarget.free_bytes))
+        ? Number(installTarget.free_bytes || 0)
+        : freeBytes;
+      const targetTotalBytes = installTarget && Number.isFinite(Number(installTarget.size_bytes))
+        ? Number(installTarget.size_bytes || 0)
+        : totalBytes;
+      const queuedInternalBytes = installTarget && installTarget.location === "external" ? 0 : queuedBytes;
+      const queuedExternalBytes = installTarget && installTarget.location === "external" ? queuedBytes : 0;
+      const otherUsedBytes = Math.max(0, usedBytes - libraryBytes);
+      const projectedInternalLibraryBytes = internalLibraryBytes + queuedInternalBytes;
+      const projectedExternalLibraryBytes = externalLibraryBytes + queuedExternalBytes;
+      const projectedFreeBytes = Math.max(0, targetFreeBytes - queuedBytes);
+      const projectedFreePercent = targetTotalBytes > 0 ? (projectedFreeBytes / targetTotalBytes) * 100 : 0;
+      const exceedsDisk = queuedBytes > targetFreeBytes;
+      const nearFull = !exceedsDisk && queuedBytes > 0 && projectedFreePercent <= 10;
+
+      const otherPercent = totalBytes > 0 ? Math.max(0, Math.min(100, (otherUsedBytes / totalBytes) * 100)) : 0;
+      const internalPercent = totalBytes > 0 ? Math.max(0, Math.min(100 - otherPercent, (projectedInternalLibraryBytes / totalBytes) * 100)) : 0;
+      const externalPercent = totalBytes > 0 ? Math.max(0, Math.min(100 - otherPercent - internalPercent, (projectedExternalLibraryBytes / totalBytes) * 100)) : 0;
+      const freePercent = Math.max(0, 100 - otherPercent - internalPercent - externalPercent);
+
+      other.style.width = `${otherPercent}%`;
+      libraryInternal.style.width = `${internalPercent}%`;
+      libraryExternal.style.width = `${externalPercent}%`;
+      free.style.width = `${freePercent}%`;
+
+      otherLabel.textContent = formatBytes(otherUsedBytes);
+      libraryInternalLabel.textContent = queuedInternalBytes > 0
+        ? `${formatBytes(projectedInternalLibraryBytes)} (+${formatBytes(queuedInternalBytes)})`
+        : formatBytes(internalLibraryBytes);
+      libraryExternalLabel.textContent = queuedExternalBytes > 0
+        ? `${formatBytes(projectedExternalLibraryBytes)} (+${formatBytes(queuedExternalBytes)})`
+        : formatBytes(externalLibraryBytes);
+      freeLabel.textContent = queuedBytes > 0
+        ? `${formatBytes(projectedFreeBytes)} (-${formatBytes(queuedBytes)})`
+        : formatBytes(targetFreeBytes);
+      if (queuedBytes > 0) {
+        summary.textContent = `${content ? (content.installed_count || 0) : 0} ZIMs are installed. The current selection would add ${formatBytes(queuedBytes)} and leave about ${formatBytes(projectedFreeBytes)} free on ${targetLabel}.`;
+      } else {
+        summary.textContent = `${content ? (content.installed_count || 0) : 0} ZIMs are installed and using ${formatBytes(libraryBytes)} across internal and external storage.`;
+      }
+
+      warning.className = "content-storage-warning";
+      warning.textContent = "";
+      if (exceedsDisk) {
+        warning.classList.add("danger");
+        warning.textContent = `Not enough free space on ${targetLabel} for the selected downloads. Choose fewer or smaller ZIM files before downloading, or pick a different storage target.`;
+      } else if (nearFull) {
+        warning.classList.add("warn");
+        warning.textContent = `Warning: the selected downloads would leave less than 10% free space on ${targetLabel}.`;
+      }
+
+      if (downloadButton) {
+        downloadButton.disabled = exceedsDisk;
+      }
+    }
+
+    function renderMapsStorage(maps) {
+      const summary = document.getElementById("maps-storage-summary");
+      if (!maps) {
+        summary.textContent = "Map storage information is unavailable.";
+        return;
+      }
+      const inventory = maps.inventory || [];
+      const bytes = inventory.reduce((sum, item) => sum + Number(item.size_bytes || 0), 0);
+      summary.textContent = `${inventory.length} installed · ${formatBytes(bytes)}`;
+    }
+
+    async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 5000) {
+      const controller = new AbortController();
+      const timeoutHandle = window.setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, {
+          cache: "no-store",
+          ...options,
+          signal: controller.signal
+        });
+        const payload = await response.json();
+        return { response, payload };
+      } finally {
+        window.clearTimeout(timeoutHandle);
+      }
+    }
+
+    function renderSystemHealth(status) {
+      if (status.temperature_c === null) {
+        document.getElementById("system-temp-status").textContent = "Unavailable";
+        document.getElementById("system-temp-fill").style.width = "0%";
+        document.getElementById("system-temp-fill").className = "meter-fill";
+      } else {
+        const tempC = Number(status.temperature_c);
+        const tempF = (tempC * 9 / 5) + 32;
+        const tempPercent = Math.max(0, Math.min(100, Math.round(tempC)));
+        const tempTone = tempC >= 75 ? "temp-hot" : tempC >= 60 ? "temp-warm" : "temp-cool";
+        document.getElementById("system-temp-status").textContent =
+          `${tempC.toFixed(1)} C / ${tempF.toFixed(1)} F`;
+        document.getElementById("system-temp-fill").style.width = `${tempPercent}%`;
+        document.getElementById("system-temp-fill").className = `meter-fill ${tempTone}`;
+      }
+
+      if (!status.cpu) {
+        document.getElementById("system-cpu-status").textContent = "Unavailable";
+        document.getElementById("system-cpu-fill").style.width = "0%";
+      } else {
+        document.getElementById("system-cpu-status").textContent =
+          `${status.cpu.load_percent}% load`;
+        document.getElementById("system-cpu-fill").style.width = `${status.cpu.load_percent}%`;
+      }
+
+      if (!status.memory) {
+        document.getElementById("system-memory-status").textContent = "Unavailable";
+        document.getElementById("system-memory-detail").textContent = "Available: unavailable";
+        document.getElementById("system-memory-fill").style.width = "0%";
+      } else {
+        document.getElementById("system-memory-status").textContent =
+          `${status.memory.used_percent}% used`;
+        document.getElementById("system-memory-detail").textContent =
+          `Available: ${formatBytes(status.memory.available_bytes || 0)} / ${formatBytes(status.memory.total_bytes || 0)}`;
+        document.getElementById("system-memory-fill").style.width =
+          `${status.memory.used_percent || 0}%`;
+      }
+
+      document.getElementById("system-uptime-status").textContent = `Uptime: ${status.uptime}`;
+      renderSystemServices(status.services || []);
+    }
+
+    function serviceStateLabel(service) {
+      if (!service || service.exists === false || service.active_state === "not-installed") {
+        return "Not Installed";
+      }
+      if (service.active_state === "active") {
+        return service.sub_state && service.sub_state !== "running"
+          ? `Active (${service.sub_state})`
+          : "Active";
+      }
+      if (service.active_state === "activating") return "Starting";
+      if (service.active_state === "deactivating") return "Stopping";
+      if (service.active_state === "failed") return "Failed";
+      if (service.active_state === "inactive") return "Inactive";
+      return service.active_state || "Unknown";
+    }
+
+    function toneForDetailedServiceState(service) {
+      if (!service || service.exists === false || service.active_state === "not-installed") {
+        return "status-chip--muted";
+      }
+      return toneForServiceState(service.active_state || "unknown");
+    }
+
+    function renderSystemServices(services) {
+      const container = document.getElementById("system-services-list");
+      if (!Array.isArray(services) || !services.length) {
+        container.textContent = "Application service status is unavailable.";
+        return;
+      }
+
+      container.innerHTML = services.map((service) => {
+        const stateLabel = serviceStateLabel(service);
+        const restartDisabled = !service.exists || service.active_state === "activating" || service.active_state === "deactivating";
+        const enabledLabel = !service.exists || service.enabled_state === "not-installed"
+          ? "Not Installed"
+          : (service.enabled_state || "unknown");
+        return `<div class="system-service-card">
+          <div class="system-service-top">
+            <div>
+              <strong>${escapeHtml(service.label || service.id || "Service")}</strong>
+              <span>${escapeHtml(service.description || "")}</span>
+            </div>
+            <div class="system-service-actions">
+              <button class="button secondary system-service-restart-button" data-icon="↻" data-service-id="${escapeHtml(service.id || "")}" type="button" ${restartDisabled ? "disabled" : ""}>Restart</button>
+            </div>
+          </div>
+          <div class="status-cluster">
+            <span class="status-chip ${toneForDetailedServiceState(service)}">
+              <span class="status-chip-key">State</span>
+              <span class="status-chip-value">${escapeHtml(stateLabel)}</span>
+            </span>
+            <span class="status-chip ${!service.exists || service.enabled_state === "not-installed" ? "status-chip--muted" : toneForServiceState(enabledLabel.toLowerCase())}">
+              <span class="status-chip-key">Enabled</span>
+              <span class="status-chip-value">${escapeHtml(enabledLabel)}</span>
+            </span>
+          </div>
+          <p class="system-service-note">Unit: ${escapeHtml(service.unit || "")}</p>
+        </div>`;
+      }).join("");
+    }
+
+    function renderStorageHealth(status) {
+      const storage = status && status.storage;
+      const disk = storage && storage.disk;
+      const summary = document.getElementById("storage-summary");
+      const used = document.getElementById("storage-used");
+      const preppercache = document.getElementById("storage-preppercache");
+      const free = document.getElementById("storage-free");
+      const usedLabel = document.getElementById("storage-used-label");
+      const preppercacheLabel = document.getElementById("storage-preppercache-label");
+      const freeLabel = document.getElementById("storage-free-label");
+      const warning = document.getElementById("storage-warning");
+      const externalBreakdowns = document.getElementById("external-storage-breakdowns");
+      const targetsList = document.getElementById("storage-targets-list");
+      const volumesList = document.getElementById("storage-volumes-list");
+      const note = document.getElementById("storage-status-note");
+
+      if (!disk) {
+        summary.textContent = "Storage details are unavailable right now.";
+        used.style.width = "0%";
+        preppercache.style.width = "0%";
+        free.style.width = "100%";
+        usedLabel.textContent = "-";
+        preppercacheLabel.textContent = "-";
+        freeLabel.textContent = "-";
+        warning.className = "content-storage-warning";
+        warning.textContent = "";
+        externalBreakdowns.innerHTML = "";
+        targetsList.textContent = "Storage target details are unavailable.";
+        volumesList.textContent = "Storage volume details are unavailable.";
+        note.textContent = "Storage details are unavailable right now.";
+        return;
+      }
+
+      const totalBytes = Number(disk.total_bytes || 0);
+      const usedBytes = Number(disk.used_bytes || 0);
+      const freeBytes = Number(disk.free_bytes || 0);
+      const preppercacheBytes = Number(storage.preppercache_bytes || 0);
+      const otherUsedBytes = Math.max(0, usedBytes - preppercacheBytes);
+      const otherPercent = totalBytes > 0 ? Math.max(0, Math.min(100, (otherUsedBytes / totalBytes) * 100)) : 0;
+      const preppercachePercent = totalBytes > 0 ? Math.max(0, Math.min(100 - otherPercent, (preppercacheBytes / totalBytes) * 100)) : 0;
+      const freePercent = Math.max(0, 100 - otherPercent - preppercachePercent);
+      const freeSpacePercent = totalBytes > 0 ? (freeBytes / totalBytes) * 100 : 0;
+
+      used.style.width = `${otherPercent}%`;
+      preppercache.style.width = `${preppercachePercent}%`;
+      free.style.width = `${freePercent}%`;
+      usedLabel.textContent = formatBytes(otherUsedBytes);
+      preppercacheLabel.textContent = formatBytes(preppercacheBytes);
+      freeLabel.textContent = formatBytes(freeBytes);
+      summary.textContent = `This device is using ${formatBytes(usedBytes)} overall, with about ${formatBytes(preppercacheBytes)} currently tied to PrepperCache maps and library data.`;
+
+      warning.className = "content-storage-warning";
+      warning.textContent = "";
+      if (freeBytes <= 0) {
+        warning.classList.add("danger");
+        warning.textContent = "This device is out of free space.";
+      } else if (freeSpacePercent <= 10) {
+        warning.classList.add("warn");
+        warning.textContent = "Warning: less than 10% of device storage is still free.";
+      }
+
+      const targets = Array.isArray(storage.targets) ? storage.targets : [];
+      const volumes = Array.isArray(storage.volumes) ? storage.volumes : [];
+      const preppercacheBytesByVolume = new Map();
+      const seenResolvedPaths = new Set();
+      targets.forEach((target) => {
+        const resolvedPath = String(target?.resolved_path || "");
+        const volume = target?.volume || null;
+        const volumeKey = String(volume?.path || volume?.mountpoint || "");
+        if (!resolvedPath || !volumeKey || seenResolvedPaths.has(resolvedPath)) {
+          return;
+        }
+        seenResolvedPaths.add(resolvedPath);
+        preppercacheBytesByVolume.set(
+          volumeKey,
+          Number(preppercacheBytesByVolume.get(volumeKey) || 0) + Number(target.current_bytes || 0)
+        );
+      });
+
+      const mountedExternalVolumes = volumes.filter((volume) =>
+        volume
+        && volume.location === "external"
+        && volume.mounted
+        && Number(volume.size_bytes || 0) > 0
+      );
+      if (!mountedExternalVolumes.length) {
+        externalBreakdowns.innerHTML = "";
+      } else {
+        externalBreakdowns.innerHTML = mountedExternalVolumes.map((volume) => {
+          const volumeKey = String(volume.path || volume.mountpoint || "");
+          const totalVolumeBytes = Number(volume.size_bytes || 0);
+          const usedVolumeBytes = Number(volume.used_bytes || 0);
+          const freeVolumeBytes = Number(volume.free_bytes || 0);
+          const preppercacheVolumeBytes = Math.min(Number(preppercacheBytesByVolume.get(volumeKey) || 0), usedVolumeBytes);
+          const otherVolumeBytes = Math.max(0, usedVolumeBytes - preppercacheVolumeBytes);
+          const otherVolumePercent = totalVolumeBytes > 0 ? Math.max(0, Math.min(100, (otherVolumeBytes / totalVolumeBytes) * 100)) : 0;
+          const preppercacheVolumePercent = totalVolumeBytes > 0 ? Math.max(0, Math.min(100 - otherVolumePercent, (preppercacheVolumeBytes / totalVolumeBytes) * 100)) : 0;
+          const freeVolumePercent = Math.max(0, 100 - otherVolumePercent - preppercacheVolumePercent);
+          const title = volume.display_name || volume.label || volume.model || volume.path || "External Drive";
+          const mountpointText = volume.mountpoint ? `Mounted at ${volume.mountpoint}` : "Mounted";
+          return `<div class="external-storage-breakdown">
+            <div class="external-storage-breakdown-header">
+              <strong>${escapeHtml(title)}</strong>
+              <span>${escapeHtml(formatBytes(totalVolumeBytes))}</span>
+            </div>
+            <p class="external-storage-breakdown-note">${escapeHtml(mountpointText)}</p>
+            <div class="content-storage-bar" aria-hidden="true">
+              <div class="content-storage-segment other" style="width: ${otherVolumePercent}%"></div>
+              <div class="content-storage-segment content" style="width: ${preppercacheVolumePercent}%"></div>
+              <div class="content-storage-segment free" style="width: ${freeVolumePercent}%"></div>
+            </div>
+            <div class="content-storage-legend">
+              <div class="content-storage-chip">
+                <strong><span class="content-storage-swatch other" aria-hidden="true"></span>Other Used</strong>
+                <span>${escapeHtml(formatBytes(otherVolumeBytes))}</span>
+              </div>
+              <div class="content-storage-chip">
+                <strong><span class="content-storage-swatch content" aria-hidden="true"></span>PrepperCache Data</strong>
+                <span>${escapeHtml(formatBytes(preppercacheVolumeBytes))}</span>
+              </div>
+              <div class="content-storage-chip">
+                <strong><span class="content-storage-swatch free" aria-hidden="true"></span>Free</strong>
+                <span>${escapeHtml(formatBytes(freeVolumeBytes))}</span>
+              </div>
+            </div>
+          </div>`;
+        }).join("");
+      }
+
+      if (!targets.length) {
+        targetsList.textContent = "No storage paths were detected.";
+      } else {
+        targetsList.innerHTML = targets.map((target) => {
+          const volume = target.volume || null;
+          const volumeLabel = volume
+            ? `${volume.location === "external" ? "External" : "Internal"}${volume.mountpoint ? ` • ${volume.mountpoint}` : ""}`
+            : "Volume not resolved";
+          const isAvailable = target.role === "available";
+          const noteText = isAvailable
+            ? `Available at ${target.resolved_path}`
+            : (target.is_symlink ? `Linked to ${target.resolved_path}` : `Using ${target.resolved_path}`);
+          return `<div class="storage-row">
+            <div class="storage-row-main">
+              <strong>${escapeHtml(target.label || "Storage")}</strong>
+              <span>${escapeHtml(formatBytes(target.current_bytes || 0))}</span>
+            </div>
+            <div class="storage-row-meta">${escapeHtml(target.configured_path || "")}</div>
+            <div class="storage-row-note">${escapeHtml(noteText)}${target.exists ? "" : " (missing)"}${volume ? ` • ${escapeHtml(volumeLabel)}` : ""}${isAvailable ? " • Ready as a destination" : " • Current PrepperCache path"}</div>
+          </div>`;
+        }).join("");
+      }
+
+      if (!volumes.length) {
+        volumesList.textContent = "No mounted or attached storage volumes were detected.";
+      } else {
+        volumesList.innerHTML = volumes.map((volume) => {
+          const title = volume.display_name || volume.path || volume.name || "Volume";
+          const location = volume.location === "external" ? "External" : "Internal";
+          const mountText = volume.mountpoint ? `Mounted at ${volume.mountpoint}` : "Not mounted";
+          const filesystem = volume.filesystem ? ` • ${volume.filesystem}` : "";
+          const usage = volume.mountpoint && volume.size_bytes
+            ? `${formatBytes(volume.used_bytes || 0)} used / ${formatBytes(volume.free_bytes || 0)} free`
+            : formatBytes(volume.size_bytes || 0);
+          const layout = volume.preppercache_layout || {};
+          const layoutPieces = [];
+          if (layout.maps) layoutPieces.push("maps");
+          if (layout.library) layoutPieces.push("library");
+          if (layout.media) layoutPieces.push("media");
+          const layoutText = layoutPieces.length ? ` • PrepperCache folders: ${layoutPieces.join(", ")}` : "";
+          let actions = "";
+          if (volume.can_mount && !volume.mounted) {
+            actions += `<button class="button secondary storage-action-button" data-icon="↻" data-storage-action="mount" data-device-path="${escapeHtml(volume.path || "")}" type="button">Mount Drive</button>`;
+          }
+          if (volume.can_unmount) {
+            actions += `<button class="button secondary storage-action-button" data-icon="⏏" data-storage-action="unmount" data-device-path="${escapeHtml(volume.path || "")}" type="button">Unmount Drive</button>`;
+          }
+          if (volume.can_prepare) {
+            actions += `<button class="button secondary storage-action-button" data-icon="⚠" data-storage-action="prepare" data-device-path="${escapeHtml(volume.path || "")}" type="button">Prepare Drive</button>`;
+          }
+          if (volume.location === "external" && volume.is_partition && volume.filesystem) {
+            actions += `<button class="button secondary storage-action-button" data-icon="✎" data-storage-action="rename" data-device-path="${escapeHtml(volume.path || "")}" data-current-label="${escapeHtml(volume.label || "")}" type="button">Rename Drive</button>`;
+          }
+          return `<div class="storage-row">
+            <div class="storage-row-main">
+              <strong>${escapeHtml(title)}</strong>
+              <span>${escapeHtml(formatBytes(volume.size_bytes || 0))}</span>
+            </div>
+            <div class="storage-row-meta">${escapeHtml(location)}${filesystem}${volume.path ? ` • ${escapeHtml(volume.path)}` : ""}</div>
+            <div class="storage-row-note">${escapeHtml(mountText)} • ${escapeHtml(usage)}${escapeHtml(layoutText)}</div>
+            ${actions ? `<div class="storage-row-actions">${actions}</div>` : ""}
+          </div>`;
+        }).join("");
+      }
+
+      note.textContent = "Use this page to confirm where PrepperCache data lives before moving maps or library content to another drive.";
+    }
+
+    function renderSystemUnavailable(delayed) {
+      document.getElementById("system-temp-status").textContent = delayed ? "Delayed" : "Unavailable";
+      document.getElementById("system-temp-fill").style.width = "0%";
+      document.getElementById("system-temp-fill").className = "meter-fill";
+      document.getElementById("system-cpu-status").textContent = delayed ? "Delayed" : "Unavailable";
+      document.getElementById("system-cpu-fill").style.width = "0%";
+      document.getElementById("system-memory-status").textContent = delayed ? "Delayed" : "Unavailable";
+      document.getElementById("system-memory-detail").textContent = delayed ? "Available: delayed" : "Available: unavailable";
+      document.getElementById("system-memory-fill").style.width = "0%";
+      document.getElementById("system-uptime-status").textContent = delayed ? "Uptime: delayed" : "Uptime: unavailable";
+      document.getElementById("system-services-list").textContent =
+        delayed ? "Application service status is taking too long to respond." : "Application service status is unavailable.";
+    }
+
+    async function loadSystemPanelData() {
+      document.getElementById("system-temp-status").textContent = "Checking...";
+      document.getElementById("system-cpu-status").textContent = "Checking...";
+      document.getElementById("system-memory-status").textContent = "Checking...";
+      document.getElementById("system-memory-detail").textContent = "Available: checking...";
+      document.getElementById("system-uptime-status").textContent = "Uptime: checking...";
+      document.getElementById("system-services-list").textContent = "Checking application services...";
+      document.getElementById("storage-summary").textContent = "Checking device storage.";
+      document.getElementById("storage-targets-list").textContent = "Checking current storage paths...";
+      document.getElementById("storage-volumes-list").textContent = "Checking attached storage volumes...";
+      try {
+        const [healthResult, accessPointResult] = await Promise.allSettled([
+          fetchJsonWithTimeout("/api/system/health", {}, 2000),
+          fetchJsonWithTimeout("/api/system/access-point", {}, 2500)
+        ]);
+        if (healthResult.status === "fulfilled") {
+          currentStatus = healthResult.value.payload;
+          renderSystemHealth(currentStatus);
+          renderStorageHealth(currentStatus);
+        } else {
+          const delayed = healthResult.reason && healthResult.reason.name === "AbortError";
+          renderSystemUnavailable(delayed);
+          renderStorageHealth(null);
+        }
+        if (accessPointResult.status === "fulfilled") {
+          currentAccessPoint = accessPointResult.value.payload;
+          renderAccessPointState(currentAccessPoint);
+        } else {
+          const delayed = accessPointResult.reason && accessPointResult.reason.name === "AbortError";
+          setStatusChips("ap-status", [
+            { label: "Access Point", value: delayed ? "Delayed" : "Unavailable", tone: delayed ? "status-chip--warn" : "status-chip--error" }
+          ]);
+          document.getElementById("ap-action-status").textContent =
+            delayed ? "Access point status is taking too long to respond." : "Access point status is unavailable.";
+        }
+      } catch (error) {
+        const delayed = error && error.name === "AbortError";
+        renderSystemUnavailable(delayed);
+        renderStorageHealth(null);
+        setStatusChips("ap-status", [
+          { label: "Access Point", value: delayed ? "Delayed" : "Unavailable", tone: delayed ? "status-chip--warn" : "status-chip--error" }
+        ]);
+        document.getElementById("ap-action-status").textContent =
+          delayed ? "Access point status is taking too long to respond." : "Access point status is unavailable.";
+      }
+    }
+
+    async function refreshStoragePanel() {
+      const button = document.getElementById("refresh-storage-button");
+      button.disabled = true;
+      button.textContent = "Refreshing...";
+      try {
+        await loadSystemPanelData();
+      } finally {
+        button.disabled = false;
+        button.textContent = "Refresh Storage";
+      }
+    }
+
+    function setStorageActionState(note = "", tone = "status-chip--muted", active = false) {
+      const cluster = document.getElementById("storage-action-status");
+      if (!note) {
+        cluster.innerHTML = "";
+        cluster.classList.remove("status-cursor");
+        return;
+      }
+      cluster.innerHTML = `<span class="status-chip ${tone}">
+        <span class="status-chip-key">Storage</span>
+        <span class="status-chip-value">${escapeHtml(note)}</span>
+      </span>`;
+      cluster.classList.toggle("status-cursor", active);
+    }
+
+    async function runStorageAction(action, devicePath, currentLabel = "") {
+      if (!devicePath) {
+        return;
+      }
+      const note = document.getElementById("storage-status-note");
+      const refreshButton = document.getElementById("refresh-storage-button");
+      let requestBody = { device_path: devicePath };
+      if (action === "mount") {
+        note.textContent = `Mounting ${devicePath}...`;
+        setStorageActionState(`Mounting ${devicePath}`, "status-chip--warn", true);
+      } else if (action === "unmount") {
+        const confirmed = window.confirm(
+          `Unmount ${devicePath}?\n\nThis safely removes the drive from PrepperCache. Any content stored only on that drive will disappear until it is mounted again.`
+        );
+        if (!confirmed) {
+          note.textContent = "Drive unmount canceled.";
+          setStorageActionState("Drive unmount canceled.", "status-chip--muted", false);
+          return;
+        }
+        note.textContent = `Unmounting ${devicePath}...`;
+        setStorageActionState(`Unmounting ${devicePath}`, "status-chip--warn", true);
+      } else if (action === "prepare") {
+        const confirmed = window.confirm(
+          `Prepare ${devicePath} for PrepperCache?\n\nThis will erase everything on that drive, format it as ext4, mount it, and create maps, library, and media folders.`
+        );
+        if (!confirmed) {
+          note.textContent = "Drive preparation canceled.";
+          setStorageActionState("Drive preparation canceled.", "status-chip--muted", false);
+          return;
+        }
+        const expected = `FORMAT ${devicePath}`;
+        const typed = window.prompt(`Type ${expected} to confirm erasing and preparing this drive.`, "");
+        if (typed !== expected) {
+          note.textContent = "Drive preparation canceled.";
+          setStorageActionState("Drive preparation canceled.", "status-chip--muted", false);
+          return;
+        }
+        const label = window.prompt(
+          "Name this PrepperCache drive. Letters, numbers, hyphens, and underscores only. 16 characters max.",
+          currentLabel || "PrepperCacheDATA"
+        );
+        if (label === null) {
+          note.textContent = "Drive preparation canceled.";
+          setStorageActionState("Drive preparation canceled.", "status-chip--muted", false);
+          return;
+        }
+        requestBody = { device_path: devicePath, confirm_text: expected, label };
+        note.textContent = `Preparing ${devicePath}. Formatting and creating PrepperCache folders. This may take a minute...`;
+        setStorageActionState(`Preparing ${devicePath}`, "status-chip--warn", true);
+      } else if (action === "rename") {
+        const label = window.prompt(
+          "Choose a new volume name. Letters, numbers, hyphens, and underscores only. 16 characters max.",
+          currentLabel || "PrepperCacheDATA"
+        );
+        if (label === null) {
+          note.textContent = "Drive rename canceled.";
+          setStorageActionState("Drive rename canceled.", "status-chip--muted", false);
+          return;
+        }
+        requestBody = { device_path: devicePath, label };
+        note.textContent = `Renaming ${devicePath}...`;
+        setStorageActionState(`Renaming ${devicePath}`, "status-chip--warn", true);
+      }
+
+      document.querySelectorAll(".storage-action-button").forEach((button) => {
+        button.disabled = true;
+      });
+      refreshButton.disabled = true;
+      try {
+        const endpoint = action === "mount"
+          ? "/api/system/storage/mount"
+          : action === "unmount"
+            ? "/api/system/storage/unmount"
+            : action === "rename"
+              ? "/api/system/storage/rename"
+              : "/api/system/storage/prepare";
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody)
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || "Storage action failed.");
+        }
+        currentStatus = {
+          ...(currentStatus || {}),
+          disk: payload.disk,
+          storage: payload,
+          temperature_c: currentStatus?.temperature_c ?? null,
+          cpu: currentStatus?.cpu ?? null,
+          uptime: currentStatus?.uptime ?? null,
+        };
+        renderStorageHealth(currentStatus);
+        note.textContent = action === "mount"
+          ? `Mounted ${devicePath}.`
+          : action === "unmount"
+            ? `Unmounted ${devicePath}.`
+            : action === "rename"
+              ? `Renamed ${devicePath}.`
+              : `Prepared ${devicePath} and created maps, library, and media folders.`;
+        setStorageActionState(
+          action === "mount"
+            ? `Mounted ${devicePath}`
+            : action === "unmount"
+              ? `Unmounted ${devicePath}`
+              : action === "rename"
+                ? `Renamed ${devicePath}`
+                : `Prepared ${devicePath}`,
+          "status-chip--ok",
+          false
+        );
+      } catch (error) {
+        note.textContent = error.message;
+        setStorageActionState(error.message, "status-chip--error", false);
+      } finally {
+        document.querySelectorAll(".storage-action-button").forEach((button) => {
+          button.disabled = false;
+        });
+        refreshButton.disabled = false;
+      }
+    }
+
+    function setAccessPointFormValues(ap, force = false) {
+      if (apFormDirty && !force) {
+        return;
+      }
+      document.getElementById("ap-ssid").value = ap.ssid || "";
+      document.getElementById("ap-passphrase").value = ap.passphrase || "";
+      document.getElementById("ap-interface").value = ap.interface || "";
+      document.getElementById("ap-country").value = ap.country || "";
+      document.getElementById("ap-channel").value = ap.channel || "";
+      document.getElementById("ap-address").value = ap.address || "";
+      document.getElementById("ap-netmask").value = ap.netmask || "";
+      document.getElementById("ap-cidr").value = ap.cidr || "";
+      document.getElementById("ap-dhcp-start").value = ap.dhcp_start || "";
+      document.getElementById("ap-dhcp-end").value = ap.dhcp_end || "";
+      document.getElementById("ap-lease").value = ap.lease || "";
+    }
+
+    function renderAccessPointState(ap, note = "", preserveDirty = true) {
+      setAccessPointFormValues(ap, !preserveDirty);
+      document.getElementById("ap-summary-ssid").textContent = ap.ssid || "PrepperCache";
+      document.getElementById("ap-summary-address").textContent = ap.address ? `http://${ap.address}` : "Unavailable";
+      const enabledTone = ap.enabled ? "status-chip--ok" : "status-chip--muted";
+      const runtimeTone = ap.running ? "status-chip--ok" : (ap.enabled ? "status-chip--warn" : "status-chip--muted");
+      setStatusChips("ap-status", [
+        { label: "Config", value: ap.enabled ? "Enabled" : "Disabled", tone: enabledTone },
+        { label: "Runtime", value: ap.running ? "Running" : "Stopped", tone: runtimeTone },
+        { label: "Hostapd", value: ap.services?.hostapd || "unknown", tone: toneForServiceState(ap.services?.hostapd || "unknown") },
+        { label: "Dnsmasq", value: ap.services?.dnsmasq || "unknown", tone: toneForServiceState(ap.services?.dnsmasq || "unknown") }
+      ]);
+      document.getElementById("toggle-ap-button").textContent =
+        ap.enabled ? "Disable / Stop Access Point" : "Enable / Start Access Point";
+      document.getElementById("ap-action-status").textContent = note || (
+        ap.running
+          ? `Access point ${ap.ssid || "PrepperCache"} is active on ${ap.interface || "wlan0"}.`
+          : (ap.enabled
+            ? "Access point is configured but not currently fully active."
+            : "Access point is disabled.")
+      );
+    }
+
+    function getAccessPointPayload() {
+      return {
+        ssid: document.getElementById("ap-ssid").value.trim(),
+        passphrase: document.getElementById("ap-passphrase").value,
+        interface: document.getElementById("ap-interface").value.trim(),
+        country: document.getElementById("ap-country").value.trim(),
+        channel: document.getElementById("ap-channel").value.trim(),
+        address: document.getElementById("ap-address").value.trim(),
+        netmask: document.getElementById("ap-netmask").value.trim(),
+        cidr: document.getElementById("ap-cidr").value.trim(),
+        dhcp_start: document.getElementById("ap-dhcp-start").value.trim(),
+        dhcp_end: document.getElementById("ap-dhcp-end").value.trim(),
+        lease: document.getElementById("ap-lease").value.trim()
+      };
+    }
+
+    async function submitAccessPointAction(action) {
+      const saveButton = document.getElementById("save-ap-button");
+      const applyButton = document.getElementById("apply-ap-button");
+      const toggleButton = document.getElementById("toggle-ap-button");
+      const actionLabels = {
+        save: "Saving...",
+        apply: "Applying...",
+        start: "Starting...",
+        stop: "Stopping..."
+      };
+
+      saveButton.disabled = true;
+      applyButton.disabled = true;
+      toggleButton.disabled = true;
+      if (action === "save") saveButton.textContent = actionLabels[action];
+      if (action === "apply") applyButton.textContent = actionLabels[action];
+      if (action === "start" || action === "stop") toggleButton.textContent = actionLabels[action];
+      document.getElementById("ap-action-status").textContent = `Access point action: ${action}`;
+
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/system/access-point", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action,
+            ...getAccessPointPayload()
+          })
+        }, action === "save" ? 5000 : 30000);
+        if (!response.ok) {
+          throw new Error(payload.error || "Unable to update access point");
+        }
+        apFormDirty = false;
+        currentAccessPoint = payload;
+        renderAccessPointState(payload, payload.message || "Access point updated.", false);
+      } catch (error) {
+        document.getElementById("ap-action-status").textContent = error.message;
+      } finally {
+        saveButton.disabled = false;
+        applyButton.disabled = false;
+        toggleButton.disabled = false;
+        saveButton.textContent = "Save AP Config";
+        applyButton.textContent = "Apply AP Config";
+        toggleButton.textContent = currentAccessPoint && currentAccessPoint.enabled
+          ? "Disable / Stop Access Point"
+          : "Enable / Start Access Point";
+      }
+    }
+
+    function formatBytes(value) {
+      const size = Number(value || 0);
+      if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+      if (size >= 1024) return `${(size / 1024).toFixed(1)} KB`;
+      return `${size} B`;
+    }
+
+    function formatDurationSeconds(value) {
+      const seconds = Number(value || 0);
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const remaining = seconds % 60;
+      if (hours > 0) return `${hours}h ${minutes}m`;
+      if (minutes > 0) return `${minutes}m ${remaining}s`;
+      return `${remaining}s`;
+    }
+
+    function renderAccessPointClients(payload) {
+      const panel = document.getElementById("ap-clients-panel");
+      if (!payload.clients || !payload.clients.length) {
+        panel.textContent = payload.running
+          ? "No connected access point clients detected."
+          : "Access point is not running, so there are no active clients to show.";
+        return;
+      }
+
+      panel.innerHTML = payload.clients.map((client) => {
+        const lines = [];
+        lines.push(`${client.hostname || "Unnamed Device"}${client.connected ? " | connected" : " | lease only"}`);
+        lines.push(`IP: ${client.ip || "unknown"} | MAC: ${client.mac}`);
+        if (client.connected_time_seconds) {
+          lines.push(`Connected: ${formatDurationSeconds(client.connected_time_seconds)}`);
+        }
+        if (client.tx_bytes || client.rx_bytes) {
+          lines.push(`Traffic: TX ${formatBytes(client.tx_bytes)} | RX ${formatBytes(client.rx_bytes)}`);
+        }
+        if (client.tx_bitrate || client.rx_bitrate) {
+          lines.push(`Rates: TX ${client.tx_bitrate || "n/a"} | RX ${client.rx_bitrate || "n/a"}`);
+        }
+        return lines.map((line) => escapeHtml(line)).join("<br>");
+      }).join("<hr style=\"border-color: rgba(255,255,255,0.14); margin: 10px 0;\">");
+    }
+
+    async function toggleAccessPointClients() {
+      const panel = document.getElementById("ap-clients-panel");
+      const button = document.getElementById("toggle-ap-clients-button");
+
+      if (apClientsPanelVisible) {
+        panel.classList.add("hidden");
+        button.textContent = "Show Connected Clients";
+        apClientsPanelVisible = false;
+        return;
+      }
+
+      panel.classList.remove("hidden");
+      panel.textContent = "Loading connected access point clients...";
+      button.textContent = "Hide Connected Clients";
+      apClientsPanelVisible = true;
+
+      try {
+        const { payload } = await fetchJsonWithTimeout("/api/system/access-point/clients", {}, 5000);
+        renderAccessPointClients(payload);
+      } catch (error) {
+        panel.textContent = "Unable to load connected access point clients.";
+      }
+    }
+
+    async function requestPowerAction(action) {
+      const statusEl = document.getElementById("system-power-status");
+      const restartButton = document.getElementById("restart-system-button");
+      const shutdownButton = document.getElementById("shutdown-system-button");
+      const actionLabel = action === "restart" ? "Restart" : "Shutdown";
+      const selectedButton = action === "restart" ? restartButton : shutdownButton;
+      const otherButton = action === "restart" ? shutdownButton : restartButton;
+
+      statusEl.textContent = `${actionLabel} requested. Waiting for system response...`;
+      restartButton.disabled = true;
+      shutdownButton.disabled = true;
+      selectedButton.textContent = `${actionLabel} Requested`;
+      otherButton.textContent = action === "restart" ? "Shutdown Disabled" : "Restart Disabled";
+
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/system/power", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action })
+        }, 4000);
+        const details = payload && typeof payload === "object" ? payload : {};
+        if (!response.ok) {
+          throw new Error(details.error || `Unable to ${action}`);
+        }
+        statusEl.textContent = details.message || `System ${action} requested. Controls locked until the device changes state.`;
+      } catch (error) {
+        statusEl.textContent = `${actionLabel} failed: ${error.message}`;
+        restartButton.disabled = false;
+        shutdownButton.disabled = false;
+        restartButton.textContent = "Restart";
+        shutdownButton.textContent = "Shutdown";
+      }
+    }
+
+    async function restartApplicationService(serviceId) {
+      if (!serviceId) {
+        return;
+      }
+      const statusEl = document.getElementById("system-power-status");
+      const buttons = Array.from(document.querySelectorAll(".system-service-restart-button"));
+      const selectedButton = buttons.find((button) => button.dataset.serviceId === serviceId);
+      buttons.forEach((button) => {
+        button.disabled = true;
+      });
+      if (selectedButton) {
+        selectedButton.textContent = "Restarting...";
+      }
+      statusEl.textContent = "Restarting application service...";
+
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/system/service/restart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ service: serviceId })
+        }, 6000);
+        const details = payload && typeof payload === "object" ? payload : {};
+        if (!response.ok) {
+          throw new Error(details.error || "Unable to restart the selected service.");
+        }
+        currentStatus = {
+          ...(currentStatus || {}),
+          services: details.services || [],
+        };
+        renderSystemServices(details.services || []);
+        statusEl.textContent = details.message || "Service restarted.";
+      } catch (error) {
+        statusEl.textContent = `Service restart failed: ${error.message}`;
+        buttons.forEach((button) => {
+          button.disabled = false;
+          button.textContent = "Restart";
+        });
+      }
+    }
+
+    async function loadContentPanelData(force = true) {
+      if (contentPanelLoading) return;
+      contentPanelLoading = true;
+      try {
+        const { response, payload: apply } = await fetchJsonWithTimeout("/api/apply");
+        if (!response.ok) throw new Error("Unable to check installation status.");
+        if (latestContentApply?.status !== apply.status || latestContentApply?.finished_at !== apply.finished_at) {
+          contentNeedsRefresh = true;
+        }
+        latestContentApply = apply;
+        renderApplyState(apply);
+        if (apply.status === "running") return;
+        if (!force && !contentNeedsRefresh) return;
+        const [state, content] = await Promise.allSettled([
+          fetchJsonWithTimeout("/api/state"),
+          fetchJsonWithTimeout("/api/content")
+        ]);
+        if (state.status === "fulfilled" && state.value.response.ok) {
+          currentState = state.value.payload;
+        } else {
+          currentState = null;
+        }
+        if (content.status === "fulfilled" && content.value.response.ok) {
+          currentContent = content.value.payload;
+          renderContentState(currentContent);
+          if (currentContentCatalog) renderZimCatalog(currentContentCatalog);
+        } else if (!currentContent) {
+          document.getElementById("content-local-list").textContent = "Still checking local ZIM files. PrepperCache will retry automatically.";
+          document.getElementById("content-set-tile").textContent = "Checking…";
+          document.getElementById("content-set-status").textContent = "Waiting for the installed content list.";
+        }
+        contentNeedsRefresh = !currentState || content.status !== "fulfilled" || !content.value.response.ok;
+        renderContentStorage(currentState, currentContent);
+        renderApplyState(latestContentApply);
+      } catch (error) {
+        const note = document.getElementById("content-setup-note");
+        note.textContent = latestContentApply?.status === "running" && latestContentApply.action === "full"
+          ? "Installation was in progress at the last check. Keep PrepperCache powered on while it reconnects."
+          : "Waiting for PrepperCache to report installation status. This page will retry automatically.";
+        note.classList.remove("hidden");
+      } finally {
+        contentPanelLoading = false;
+      }
+    }
+
+    function renderAutomaticContentUpdates(settings) {
+      const checkbox = document.getElementById("automatic-content-updates");
+      checkbox.checked = Boolean(settings?.enabled);
+      checkbox.disabled = !settings;
+      const next = settings?.enabled && settings.next_at ? new Date(settings.next_at * 1000) : null;
+      document.getElementById("automatic-content-update-note").textContent =
+        "Updates download newer editions of installed ZIMs. Older files stay on disk until you remove them."
+        + (next ? ` Next check: ${next.toLocaleString()}.` : "");
+    }
+
+    async function saveAutomaticContentUpdates(event) {
+      const checkbox = event.currentTarget;
+      checkbox.disabled = true;
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/content/automatic-updates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: checkbox.checked })
+        });
+        if (!response.ok) throw new Error(payload.error || "Could not save the update schedule.");
+        currentContent.automatic_updates = payload;
+      } catch (error) {
+        document.getElementById("content-library-note").textContent = error.message;
+      } finally {
+        renderAutomaticContentUpdates(currentContent?.automatic_updates);
+      }
+    }
+
+    function renderContentState(content, note = "") {
+      renderAutomaticContentUpdates(content.automatic_updates);
+      pendingCustomSelection = new Set(content.custom_selected_paths || []);
+      const mirrorOptions = content.zim_mirrors || [];
+      const mirrorSelect = document.getElementById("content-zim-mirror");
+      mirrorSelect.replaceChildren(...mirrorOptions.map(({ label, url }) => new Option(label, url)));
+      if (content.catalog_root && !mirrorOptions.some(({ url }) => url === content.catalog_root)) {
+        mirrorSelect.add(new Option("Configured mirror", content.catalog_root));
+      }
+      mirrorSelect.value = content.catalog_root || "";
+      populateInstallTargetSelect("content-install-target", content.install_destinations || [], content.install_dir || "");
+
+      setStatusChips("content-status", [
+        {
+          label: "Installed",
+          value: `${content.installed_count || 0} ZIMs`,
+          tone: "status-chip--muted"
+        },
+        {
+          label: "Storage",
+          value: content.installed_size_label || "0 B",
+          tone: "status-chip--muted"
+        },
+        {
+          label: "Extras",
+          value: `${content.custom_selected_count || 0} saved`,
+          tone: (content.custom_selected_count || 0) > 0 ? "status-chip--ok" : "status-chip--muted"
+        }
+      ]);
+
+      document.getElementById("content-library-note").textContent = note || (
+        content.mode === "quick-test"
+          ? "Quick test mode is active with the tiny validation library."
+          : (content.custom_selected_count || 0) > 0
+            ? `This device has ${content.custom_selected_count || 0} saved extra ZIM ${content.custom_selected_count === 1 ? "selection" : "selections"} in addition to the installed library.`
+            : "This device is using the installed PrepperCache content library."
+      );
+      document.getElementById("content-set-tile").textContent = contentSetTileLabel(content);
+      document.getElementById("content-set-status").textContent = describeInstalledContentSet(content);
+
+      updateCustomLibraryVisibility(true);
+      renderLocalInstalledZims(content);
+    }
+
+    function updateCustomLibraryVisibility(_enabled = true, running = false) {
+      document.getElementById("content-install-target").disabled = running;
+      document.getElementById("content-zim-mirror").disabled = running;
+      document.getElementById("zim-category-filter").disabled = running;
+      document.getElementById("zim-catalog-filter").disabled = running;
+      document.getElementById("refresh-zim-catalog-button").disabled = running;
+      document.getElementById("select-all-zims-button").disabled = running;
+      document.getElementById("clear-all-zims-button").disabled = running;
+      document.getElementById("download-selected-zims-button").disabled = running;
+      document.getElementById("zim-prev-page-button").disabled = running;
+      document.getElementById("zim-next-page-button").disabled = running;
+    }
+
+    function renderLocalInstalledZims(content) {
+      const container = document.getElementById("content-local-list");
+      container.className = "zim-installed-list";
+      const items = [...(content.installed_items || [])];
+      if (!items.length) {
+        container.textContent = "No ZIM files found in local storage.";
+        return;
+      }
+
+      const sortBy = installedZimSort.by || "name";
+      const sortDir = installedZimSort.dir === "desc" ? -1 : 1;
+      items.sort((left, right) => {
+        if (sortBy === "size") {
+          return (Number(left.size_bytes || 0) - Number(right.size_bytes || 0)) * sortDir;
+        }
+        const leftName = friendlyZimTitle(left.name).toLowerCase();
+        const rightName = friendlyZimTitle(right.name).toLowerCase();
+        return leftName.localeCompare(rightName) * sortDir;
+      });
+
+      const sortIndicator = installedZimSort.dir === "asc" ? "▲" : "▼";
+      const headerHtml = `<div class="zim-installed-header">
+        <span class="zim-installed-header-spacer" aria-hidden="true"></span>
+        <button class="zim-installed-header-button" data-sort="name" type="button">
+          Name${sortBy === "name" ? `<span class="files-sort-indicator">${sortIndicator}</span>` : ""}
+        </button>
+        <button class="zim-installed-header-button" data-sort="size" type="button">
+          Size${sortBy === "size" ? `<span class="files-sort-indicator">${sortIndicator}</span>` : ""}
+        </button>
+      </div>`;
+
+      container.innerHTML = headerHtml + items.map((item) => {
+        const catalogItem = currentContentCatalog && Array.isArray(currentContentCatalog.items)
+          ? currentContentCatalog.items.find((entry) => entry.name === item.name)
+          : null;
+        const expectedSizeBytes = Number(catalogItem?.size_bytes || 0);
+        const localSizeBytes = Number(item.size_bytes || 0);
+        const likelyPartial = expectedSizeBytes > 0 && localSizeBytes > 0 && localSizeBytes < expectedSizeBytes;
+        const details = [];
+        const version = zimVersionLabel(item.name);
+        if (version) details.push(version);
+        if (item.selected) details.push("saved for library");
+        details.push(item.location === "external" ? "external" : "internal");
+        if (likelyPartial) {
+          details.push(`expected ${formatBytes(expectedSizeBytes)}`);
+        }
+        const descriptionBits = [installedZimDescription(item), ...details].filter(Boolean);
+        const descriptionText = descriptionBits.length
+          ? `<span class="zim-entry-desc">- ${escapeHtml(descriptionBits.join(" - "))}</span>`
+          : "";
+        const badges = [
+          item.is_extra ? `<span class="zim-entry-badge">Extra</span>` : "",
+          likelyPartial ? `<span class="zim-entry-badge">Likely Partial</span>` : ""
+        ].join("");
+        const sizeLabel = item.size_label || formatBytes(Number(item.size_bytes || 0));
+        return `<label class="zim-installed-entry">
+          <input type="checkbox" class="local-zim-checkbox" value="${escapeHtml(item.name)}">
+          <span class="zim-entry-body">
+            <span class="zim-entry-title">${escapeHtml(friendlyZimTitle(item.name))}</span>${badges}${descriptionText}
+          </span><span class="zim-installed-size">${escapeHtml(sizeLabel || "-")}</span>
+        </label>`;
+      }).join("");
+    }
+
+    function updateInstalledZimSort(sortBy) {
+      if (installedZimSort.by === sortBy) {
+        installedZimSort.dir = installedZimSort.dir === "asc" ? "desc" : "asc";
+      } else {
+        installedZimSort.by = sortBy;
+        installedZimSort.dir = sortBy === "name" ? "asc" : "desc";
+      }
+      if (currentContent) {
+        renderLocalInstalledZims(currentContent);
+      }
+    }
+
+    function contentCatalogWithCurrentLocalState(catalog) {
+      if (!catalog || !currentContent) {
+        return catalog;
+      }
+
+      const installedByName = new Map(
+        (currentContent.installed_items || []).map((item) => [item.name, item])
+      );
+      const selectedPaths = new Set(currentContent.custom_selected_paths || []);
+
+      return {
+        ...catalog,
+        items: (catalog.items || []).map((item) => {
+          const installed = installedByName.get(item.name);
+          return {
+            ...item,
+            installed: Boolean(installed),
+            installed_size_bytes: installed ? installed.size_bytes : 0,
+            installed_size_label: installed ? installed.size_label : "",
+            selected: selectedPaths.has(item.path)
+          };
+        })
+      };
+    }
+
+    function isEnglishZimCatalogItem(item) {
+      const value = String(item.path || item.name || "").toLowerCase();
+      return /(^|[_-])en([_-]|\.zim$)/.test(value);
+    }
+
+    function defaultCatalogItems(catalog) {
+      const items = catalog.items || [];
+      const englishItems = items.filter(isEnglishZimCatalogItem);
+      return englishItems.length ? englishItems : items;
+    }
+
+    function renderZimCatalog(catalog) {
+      const effectiveCatalog = contentCatalogWithCurrentLocalState(catalog);
+      document.getElementById("zim-catalog-source").textContent =
+        `Catalog source: ${effectiveCatalog.source.root_url}`;
+      populateCategoryFilter(effectiveCatalog);
+      const container = document.getElementById("zim-catalog-list");
+      const filterValue = document.getElementById("zim-catalog-filter").value.trim().toLowerCase();
+      const selectedCategory = document.getElementById("zim-category-filter").value || "all";
+      const allItems = defaultCatalogItems(effectiveCatalog);
+      const categoryItems = selectedCategory === "all"
+        ? allItems
+        : allItems.filter((item) => item.category === selectedCategory);
+      const filteredItems = filterValue
+        ? categoryItems.filter((item) =>
+            item.name.toLowerCase().includes(filterValue)
+            || item.category.toLowerCase().includes(filterValue)
+          )
+        : categoryItems;
+      const pageSize = 50;
+      const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+      currentContentPage = Math.min(currentContentPage, totalPages);
+      const pageStart = (currentContentPage - 1) * pageSize;
+      const items = filteredItems.slice(pageStart, pageStart + pageSize);
+
+      if (!filteredItems.length) {
+        container.textContent = effectiveCatalog.refreshing
+          ? "Kiwix catalog is building in the background. Check again in a moment."
+          : "No ZIM files were returned by the Kiwix catalog.";
+        document.getElementById("zim-catalog-note").textContent =
+          effectiveCatalog.error || (effectiveCatalog.refreshing
+            ? "Kiwix catalog refresh is running in the background."
+            : "No remote ZIM files were returned.");
+        document.getElementById("zim-page-status").textContent = "Page 0 of 0";
+        document.getElementById("zim-prev-page-button").disabled = true;
+        document.getElementById("zim-next-page-button").disabled = true;
+        return;
+      }
+
+      container.innerHTML = items.map((item) => {
+        const details = [];
+        const version = zimVersionLabel(item.name);
+        if (version) details.push(version);
+        if (item.size_bytes) {
+          details.push(iconLabel("download", formatBytes(item.size_bytes)));
+        } else if (item.size_label && item.size_label !== "-") {
+          details.push(iconLabel("download", item.size_label));
+        }
+        if (pendingCustomSelection.has(item.path)) details.push("selected");
+        if (item.installed && item.installed_size_bytes) details.push(iconLabel("device", formatBytes(item.installed_size_bytes)));
+        else if (item.installed && item.installed_size_label) details.push(iconLabel("device", item.installed_size_label));
+        const descriptionBits = [catalogZimDescription(item)];
+        const detailText = details.length ? ` ${details.join(" ")}` : "";
+        return `<label class="zim-entry">
+          <input type="checkbox" class="zim-catalog-checkbox" value="${escapeHtml(item.path)}" ${pendingCustomSelection.has(item.path) ? "checked" : ""}>
+          <span class="zim-entry-body">
+            <span class="zim-entry-title">${escapeHtml(friendlyZimTitle(item.name))}</span><span class="zim-entry-desc">- ${escapeHtml(descriptionBits.join(" - "))}${detailText}</span>
+          </span>
+        </label>`;
+      }).join("");
+
+      document.getElementById("zim-page-status").textContent =
+        `Page ${currentContentPage} of ${totalPages} | ${filteredItems.length} matches`;
+      document.getElementById("zim-prev-page-button").disabled = currentContentPage <= 1;
+      document.getElementById("zim-next-page-button").disabled = currentContentPage >= totalPages;
+
+      const filterNote = `Showing ${items.length} entries on this page out of ${filteredItems.length} matching ZIM files.`;
+
+      document.getElementById("zim-catalog-note").textContent =
+        effectiveCatalog.error
+          ? effectiveCatalog.error
+          : effectiveCatalog.stale
+            ? "Showing cached Kiwix catalog data."
+            : `${filterNote} Showing English ZIM files by default. Checked ZIM files will be added to this device's saved library selection when you download them.`;
+    }
+
+    function populateCategoryFilter(catalog) {
+      const select = document.getElementById("zim-category-filter");
+      const categories = ["all", ...Array.from(new Set(defaultCatalogItems(catalog).map((item) => item.category))).sort()];
+      const currentValue = categories.includes(currentContentCategory) ? currentContentCategory : "all";
+      select.innerHTML = categories.map((category) => {
+        const label = category === "all" ? "All Categories" : category;
+        const selected = category === currentValue ? " selected" : "";
+        return `<option value="${escapeHtml(category)}"${selected}>${escapeHtml(label)}</option>`;
+      }).join("");
+      select.value = currentValue;
+      currentContentCategory = currentValue;
+    }
+
+    async function loadLocalMapsState() {
+      const { payload } = await fetchJsonWithTimeout("/api/maps", {}, 2500);
+      return payload;
+    }
+
+    async function loadCountryMapCatalog() {
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/maps/countries");
+        if (!response.ok) throw new Error(payload.error || "Country catalog unavailable.");
+        countryMapCatalog = payload;
+        for (const country of payload.countries) {
+          if (country.installed) selectedCountries.delete(country.id);
+        }
+        renderCountryMapPicker();
+      } catch (error) {
+        document.getElementById("country-map-note").textContent = error.message;
+      }
+    }
+
+    function renderCountryMapSummary() {
+      const target = (currentMaps?.install_destinations || []).find((item) => item.path === currentMaps.install_dir);
+      const countries = (countryMapCatalog?.countries || []).filter((country) => selectedCountries.has(country.id));
+      const estimate = countries.reduce((total, country) => total + (country.missing_bytes || 0), 0);
+      const available = target?.free_bytes;
+      const space = available === undefined ? "Free space unavailable" : `${formatBytes(available)} free`;
+      document.getElementById("country-map-summary").textContent =
+        `${space} · ${countries.length} selected · about ${formatBytes(estimate)}${available !== undefined && estimate > available ? " · exceeds available space" : ""}`;
+      document.getElementById("install-country-maps").disabled = mapJobRunning || !countries.length;
+      document.getElementById("clear-country-maps").disabled = mapJobRunning || !countries.length;
+    }
+
+    function renderCountryMapBundles() {
+      const shortNames = {
+        na: "N. America",
+        latam: "LatAm + Carib.",
+        eu: "Europe",
+        emea: "EMEA",
+        apac: "E/S/SE Asia"
+      };
+      const available = new Set(countryMapCatalog.countries.filter((country) => !country.installed).map((country) => country.id));
+      document.getElementById("country-map-bundles").innerHTML = countryMapCatalog.bundles.map((bundle) => {
+        const members = bundle.countries.filter((id) => available.has(id));
+        const selected = members.length > 0 && members.every((id) => selectedCountries.has(id));
+        const label = escapeHtml(shortNames[bundle.id] || bundle.name);
+        const fullLabel = escapeHtml(`${bundle.name} (${members.length})`);
+        return `<button class="button" type="button" data-bundle="${escapeHtml(bundle.id)}" aria-pressed="${selected}"
+          title="${fullLabel}"
+          ${mapJobRunning || !members.length ? "disabled" : ""}>${label} (${members.length})</button>`;
+      }).join("");
+    }
+
+    function renderCountryMapPicker() {
+      if (!countryMapCatalog) return;
+      const filter = document.getElementById("country-map-filter").value.trim().toLowerCase();
+      const countries = countryMapCatalog.countries.filter((country) =>
+        country.name.toLowerCase().includes(filter) || country.id.toLowerCase().includes(filter)
+      );
+      renderCountryMapBundles();
+      document.getElementById("country-map-list").innerHTML = countries.map((country) =>
+        `<label class="zim-entry">
+          <input type="checkbox" value="${escapeHtml(country.id)}" ${selectedCountries.has(country.id) ? "checked" : ""}
+            ${country.installed || mapJobRunning ? "disabled" : ""}>
+          <span class="zim-entry-body"><span class="zim-entry-title">${escapeHtml(country.name)} (${escapeHtml(country.id)})</span>
+            <span class="zim-entry-desc">${country.installed ? "Installed" : escapeHtml(formatBytes(country.missing_bytes))}</span></span>
+        </label>`
+      ).join("") || "No countries match your search.";
+      renderCountryMapSummary();
+    }
+
+    async function installSelectedCountries() {
+      const note = document.getElementById("country-map-note");
+      const button = document.getElementById("install-country-maps");
+      button.disabled = true;
+      note.textContent = "";
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/maps/countries", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ country_ids: [...selectedCountries] })
+        });
+        if (!response.ok) throw new Error(payload.error || "Unable to start installing countries.");
+        renderMapSyncState(payload);
+      } catch (error) {
+        note.textContent = error.message;
+        renderCountryMapSummary();
+      }
+    }
+
+    async function cancelMapExtraction() {
+      const button = document.getElementById("cancel-map-build");
+      button.disabled = true;
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/maps/build/cancel", { method: "POST" });
+        if (!response.ok) throw new Error(payload.error || "Unable to cancel the map install.");
+        renderMapSyncState(payload);
+      } catch (error) {
+        document.getElementById("maps-summary-status").textContent = error.message;
+        button.disabled = false;
+      }
+    }
+
+    async function loadMapsPanelData() {
+      loadCountryMapCatalog();
+      loadRegionalMapCatalog();
+      document.getElementById("maps-root").textContent = "PMTiles root: checking local storage...";
+      document.getElementById("active-map-file").textContent = "Active map: checking local storage...";
+      document.getElementById("maps-local-list").textContent = "Checking local PMTiles packages...";
+      try {
+        const [maps, stateResult] = await Promise.all([
+          loadLocalMapsState(),
+          fetchJsonWithTimeout("/api/state")
+        ]);
+        currentMaps = maps;
+        currentState = stateResult.payload;
+        renderMapsState(currentMaps);
+        renderMapsStorage(currentMaps);
+
+        try {
+          const mapSyncResult = await fetchJsonWithTimeout("/api/maps/sync");
+          renderMapSyncState(mapSyncResult.payload);
+        } catch (error) {
+          document.getElementById("maps-sync-status").textContent =
+            error && error.name === "AbortError" ? "Map sync: local check delayed" : "Map sync: unavailable";
+        }
+
+      } catch (error) {
+        setStatusChips("maps-status", [
+          { label: "Archive", value: "Unavailable", tone: "status-chip--error" }
+        ]);
+        const delayed = error && error.name === "AbortError";
+        document.getElementById("maps-root").textContent = delayed ? "PMTiles root: local check delayed" : "PMTiles root: unavailable";
+        document.getElementById("active-map-file").textContent = delayed ? "Active map: local check delayed" : "Active map: unavailable";
+        document.getElementById("maps-local-list").textContent =
+          delayed ? "Local PMTiles package check is taking too long." : "Unable to load local PMTiles packages.";
+        document.getElementById("maps-status-note").textContent = delayed ? "Local map state is taking too long to respond." : "Map package status is unavailable.";
+        document.getElementById("maps-sync-status").textContent = delayed ? "Map sync: local check delayed" : "Map sync: unavailable";
+        renderMapsStorage(null);
+      }
+    }
+
+    function updatePolling() {
+      if (currentPanel === "system" || currentPanel === "wifi") {
+        if (systemPollHandle === null) {
+          systemPollHandle = window.setInterval(loadSystemPanelData, 15000);
+        }
+      } else if (systemPollHandle !== null) {
+        window.clearInterval(systemPollHandle);
+        systemPollHandle = null;
+      }
+
+      if (currentPanel === "content") {
+        if (applyPollHandle === null) {
+          applyPollHandle = window.setInterval(() => loadContentPanelData(false), 5000);
+        }
+      } else if (applyPollHandle !== null) {
+        window.clearInterval(applyPollHandle);
+        applyPollHandle = null;
+      }
+
+      if (currentPanel === "maps") {
+        if (mapsSyncPollHandle === null) {
+          mapsSyncPollHandle = window.setInterval(loadMapSyncState, 5000);
+        }
+      } else if (mapsSyncPollHandle !== null) {
+        window.clearInterval(mapsSyncPollHandle);
+        mapsSyncPollHandle = null;
+      }
+    }
+
+    function renderMapsState(maps, note = "") {
+      populateInstallTargetSelect("maps-install-target", maps.install_destinations || [], maps.install_dir || "");
+      document.getElementById("maps-root").textContent = `PMTiles root: ${maps.root}`;
+      document.getElementById("active-map-file").textContent =
+        `Active map: ${maps.state_regions?.[maps.active_file]?.title || friendlyMapTitle(maps.active_file)}`;
+      setStatusChips("maps-status", [
+        {
+          label: "Archive",
+          value: maps.active_valid ? "Valid" : (maps.active_exists ? "Invalid" : "Missing"),
+          tone: maps.active_valid ? "status-chip--ok" : (maps.active_exists ? "status-chip--error" : "status-chip--warn")
+        },
+        {
+          label: "Flavor",
+          value: maps.flavor || "dark",
+          tone: "status-chip--muted"
+        },
+        {
+          label: "Language",
+          value: maps.language || "en",
+          tone: "status-chip--muted"
+        }
+      ]);
+      document.getElementById("maps-status-note").textContent = note || (
+        maps.active_valid
+          ? "Active PMTiles archive is ready for the viewer."
+          : (maps.active_error || "Configured PMTiles archive is unavailable.")
+      );
+      document.getElementById("map-flavor").value = maps.flavor || "dark";
+      renderLocalInstalledMaps(maps);
+      if (countryMapCatalog) renderCountryMapSummary();
+      renderRegionalMapSummary();
+    }
+
+    function populateInstallTargetSelect(elementId, options, selectedValue) {
+      const select = document.getElementById(elementId);
+      const rawEntries = Array.isArray(options) && options.length
+        ? options
+        : [{ path: selectedValue || "", label: "Internal Storage", location: "internal" }];
+      const seen = new Set();
+      const entries = rawEntries.filter((option) => {
+        const path = String(option.path || "").trim();
+        if (!path || seen.has(path)) {
+          return false;
+        }
+        seen.add(path);
+        return true;
+      });
+      select.innerHTML = entries.map((option) => {
+        const label = option.label || "Storage";
+        const selected = option.path === selectedValue ? " selected" : "";
+        return `<option value="${escapeHtml(option.path || "")}"${selected}>${escapeHtml(label)}</option>`;
+      }).join("");
+      if (selectedValue) {
+        select.value = selectedValue;
+      }
+    }
+
+    function renderLocalInstalledMaps(maps) {
+      const container = document.getElementById("maps-local-list");
+      const files = maps.inventory || [
+        ...(maps.available_files || []).map((name) => ({ name, valid: true })),
+        ...(maps.invalid_files || [])
+      ];
+      container.innerHTML = files.map(({ name, valid, size_bytes }) => `<label class="zim-entry">
+        <input type="checkbox" class="local-map-checkbox" value="${escapeHtml(name)}" ${mapJobRunning ? "disabled" : ""}>
+        <span class="zim-entry-body">
+          <span class="zim-entry-title">${escapeHtml(maps.state_regions?.[name]?.title || friendlyMapTitle(name))}</span>
+          <span class="zim-entry-desc">${size_bytes ? escapeHtml(formatBytes(size_bytes)) : ""}${name === maps.active_file ? " · active" : ""}${valid ? "" : " · invalid"}</span>
+        </span>
+      </label>`).join("") || "No map packages found on local storage.";
+    }
+
+    async function loadRegionalMapCatalog() {
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/maps/regions");
+        if (!response.ok) throw new Error(payload.error || "Unable to load U.S. regions.");
+        regionalMapCatalog = payload.regions;
+        for (const region of regionalMapCatalog) {
+          if (region.states.every(({ installed }) => installed)) selectedRegions.delete(region.id);
+        }
+        renderRegionalMapPicker();
+      } catch (error) {
+        document.getElementById("maps-catalog-list").textContent = error.message;
+      }
+    }
+
+    function renderRegionalMapSummary() {
+      const pending = regionalMapCatalog.filter(({ id }) => selectedRegions.has(id))
+        .flatMap(({ states }) => states.filter(({ installed }) => !installed));
+      const estimate = pending.reduce((total, state) => total + state.estimated_bytes, 0);
+      const target = currentMaps?.install_destinations?.find(({ path }) => path === currentMaps.install_dir);
+      const warning = target && estimate > target.free_bytes ? " · exceeds available space" : "";
+      document.getElementById("regional-map-summary").textContent =
+        `${pending.length} state maps selected · about ${formatBytes(estimate)}${warning}`;
+      document.getElementById("sync-maps-button").disabled = mapJobRunning || !pending.length;
+      const selectAll = document.getElementById("select-all-maps-button");
+      const available = regionalMapCatalog.filter(({ states }) => states.some(({ installed }) => !installed));
+      selectAll.disabled = mapJobRunning || !available.length;
+      selectAll.textContent = available.length && available.every(({ id }) => selectedRegions.has(id)) ? "Clear All" : "Select All";
+    }
+
+    function renderRegionalMapPicker() {
+      document.getElementById("maps-catalog-list").innerHTML = regionalMapCatalog.map((region) => {
+        const missing = region.states.filter(({ installed }) => !installed);
+        const names = region.states.map(({ name }) => name).join(", ");
+        return `<label class="zim-entry">
+          <input type="checkbox" class="map-catalog-checkbox" value="${escapeHtml(region.id)}"
+                 ${selectedRegions.has(region.id) ? "checked" : ""} ${mapJobRunning || !missing.length ? "disabled" : ""}>
+          <span class="zim-entry-body">
+            <span class="zim-entry-title">${escapeHtml(region.name)}</span>
+            <span class="zim-entry-desc">${escapeHtml(names)} · ${region.states.length - missing.length}/${region.states.length} installed</span>
+          </span>
+        </label>`;
+      }).join("") || "No U.S. regions are available.";
+      renderRegionalMapSummary();
+    }
+
+    function renderMapSyncState(state) {
+      const countries = state.operation === "countries";
+      const building = state.operation === "build";
+      const regions = state.operation === "regions";
+      const extracting = building || countries || regions;
+      const overallProgress = extracting && state.status === "running" && Number.isFinite(state.current_percent)
+        ? Math.floor(((state.current_index - 1) * 100 + state.current_percent) / state.total_files)
+        : state.progress_percent || 0;
+      document.getElementById("maps-sync-status").textContent =
+        state.status === "running" ? "Map job in progress"
+          : state.status === "succeeded" ? "Map job finished"
+          : state.status === "failed" ? "Map job stopped"
+          : state.status === "cancelled" ? "Map job cancelled" : "No active map job";
+      document.getElementById("maps-progress-label").textContent =
+        state.status === "running" ? (regions ? "Installing U.S. regions" : countries ? "Installing countries" : building ? "Building custom map" : "Syncing map packages") : "Waiting for a map job";
+      document.getElementById("maps-progress-value").textContent =
+        `${overallProgress}%`;
+      document.getElementById("maps-progress-fill").style.width =
+        `${overallProgress}%`;
+      let mapCurrentFileText = "Current map: none";
+      let mapSummaryText = "No active map sync.";
+      if (state.current_file) {
+        mapCurrentFileText = `Current map: ${state.current_label || state.current_file}`;
+        if (state.current_index && state.total_files) {
+          mapCurrentFileText += ` (${state.current_index}/${state.total_files})`;
+          const processed = Math.max(0, state.current_index - 1);
+          mapSummaryText = `${processed} of ${state.total_files} maps processed.`;
+          if (extracting && Number.isFinite(state.current_percent)) mapSummaryText += ` Current extract: ${state.current_percent}%.`;
+        }
+      }
+      if (state.status === "succeeded") {
+        mapSummaryText = regions ? `Installed ${state.completed_files.length} state map(s).`
+          : countries ? `Installed ${state.completed_files.length} country map(s).`
+          : building ? "Custom map is ready in Installed Map Regions." : "Map sync completed successfully.";
+      } else if (state.status === "failed") {
+        mapSummaryText = state.error || "Map sync failed.";
+      }
+      if (state.status === "cancelled") mapSummaryText = "Install cancelled. Completed maps are still available.";
+      if (state.cancel_requested && extracting && state.status === "running") mapSummaryText = "Cancelling the current extraction.";
+      document.getElementById("maps-current-file-status").textContent = mapCurrentFileText;
+      document.getElementById("maps-summary-status").textContent = mapSummaryText;
+      document.getElementById("maps-sync-log").textContent =
+        state.log_tail && state.log_tail.length
+          ? state.log_tail.join("\n")
+          : "No map sync activity yet.";
+
+      const running = state.status === "running";
+      const cancelButton = document.getElementById("cancel-map-build");
+      cancelButton.classList.toggle("hidden", !running || !extracting);
+      cancelButton.disabled = Boolean(state.cancel_requested);
+      if (mapJobRunning !== running) {
+        mapJobRunning = running;
+        renderCountryMapPicker();
+        renderRegionalMapPicker();
+      }
+      if (countries) {
+        document.getElementById("country-map-note").textContent = state.status === "running"
+          ? `${mapCurrentFileText} · ${overallProgress}% of queue · ${mapSummaryText}`
+          : mapSummaryText;
+      }
+      document.getElementById("maps-install-target").disabled = running;
+      document.querySelectorAll(".map-catalog-checkbox").forEach((box) => { box.disabled = running; });
+      document.getElementById("remove-local-maps-button").disabled = running;
+      document.getElementById("select-all-local-maps-button").disabled = running;
+      document.getElementById("clear-local-maps-button").disabled = running;
+
+      const localCheckboxes = document.querySelectorAll(".local-map-checkbox");
+      localCheckboxes.forEach((checkbox) => {
+        checkbox.disabled = running;
+      });
+
+    }
+
+    function selectedCatalogPaths() {
+      return Array.from(pendingCustomSelection).sort();
+    }
+
+    async function downloadSelectedZims() {
+      if (!pendingCustomSelection.size) {
+        document.getElementById("zim-catalog-note").textContent = "Select one or more ZIM files from the online catalog first.";
+        return;
+      }
+      const installTarget = Array.isArray(currentContent?.install_destinations)
+        ? currentContent.install_destinations.find((item) => item.path === currentContent.install_dir)
+        : null;
+      const targetFreeBytes = installTarget && Number.isFinite(Number(installTarget.free_bytes))
+        ? Number(installTarget.free_bytes || 0)
+        : Number(currentState?.storage?.disk?.free_bytes || 0);
+      const targetLabel = installTarget?.label || "the selected storage target";
+      if (pendingDownloadBytes() > targetFreeBytes) {
+        window.alert(`There is not enough free space on ${targetLabel} for the selected downloads. Choose fewer or smaller ZIM files before downloading, or pick a different storage target.`);
+        return;
+      }
+
+      const button = document.getElementById("download-selected-zims-button");
+      button.disabled = true;
+      button.textContent = "Starting...";
+
+      try {
+        const settingsResponse = await fetch("/api/content/download-selected", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selected_paths: selectedCatalogPaths()
+          })
+        });
+        const settingsPayload = await settingsResponse.json();
+        if (!settingsResponse.ok) {
+          throw new Error(settingsPayload.error || "Unable to save selected ZIMs");
+        }
+
+        currentContent = settingsPayload.content;
+        renderContentState(
+          settingsPayload.content,
+          `Saved ${pendingCustomSelection.size} extra ZIM ${pendingCustomSelection.size === 1 ? "selection" : "selections"} to the device library. Starting download now.`
+        );
+        renderContentStorage(currentState, settingsPayload.content);
+        if (currentContentCatalog) {
+          renderZimCatalog(currentContentCatalog);
+        }
+        renderApplyState(settingsPayload.apply);
+        const skipped = settingsPayload.skipped_paths || [];
+        document.getElementById("zim-catalog-note").textContent = skipped.length
+          ? `Download started for available files. Removed unavailable selections: ${skipped.join(", ")}.`
+          : "ZIM download started. Watch Content Actions for progress.";
+      } catch (error) {
+        document.getElementById("zim-catalog-note").textContent = error.message;
+      } finally {
+        button.disabled = false;
+        button.textContent = "Download Selected ZIMs";
+      }
+    }
+
+    async function triggerApplyAction(action) {
+      setContentActionStatus(`Content actions: starting ${action}`, true);
+      try {
+        const response = await fetch("/api/apply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action })
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || "Unable to start action");
+        }
+
+        renderApplyState(payload);
+      } catch (error) {
+        setContentActionStatus(`Content actions: ${error.message}`, true);
+      }
+    }
+
+    async function refreshMapsList() {
+      const button = document.getElementById("refresh-maps-button");
+      button.disabled = true;
+      button.textContent = "Refreshing...";
+      try {
+        const maps = await loadLocalMapsState();
+        currentMaps = maps;
+        renderMapsState(maps);
+        renderMapsStorage(maps);
+        document.getElementById("maps-status-note").textContent = "Installed PMTiles packages refreshed from local storage.";
+      } catch (error) {
+        setStatusChips("maps-status", [
+          { label: "Archive", value: "Unavailable", tone: "status-chip--error" }
+        ]);
+        const delayed = error && error.name === "AbortError";
+        document.getElementById("maps-root").textContent = delayed ? "PMTiles root: local check delayed" : "PMTiles root: unavailable";
+        document.getElementById("active-map-file").textContent = delayed ? "Active map: local check delayed" : "Active map: unavailable";
+        document.getElementById("maps-local-list").textContent =
+          delayed ? "Local PMTiles package check is taking too long." : "Unable to load local PMTiles packages.";
+        document.getElementById("maps-status-note").textContent =
+          delayed ? "Local map state is taking too long to respond." : "Map package status is unavailable.";
+      } finally {
+        button.disabled = false;
+        button.textContent = "Refresh Installed Maps";
+      }
+    }
+
+    async function refreshInstalledZims() {
+      const button = document.getElementById("refresh-installed-zims-button");
+      button.disabled = true;
+      button.textContent = "Refreshing...";
+      try {
+        const { payload } = await fetchJsonWithTimeout("/api/content", {}, 3000);
+        currentContent = payload;
+        renderContentState(payload, "Installed ZIM files refreshed from local storage.");
+        renderContentStorage(currentState, payload);
+        if (currentContentCatalog) {
+          renderZimCatalog(currentContentCatalog);
+        }
+      } catch (error) {
+        document.getElementById("content-local-list").textContent = "Unable to load local ZIM files.";
+        document.getElementById("content-library-note").textContent = "Installed content check failed.";
+      } finally {
+        button.disabled = false;
+        button.textContent = "Refresh Installed ZIMs";
+      }
+    }
+
+    async function refreshZimCatalog(force = true) {
+      const button = document.getElementById("refresh-zim-catalog-button");
+      button.disabled = true;
+      button.textContent = "Checking...";
+      try {
+        let result;
+        try {
+          result = await fetchJsonWithTimeout(`/api/content/catalog${force ? "?refresh=1" : ""}`, {}, force ? 8000 : 10000);
+        } catch (error) {
+          if (!force) {
+            throw error;
+          }
+          result = await fetchJsonWithTimeout("/api/content/catalog", {}, 6000);
+          document.getElementById("zim-catalog-note").textContent =
+            "Fresh Kiwix catalog check took too long, so PrepperCache fell back to the most recent cached catalog.";
+        }
+        const { payload } = result;
+        currentContentCatalog = payload;
+        renderZimCatalog(payload);
+        if (payload && payload.refreshing) {
+          scheduleContentCatalogPoll();
+        } else if (contentCatalogPollHandle !== null) {
+          window.clearTimeout(contentCatalogPollHandle);
+          contentCatalogPollHandle = null;
+        }
+      } catch (error) {
+        document.getElementById("zim-catalog-note").textContent = error.message;
+        document.getElementById("zim-catalog-list").textContent = "Unable to load Kiwix catalog.";
+        if (contentCatalogPollHandle !== null) {
+          window.clearTimeout(contentCatalogPollHandle);
+          contentCatalogPollHandle = null;
+        }
+      } finally {
+        button.disabled = false;
+        button.textContent = "Check Online Catalog";
+      }
+    }
+
+    function scheduleContentCatalogPoll(delayMs = 2500) {
+      if (contentCatalogPollHandle !== null) {
+        window.clearTimeout(contentCatalogPollHandle);
+      }
+      contentCatalogPollHandle = window.setTimeout(async () => {
+        contentCatalogPollHandle = null;
+        try {
+          await refreshZimCatalog(false);
+        } catch (error) {
+          document.getElementById("zim-catalog-note").textContent = "Kiwix catalog refresh is taking longer than expected.";
+        }
+      }, delayMs);
+    }
+
+    async function removeLocalZims() {
+      const selected = Array.from(document.querySelectorAll(".local-zim-checkbox:checked"))
+        .map((checkbox) => checkbox.value);
+      if (!selected.length) {
+        document.getElementById("content-library-note").textContent = "Select one or more local ZIM files to remove.";
+        return;
+      }
+
+      const confirmed = window.confirm(`Remove ${selected.length} ZIM file${selected.length === 1 ? "" : "s"} from local storage?`);
+      if (!confirmed) {
+        document.getElementById("content-library-note").textContent = "ZIM removal canceled.";
+        return;
+      }
+
+      const button = document.getElementById("remove-local-zims-button");
+      button.disabled = true;
+      button.textContent = "Removing...";
+      try {
+        const response = await fetch("/api/content/remove", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filenames: selected })
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || "Unable to remove selected ZIM files");
+        }
+        currentContent = payload;
+        renderContentState(payload, "Selected ZIM files were removed and the Kiwix library was rebuilt.");
+        renderContentStorage(currentState, payload);
+        if (currentContentCatalog) {
+          renderZimCatalog(currentContentCatalog);
+        }
+      } catch (error) {
+        document.getElementById("content-library-note").textContent = error.message;
+      } finally {
+        button.disabled = false;
+        button.textContent = "Remove Selected ZIMs";
+      }
+    }
+
+    function selectAllCatalogZims() {
+      document.querySelectorAll(".zim-catalog-checkbox").forEach((checkbox) => {
+        checkbox.checked = true;
+        pendingCustomSelection.add(checkbox.value);
+      });
+      renderContentStorage(currentState, currentContent);
+    }
+
+    function clearAllCatalogZims() {
+      document.querySelectorAll(".zim-catalog-checkbox").forEach((checkbox) => {
+        checkbox.checked = false;
+        pendingCustomSelection.delete(checkbox.value);
+      });
+      renderContentStorage(currentState, currentContent);
+    }
+
+    function selectAllLocalZims() {
+      document.querySelectorAll(".local-zim-checkbox").forEach((checkbox) => {
+        checkbox.checked = true;
+      });
+    }
+
+    function clearLocalZimSelection() {
+      document.querySelectorAll(".local-zim-checkbox").forEach((checkbox) => {
+        checkbox.checked = false;
+      });
+    }
+
+    function goToPreviousZimPage() {
+      if (currentContentPage > 1) {
+        currentContentPage -= 1;
+      }
+      if (currentContentCatalog) {
+        renderZimCatalog(currentContentCatalog);
+      }
+    }
+
+    function goToNextZimPage() {
+      currentContentPage += 1;
+      if (currentContentCatalog) {
+        renderZimCatalog(currentContentCatalog);
+      }
+    }
+
+    let refreshedMapBuild = null;
+    async function loadMapSyncState() {
+      try {
+        const { payload } = await fetchJsonWithTimeout("/api/maps/sync");
+        renderMapSyncState(payload);
+        if (payload.status !== "running" && currentPanel === "maps") {
+          const note = document.getElementById("maps-status-note");
+          const extracted = ["build", "countries", "regions"].includes(payload.operation);
+          if (extracted && payload.finished_at && refreshedMapBuild !== payload.finished_at) {
+            refreshedMapBuild = payload.finished_at;
+            await Promise.all([refreshMapsList(), loadCountryMapCatalog(), loadRegionalMapCatalog()]);
+          }
+          if (payload.status === "succeeded" && !extracted) {
+            note.textContent = "Map sync finished. Use Refresh Installed Maps to reload the region lists.";
+          } else if (payload.status === "failed" && payload.error) {
+            note.textContent = payload.error;
+          }
+        }
+      } catch (error) {
+        document.getElementById("maps-sync-status").textContent = "Map sync: unavailable";
+      }
+    }
+
+    async function saveMapSelection() {
+      const flavor = document.getElementById("map-flavor").value;
+      const button = document.getElementById("save-map-button");
+
+      button.disabled = true;
+      button.textContent = "Saving...";
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/maps/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ flavor })
+        });
+        if (!response.ok) {
+          throw new Error(payload.error || "Unable to save map theme");
+        }
+        currentMaps = payload;
+        renderMapsState(payload, `Map theme updated to ${payload.flavor || flavor}.`);
+      } catch (error) {
+        setStatusChips("maps-status", [
+          { label: "Archive", value: "Update Failed", tone: "status-chip--error" }
+        ]);
+        document.getElementById("maps-status-note").textContent = error.message;
+      } finally {
+        button.disabled = false;
+        button.textContent = "Save Theme";
+      }
+    }
+
+    function selectAllMaps() {
+      const available = regionalMapCatalog.filter(({ states }) => states.some(({ installed }) => !installed));
+      const allSelected = available.every(({ id }) => selectedRegions.has(id));
+      selectedRegions.clear();
+      if (!allSelected) available.forEach(({ id }) => selectedRegions.add(id));
+      renderRegionalMapPicker();
+      document.getElementById("select-all-maps-button").focus();
+    }
+
+    function selectAllLocalMaps() {
+      document.querySelectorAll(".local-map-checkbox").forEach((checkbox) => {
+        checkbox.checked = true;
+      });
+    }
+
+    function clearLocalMapsSelection() {
+      document.querySelectorAll(".local-map-checkbox").forEach((checkbox) => {
+        checkbox.checked = false;
+      });
+    }
+
+    async function removeSelectedLocalMaps() {
+      const button = document.getElementById("remove-local-maps-button");
+      const selected = Array.from(document.querySelectorAll(".local-map-checkbox:checked"), (box) => box.value);
+      if (!selected.length) {
+        document.getElementById("maps-status-note").textContent = "Select one or more installed maps to remove.";
+        return;
+      }
+      const labels = selected.map(friendlyMapTitle);
+      const confirmationMessage = `Remove the selected maps from local storage?\n\n${labels.join("\n")}`;
+      if (!window.confirm(confirmationMessage)) {
+        document.getElementById("maps-status-note").textContent = "Map removal canceled.";
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = "Removing...";
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/maps/remove", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filenames: selected })
+        }, 10000);
+        if (!response.ok) {
+          throw new Error(payload.error || "Unable to remove selected maps");
+        }
+        let refreshedMaps = payload;
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          refreshedMaps = await loadLocalMapsState();
+          const remainingNames = new Set([
+            ...(refreshedMaps.available_files || []),
+            ...((refreshedMaps.invalid_files || []).map((item) => item.name))
+          ]);
+          const stillPresent = selected.some((name) => remainingNames.has(name));
+          if (!stillPresent) {
+            break;
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 250));
+        }
+        currentMaps = refreshedMaps;
+        renderMapsState(
+          refreshedMaps,
+          "Removed the selected local maps."
+        );
+        renderMapsStorage(refreshedMaps);
+        await Promise.all([loadCountryMapCatalog(), loadRegionalMapCatalog()]);
+      } catch (error) {
+        document.getElementById("maps-status-note").textContent = error.message;
+      } finally {
+        button.disabled = false;
+        button.textContent = "Remove Selected Maps";
+      }
+    }
+
+    function togglePanel(panelId, buttonId, showLabel, hideLabel) {
+      const panel = document.getElementById(panelId);
+      const button = document.getElementById(buttonId);
+      const hidden = panel.classList.toggle("hidden");
+      button.textContent = hidden ? showLabel : hideLabel;
+    }
+
+    async function saveZimMirror() {
+      const select = document.getElementById("content-zim-mirror");
+      const requested = select.value;
+      if (requested === currentContent?.catalog_root) return;
+      select.disabled = true;
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/content/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ zim_mirror: requested })
+        });
+        if (!response.ok) throw new Error(payload.error || "Unable to save the ZIM mirror.");
+        currentContent = payload;
+        currentContentCatalog = null;
+        renderContentState(payload, "ZIM mirror updated.");
+        await refreshZimCatalog(true);
+      } catch (error) {
+        select.value = currentContent?.catalog_root || "";
+        document.getElementById("content-library-note").textContent = error.message;
+      } finally {
+        select.disabled = false;
+      }
+    }
+
+    async function installSelectedRegions() {
+      const button = document.getElementById("sync-maps-button");
+      const note = document.getElementById("maps-sync-status");
+      button.disabled = true;
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/maps/regions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ region_ids: [...selectedRegions] })
+        });
+        if (!response.ok) throw new Error(payload.error || "Unable to start installing U.S. regions.");
+        renderMapSyncState(payload);
+      } catch (error) {
+        note.textContent = error.message;
+        renderRegionalMapSummary();
+      }
+    }
+
+    async function saveContentInstallTarget() {
+      const select = document.getElementById("content-install-target");
+      const chosen = select.value;
+      try {
+        const response = await fetch("/api/content/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ install_dir: chosen })
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || "Unable to save content install destination.");
+        }
+        currentContent = payload;
+        renderContentState(payload, `New ZIM downloads will install to ${chosen}.`);
+        renderContentStorage(currentState, payload);
+        if (currentContentCatalog) {
+          renderZimCatalog(currentContentCatalog);
+        }
+      } catch (error) {
+        document.getElementById("content-library-note").textContent = error.message;
+      }
+    }
+
+    async function saveMapsInstallTarget() {
+      const select = document.getElementById("maps-install-target");
+      const chosen = select.value;
+      try {
+        const response = await fetch("/api/maps/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ install_dir: chosen })
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || "Unable to save map install destination.");
+        }
+        currentMaps = payload;
+        renderMapsState(payload, `New map downloads will install to ${chosen}.`);
+        renderMapsStorage(payload);
+      } catch (error) {
+        document.getElementById("maps-status-note").textContent = error.message;
+      }
+    }
+
+    [
+      "ap-ssid",
+      "ap-passphrase",
+      "ap-interface",
+      "ap-country",
+      "ap-channel",
+      "ap-address",
+      "ap-netmask",
+      "ap-cidr",
+      "ap-dhcp-start",
+      "ap-dhcp-end",
+      "ap-lease"
+    ].forEach((id) => {
+      document.getElementById(id).addEventListener("input", () => {
+        apFormDirty = true;
+      });
+    });
+    document.getElementById("save-ap-button").addEventListener("click", () => submitAccessPointAction("save"));
+    document.getElementById("apply-ap-button").addEventListener("click", () => submitAccessPointAction("apply"));
+    document.getElementById("toggle-ap-button").addEventListener("click", () => {
+      const action = currentAccessPoint && currentAccessPoint.enabled ? "stop" : "start";
+      submitAccessPointAction(action);
+    });
+    document.getElementById("toggle-ap-clients-button").addEventListener("click", toggleAccessPointClients);
+    document.getElementById("update-content-button").addEventListener("click", () => triggerApplyAction("update-content"));
+    document.getElementById("automatic-content-updates").addEventListener("change", saveAutomaticContentUpdates);
+    document.getElementById("refresh-installed-zims-button").addEventListener("click", refreshInstalledZims);
+    document.getElementById("content-local-list").addEventListener("click", (event) => {
+      const button = event.target.closest(".zim-installed-header-button");
+      if (!button) {
+        return;
+      }
+      updateInstalledZimSort(button.dataset.sort || "name");
+    });
+    document.getElementById("select-all-local-zims-button").addEventListener("click", selectAllLocalZims);
+    document.getElementById("clear-local-zims-button").addEventListener("click", clearLocalZimSelection);
+    document.getElementById("remove-local-zims-button").addEventListener("click", removeLocalZims);
+    document.getElementById("select-all-zims-button").addEventListener("click", selectAllCatalogZims);
+    document.getElementById("clear-all-zims-button").addEventListener("click", clearAllCatalogZims);
+    document.getElementById("refresh-zim-catalog-button").addEventListener("click", refreshZimCatalog);
+    document.getElementById("download-selected-zims-button").addEventListener("click", downloadSelectedZims);
+    document.getElementById("content-zim-mirror").addEventListener("change", saveZimMirror);
+    document.getElementById("content-install-target").addEventListener("change", saveContentInstallTarget);
+    document.getElementById("toggle-add-content-button").addEventListener("click", () => {
+      addMoreContentVisible = !addMoreContentVisible;
+      updateContentPaneVisibility();
+    });
+    document.getElementById("zim-prev-page-button").addEventListener("click", goToPreviousZimPage);
+    document.getElementById("zim-next-page-button").addEventListener("click", goToNextZimPage);
+    document.getElementById("zim-category-filter").addEventListener("change", () => {
+      currentContentCategory = document.getElementById("zim-category-filter").value;
+      currentContentPage = 1;
+      if (currentContentCatalog) {
+        renderZimCatalog(currentContentCatalog);
+      }
+    });
+    document.getElementById("zim-catalog-filter").addEventListener("input", () => {
+      currentContentPage = 1;
+      if (currentContentCatalog) {
+        renderZimCatalog(currentContentCatalog);
+      }
+    });
+    document.getElementById("zim-catalog-list").addEventListener("change", (event) => {
+      if (!event.target.classList.contains("zim-catalog-checkbox")) {
+        return;
+      }
+      if (event.target.checked) {
+        pendingCustomSelection.add(event.target.value);
+      } else {
+        pendingCustomSelection.delete(event.target.value);
+      }
+      renderContentStorage(currentState, currentContent);
+    });
+    document.getElementById("refresh-content-button").addEventListener("click", () => triggerApplyAction("refresh-content"));
+    document.getElementById("rebuild-library-button").addEventListener("click", () => triggerApplyAction("rebuild-library"));
+    document.getElementById("refresh-maps-button").addEventListener("click", refreshMapsList);
+    document.getElementById("refresh-storage-button").addEventListener("click", refreshStoragePanel);
+    document.getElementById("refresh-files-button").addEventListener("click", refreshFilesPanel);
+    document.getElementById("new-folder-button").addEventListener("click", createFolderInActivePane);
+    document.getElementById("rename-file-button").addEventListener("click", renameSelectedFile);
+    document.getElementById("copy-file-button").addEventListener("click", copySelectedFile);
+    document.getElementById("move-file-button").addEventListener("click", moveSelectedFile);
+    document.getElementById("delete-file-button").addEventListener("click", deleteSelectedFile);
+    document.getElementById("files-pane-left").addEventListener("click", () => {
+      activeFilesPane = "left";
+      renderFilesPane("left", filesPaneState.left);
+      renderFilesPane("right", filesPaneState.right);
+    });
+    document.getElementById("files-pane-right").addEventListener("click", () => {
+      activeFilesPane = "right";
+      renderFilesPane("left", filesPaneState.left);
+      renderFilesPane("right", filesPaneState.right);
+    });
+    document.getElementById("storage-volumes-list").addEventListener("click", (event) => {
+      const button = event.target.closest(".storage-action-button");
+      if (!button) {
+        return;
+      }
+      runStorageAction(button.dataset.storageAction, button.dataset.devicePath, button.dataset.currentLabel || "");
+    });
+    document.getElementById("system-services-list").addEventListener("click", (event) => {
+      const button = event.target.closest(".system-service-restart-button");
+      if (!button) {
+        return;
+      }
+      restartApplicationService(button.dataset.serviceId || "");
+    });
+    document.getElementById("save-map-button").addEventListener("click", saveMapSelection);
+    document.getElementById("maps-install-target").addEventListener("change", saveMapsInstallTarget);
+    document.getElementById("select-all-maps-button").addEventListener("click", selectAllMaps);
+    document.getElementById("select-all-local-maps-button").addEventListener("click", selectAllLocalMaps);
+    document.getElementById("clear-local-maps-button").addEventListener("click", clearLocalMapsSelection);
+    document.getElementById("remove-local-maps-button").addEventListener("click", removeSelectedLocalMaps);
+    document.getElementById("sync-maps-button").addEventListener("click", installSelectedRegions);
+    document.getElementById("maps-catalog-list").addEventListener("change", (event) => {
+      if (!event.target.classList.contains("map-catalog-checkbox")) return;
+      if (event.target.checked) selectedRegions.add(event.target.value);
+      else selectedRegions.delete(event.target.value);
+      renderRegionalMapSummary();
+    });
+    document.getElementById("restart-system-button").addEventListener("click", () => requestPowerAction("restart"));
+    document.getElementById("shutdown-system-button").addEventListener("click", () => requestPowerAction("shutdown"));
+    document.getElementById("toggle-apply-log-button").addEventListener("click", () => {
+      togglePanel("apply-log-panel", "toggle-apply-log-button", "Show Content Log", "Hide Content Log");
+    });
+    document.getElementById("toggle-maps-log-button").addEventListener("click", () => {
+      togglePanel("maps-log-panel", "toggle-maps-log-button", "Show Map Sync Log", "Hide Map Sync Log");
+    });
+    document.querySelectorAll(".tab-button").forEach((button) => {
+      button.addEventListener("click", () => setActivePanel(button.dataset.panel));
+    });
+    document.getElementById("back-button").addEventListener("click", () => {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+      window.location.href = "/";
+    });
+    document.getElementById("run-setup-again-button").addEventListener("click", () => {
+      const confirmed = window.confirm("Run setup again? This will take you back into the setup flow.");
+      if (!confirmed) {
+        return;
+      }
+      window.location.href = "/?mode=setup";
+    });
+
+    function initialPanelFromLocation() {
+      const hash = (window.location.hash || "").replace(/^#/, "").trim().toLowerCase();
+      if (["wifi", "system", "content", "maps", "storage", "files"].includes(hash)) {
+        return hash;
+      }
+      return "system";
+    }
+
+    document.getElementById("country-map-filter").addEventListener("input", () => {
+      document.getElementById("country-map-list").scrollTop = 0;
+      renderCountryMapPicker();
+    });
+    document.getElementById("country-map-list").addEventListener("change", (event) => {
+      if (!(event.target instanceof HTMLInputElement)) return;
+      if (event.target.checked) selectedCountries.add(event.target.value);
+      else selectedCountries.delete(event.target.value);
+      renderCountryMapBundles();
+      renderCountryMapSummary();
+    });
+    document.getElementById("country-map-bundles").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-bundle]");
+      if (!button || !countryMapCatalog) return;
+      const bundle = countryMapCatalog.bundles.find((entry) => entry.id === button.dataset.bundle);
+      const members = countryMapCatalog.countries.filter((country) => !country.installed && bundle.countries.includes(country.id));
+      const remove = members.every((country) => selectedCountries.has(country.id));
+      for (const country of members) {
+        if (remove) selectedCountries.delete(country.id);
+        else selectedCountries.add(country.id);
+      }
+      renderCountryMapPicker();
+      document.querySelector(`[data-bundle="${CSS.escape(bundle.id)}"]`)?.focus({ preventScroll: true });
+    });
+    document.getElementById("clear-country-maps").addEventListener("click", () => {
+      selectedCountries.clear();
+      renderCountryMapPicker();
+    });
+    document.getElementById("install-country-maps").addEventListener("click", installSelectedCountries);
+    document.getElementById("cancel-map-build").addEventListener("click", cancelMapExtraction);
+    window.addEventListener("hashchange", () => setActivePanel(initialPanelFromLocation()));
+    setActivePanel(initialPanelFromLocation());
+    updateContentPaneVisibility();
+    setContentActionStatus("Content actions: ready", false);
+    setContentProgressVisibility(false);
+  </script>
+  <script defer src="/job-status.js"></script>
+</body>
+</html>

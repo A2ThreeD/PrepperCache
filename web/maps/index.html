@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<!-- PrepperCache
+     Copyright (c) 2026 Aaron Morris / A2ThreeD.
+     Offline portal interface. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PrepperCache Offline Maps</title>
+  <link rel="stylesheet" href="/maps/vendor/maplibre-gl/maplibre-gl.css">
+  <style>
+    :root {
+      --bg: #0b1519;
+      --panel: rgba(22, 46, 50, 0.9);
+      --panel-2: rgba(31, 63, 68, 0.88);
+      --text: #edf9f8;
+      --muted: #a6bebf;
+      --accent: #28e1d7;
+      --border: rgba(143, 209, 204, 0.38);
+      --scrollbar-thumb: #7ba5a4;
+      --scrollbar-track: rgba(10, 21, 23, 0.62);
+      --shadow: 0 22px 54px rgba(0, 0, 0, 0.34);
+      --ui-display: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      --ui-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    *::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: var(--scrollbar-track);
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border: 2px solid var(--scrollbar-track);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(900px 420px at 50% -10%, rgba(93, 164, 161, 0.24), transparent 60%),
+        linear-gradient(180deg, #101d22 0%, var(--bg) 100%);
+      font-family: var(--ui-body);
+      letter-spacing: 0.02em;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      padding: 22px;
+      border-right: 1px solid var(--border);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+        rgba(14, 31, 33, 0.94);
+      box-shadow: var(--shadow);
+      position: relative;
+      z-index: 2;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-bottom: 10px;
+    }
+
+    .brand-link { display: block; max-width: 320px; margin-bottom: .8rem; }
+    .brand-link img { display: block; width: 100%; height: auto; border-radius: 6px; }
+
+    .tag {
+      display: inline-block;
+      margin-bottom: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 12px;
+      font-family: var(--ui-display);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 4vw, 2.6rem);
+      line-height: 1.02;
+      font-family: var(--ui-display);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .card {
+      margin-top: 18px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 0;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-family: var(--ui-display);
+    }
+
+    .card p,
+    .card li {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .card ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+    }
+
+    .card li + li {
+      margin-top: 6px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 142px;
+      padding: 11px 14px;
+      border: 1px solid #e8fbfa;
+      background: linear-gradient(180deg, rgba(109, 154, 152, 0.96), rgba(45, 72, 77, 0.98));
+      color: var(--text);
+      text-decoration: none;
+      cursor: pointer;
+      font: inherit;
+      border-radius: 0;
+      border-top-color: rgba(250, 254, 254, 0.98);
+      border-left-color: rgba(239, 252, 251, 0.98);
+      border-right-color: rgba(22, 39, 42, 0.96);
+      border-bottom-color: rgba(10, 20, 21, 0.98);
+      box-shadow:
+        inset 1px 1px 0 rgba(255, 255, 255, 0.34),
+        inset -1px -2px 0 rgba(0, 0, 0, 0.42),
+        0 8px 18px rgba(0, 0, 0, 0.2);
+      transition:
+        background-color 0.14s ease,
+        border-color 0.14s ease,
+        box-shadow 0.14s ease,
+        color 0.14s ease,
+        transform 0.08s ease;
+      font-family: var(--ui-display);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+    }
+
+    .button.secondary {
+      background: linear-gradient(180deg, rgba(90, 122, 121, 0.96), rgba(33, 52, 56, 0.98));
+    }
+
+    .home-link,
+    .settings-link {
+      width: 42px;
+      height: 42px;
+      min-width: 42px;
+      padding: 0;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .button:hover {
+      border-color: rgba(255, 255, 255, 1);
+      box-shadow:
+        inset 1px 1px 0 rgba(255, 255, 255, 0.38),
+        inset -1px -2px 0 rgba(0, 0, 0, 0.46),
+        0 10px 22px rgba(0, 0, 0, 0.24);
+    }
+
+    .button:active {
+      transform: translateY(2px);
+      border-top-color: rgba(22, 39, 42, 0.96);
+      border-left-color: rgba(13, 24, 26, 0.96);
+      border-right-color: rgba(249, 254, 254, 0.98);
+      border-bottom-color: rgba(239, 252, 251, 0.98);
+      box-shadow:
+        inset -1px -1px 0 rgba(255, 255, 255, 0.16),
+        inset 1px 1px 0 rgba(0, 0, 0, 0.58),
+        0 3px 8px rgba(0, 0, 0, 0.24);
+    }
+
+    .button:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.95);
+      outline-offset: 2px;
+      border-color: rgba(255, 255, 255, 1);
+    }
+
+    .field {
+      margin-top: 14px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      background: rgba(6, 15, 17, 0.42);
+      color: var(--text);
+      font: inherit;
+      border-radius: 0;
+    }
+
+    input[type="range"] {
+      padding: 0;
+      height: auto;
+      accent-color: #abefec;
+    }
+
+    select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      background: rgba(6, 15, 17, 0.42);
+      color: var(--text);
+      font: inherit;
+      border-radius: 0;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 0.92rem;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .compact-input {
+      padding: 9px 10px;
+      font-size: 0.94rem;
+    }
+
+    .zoom-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .zoom-value {
+      min-width: 46px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      background: rgba(6, 15, 17, 0.42);
+      text-align: center;
+      font-family: var(--ui-display);
+      letter-spacing: 0.05em;
+    }
+
+    .status-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.88);
+      background: rgba(10, 21, 23, 0.54);
+      color: #f2fcfc;
+      font: 0.76rem/1 var(--ui-display);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .status-chip::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border: 1px solid currentColor;
+      background: rgba(255, 255, 255, 0.14);
+      flex: 0 0 auto;
+    }
+
+    .status-chip.ok {
+      border-color: rgba(179, 255, 210, 0.95);
+      color: #dffff0;
+    }
+
+    .status-chip.warn {
+      border-color: rgba(255, 216, 154, 0.95);
+      color: #fff0d0;
+    }
+
+    .status-chip.error {
+      border-color: rgba(255, 178, 178, 0.95);
+      color: #ffe1e1;
+    }
+
+    .status-chip.muted {
+      border-color: rgba(213, 240, 239, 0.5);
+      color: rgba(235, 248, 247, 0.88);
+    }
+
+    .map-shell {
+      position: relative;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    #map {
+      height: 100%;
+      min-height: 100vh;
+      width: 100%;
+    }
+
+    .map-banner {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      right: 18px;
+      z-index: 500;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      background: rgba(11, 25, 27, 0.82);
+      box-shadow: var(--shadow);
+      color: var(--text);
+      border-radius: 0;
+    }
+
+    .map-banner.hidden {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .map-shell {
+        order: -1;
+      }
+
+      .sidebar {
+        order: 0;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .map-shell,
+      #map {
+        min-height: 68vh;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .field-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="top-actions">
+        <a class="button home-link" href="/" aria-label="Return to main page" title="Home">⌂</a>
+        <a class="button secondary settings-link" href="/admin#maps" aria-label="Open map settings" title="Map Settings">⚙</a>
+      </div>
+      <a class="brand-link" href="/"><img src="/images/preppercache.png" alt="PrepperCache home" width="2172" height="724"></a>
+      <h1>Offline Maps</h1>
+
+      <section class="card">
+        <h2>Search Position</h2>
+        <div class="field-row">
+          <div class="field">
+            <label for="lat-input">Latitude</label>
+            <input class="compact-input" id="lat-input" type="number" step="any" value="39.8283">
+          </div>
+          <div class="field">
+            <label for="lon-input">Longitude</label>
+            <input class="compact-input" id="lon-input" type="number" step="any" value="-98.5795">
+          </div>
+        </div>
+        <div class="field">
+          <label for="zoom-input">Zoom</label>
+          <div class="zoom-row">
+            <input id="zoom-input" type="range" min="2" max="14" step="1" value="4">
+            <span class="zoom-value" id="zoom-value">4</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="button" id="go-button" type="button">Go To Coordinates</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Map Selection</h2>
+        <div class="field">
+          <label for="map-browse-mode">Browse Mode</label>
+          <select id="map-browse-mode">
+            <option value="region">Browse by Region</option>
+            <option value="individual">Browse All Maps</option>
+          </select>
+        </div>
+        <div class="field" id="map-region-field">
+          <label for="map-region-select">Select Region</label>
+          <select id="map-region-select"></select>
+        </div>
+        <div class="field" id="map-package-field">
+          <label for="map-package-select">Select Map</label>
+          <select id="map-package-select"></select>
+        </div>
+        <div class="actions">
+          <button class="button" id="save-map-settings-button" type="button">Apply / Refresh</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Map Status</h2>
+        <p class="status" id="map-status">Checking archive availability...</p>
+        <div class="status-chip-row" id="map-meta"></div>
+      </section>
+    </aside>
+
+    <main class="map-shell">
+      <div class="map-banner hidden" id="map-banner">
+        No offline PMTiles archive was found at the configured source. Add a local archive, then reload this page.
+      </div>
+      <div id="map"></div>
+    </main>
+  </div>
+
+  <script src="/maps/vendor/maplibre-gl/maplibre-gl.js"></script>
+  <script src="/maps/vendor/pmtiles/pmtiles.js"></script>
+  <script src="/maps/vendor/basemaps/basemaps.js"></script>
+  <script>
+    const fallbackConfig = {
+      pmtilesUrl: "/pmtiles/basemap.pmtiles",
+      pmtilesFile: "basemap.pmtiles",
+      flavor: "dark",
+      language: "en",
+      defaultLat: 39.8283,
+      defaultLon: -98.5795,
+      defaultZoom: 4,
+      minZoom: 2,
+      maxZoom: 14,
+      glyphsUrl: "/maps/assets/fonts/{fontstack}/{range}.pbf",
+      spriteBaseUrl: "/maps/assets/sprites/v4/dark",
+    };
+
+    const mapStatus = document.getElementById("map-status");
+    const mapMeta = document.getElementById("map-meta");
+    const mapBanner = document.getElementById("map-banner");
+    const latInput = document.getElementById("lat-input");
+    const lonInput = document.getElementById("lon-input");
+    const zoomInput = document.getElementById("zoom-input");
+    const zoomValue = document.getElementById("zoom-value");
+    const mapBrowseModeSelect = document.getElementById("map-browse-mode");
+    const mapRegionField = document.getElementById("map-region-field");
+    const mapPackageField = document.getElementById("map-package-field");
+    const mapRegionSelect = document.getElementById("map-region-select");
+    const mapPackageSelect = document.getElementById("map-package-select");
+    const saveMapSettingsButton = document.getElementById("save-map-settings-button");
+    const MAP_SELECTION_STORAGE_KEY = "preppercache.offlineMaps.selection";
+    let mapInstance = null;
+    let currentConfigSignature = "";
+    let mapReloadInProgress = false;
+    let installedMapEntries = [];
+    let preferredMapRegion = "all";
+    let preferredBrowseMode = "region";
+    let preferredMapPackage = "";
+
+    function setMapMetaChips(items) {
+      mapMeta.innerHTML = items.map((item) => {
+        const tone = item.tone ? ` ${item.tone}` : "";
+        return `<span class="status-chip${tone}">${item.label} ${item.value}</span>`;
+      }).join("");
+    }
+
+    function clearMapStatus() {
+      mapStatus.textContent = "";
+      mapStatus.classList.add("hidden");
+    }
+
+    function showMapStatus(message) {
+      mapStatus.textContent = message;
+      mapStatus.classList.remove("hidden");
+    }
+
+    function loadStoredMapSelection() {
+      try {
+        const raw = window.localStorage.getItem(MAP_SELECTION_STORAGE_KEY);
+        if (!raw) return;
+        const stored = JSON.parse(raw);
+        preferredBrowseMode = stored.browseMode === "individual" ? "individual" : "region";
+        preferredMapRegion = typeof stored.region === "string" && stored.region ? stored.region : "all";
+        preferredMapPackage = typeof stored.map === "string" ? stored.map : "";
+      } catch (_error) {
+        // Ignore malformed saved state and keep defaults.
+      }
+    }
+
+    function saveStoredMapSelection() {
+      try {
+        window.localStorage.setItem(
+          MAP_SELECTION_STORAGE_KEY,
+          JSON.stringify({
+            browseMode: preferredBrowseMode,
+            region: preferredMapRegion,
+            map: preferredMapPackage || mapPackageSelect.value || "",
+          })
+        );
+      } catch (_error) {
+        // Ignore storage write failures.
+      }
+    }
+
+    async function loadMapState() {
+      const controller = new AbortController();
+      const timeoutHandle = window.setTimeout(() => controller.abort(), 4000);
+      let response;
+      try {
+        response = await fetch("/maps/state.json", {
+          cache: "no-store",
+          signal: controller.signal
+        });
+      } finally {
+        window.clearTimeout(timeoutHandle);
+      }
+      if (!response.ok) {
+        throw new Error("Unable to load map package state");
+      }
+      return response.json();
+    }
+
+    async function loadConfig() {
+      try {
+        const response = await fetch("/maps/config.json", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`config returned ${response.status}`);
+        }
+        const loaded = await response.json();
+        return { ...fallbackConfig, ...loaded };
+      } catch (error) {
+        return fallbackConfig;
+      }
+    }
+
+    function configSignature(config) {
+      return JSON.stringify({
+        pmtilesUrl: config.pmtilesUrl,
+        pmtilesFile: config.pmtilesFile,
+        flavor: config.flavor,
+        language: config.language,
+        defaultLat: config.defaultLat,
+        defaultLon: config.defaultLon,
+        defaultZoom: config.defaultZoom,
+        minZoom: config.minZoom,
+        maxZoom: config.maxZoom,
+        glyphsUrl: config.glyphsUrl,
+        spriteBaseUrl: config.spriteBaseUrl,
+      });
+    }
+
+    function titleCaseWord(value) {
+      return String(value || "").charAt(0).toUpperCase() + String(value || "").slice(1);
+    }
+
+    function friendlyMapName(filename) {
+      const raw = String(filename || "").replace(/\.pmtiles$/i, "");
+      if (!raw) return "Offline Map";
+      if (raw === "basemap") return "Base Map";
+      const usParts = {
+        "country-us": "United States (continental)", "country-us-alaska": "Alaska",
+        "country-us-western-aleutians": "Western Aleutians", "country-us-hawaii": "Hawaii"
+      };
+      if (Object.hasOwn(usParts, raw)) return usParts[raw];
+      const countryCode = /^country-([a-z]{2})$/.exec(raw)?.[1]?.toUpperCase();
+      if (countryCode) return new Intl.DisplayNames(["en"], { type: "region" }).of(countryCode);
+      if (raw.startsWith("custom-")) return raw.slice(7).split("-").map(titleCaseWord).join(" ");
+
+      const parts = raw.split("_").filter(Boolean);
+      const yearMonthPattern = /^\d{4}-\d{2}$/;
+      const regionParts = parts.filter((part) => !yearMonthPattern.test(part));
+      const versionPart = parts.find((part) => yearMonthPattern.test(part));
+      const regionName = regionParts.map((part) => titleCaseWord(part)).join(" ");
+
+      return versionPart ? `${regionName} (${versionPart})` : regionName;
+    }
+
+    function buildInstalledMapEntries(state) {
+      return (state.available_files || []).map((filename) => {
+        const legacyState = /^([a-z_]+)_\d{4}-\d{2}\.pmtiles$/.exec(filename)?.[1];
+        const region = state.state_regions?.[filename] || state.state_regions?.[`state-${legacyState}.pmtiles`];
+        const custom = filename.startsWith("custom-");
+        const country = filename.startsWith("country-");
+        return {
+          filename,
+          title: legacyState ? friendlyMapName(filename) : region?.title || friendlyMapName(filename),
+          regionSlug: custom ? "custom" : country ? "countries" : region?.id || "other",
+          regionName: custom ? "Custom Maps" : country ? "Country Maps" : region?.name || "Other Installed Maps"
+        };
+      });
+    }
+
+    function populateRegionControl(entries, activeFile) {
+      const previousRegion = mapRegionSelect.value;
+      const activeEntry = entries.find((entry) => entry.filename === activeFile);
+      const activeRegion = activeEntry?.regionSlug || "all";
+      const regionOptions = [];
+      const seen = new Set();
+      for (const entry of entries) {
+        if (!entry.regionSlug || seen.has(entry.regionSlug)) {
+          continue;
+        }
+        seen.add(entry.regionSlug);
+        regionOptions.push({ slug: entry.regionSlug, name: entry.regionName });
+      }
+
+      mapRegionSelect.innerHTML = "";
+      const allOption = document.createElement("option");
+      allOption.value = "all";
+      allOption.textContent = "All Installed Maps";
+      mapRegionSelect.appendChild(allOption);
+
+      for (const region of regionOptions) {
+        const option = document.createElement("option");
+        option.value = region.slug;
+        option.textContent = region.name;
+        mapRegionSelect.appendChild(option);
+      }
+
+      const nextRegion = [preferredMapRegion, previousRegion, activeRegion, "all"].find((value) =>
+        Array.from(mapRegionSelect.options).some((option) => option.value === value)
+      ) || "all";
+      mapRegionSelect.value = nextRegion;
+      preferredMapRegion = nextRegion;
+      mapRegionSelect.disabled = entries.length === 0;
+    }
+
+    function populateMapPackageControl(entries, preferredFile) {
+      const selectedRegion = preferredBrowseMode === "individual"
+        ? "all"
+        : (mapRegionSelect.value || "all");
+      const filteredEntries = selectedRegion === "all"
+        ? entries
+        : entries.filter((entry) => entry.regionSlug === selectedRegion);
+
+      mapPackageSelect.innerHTML = "";
+      if (!filteredEntries.length) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "No maps found for this region";
+        mapPackageSelect.appendChild(option);
+        mapPackageSelect.disabled = true;
+        return;
+      }
+
+      mapPackageSelect.disabled = false;
+      for (const entry of filteredEntries) {
+        const option = document.createElement("option");
+        option.value = entry.filename;
+        option.textContent = entry.title;
+        if (entry.filename === (preferredMapPackage || preferredFile)) {
+          option.selected = true;
+        }
+        mapPackageSelect.appendChild(option);
+      }
+
+      if (!Array.from(mapPackageSelect.options).some((option) => option.selected)) {
+        mapPackageSelect.value = filteredEntries[0].filename;
+      }
+      preferredMapPackage = mapPackageSelect.value || "";
+    }
+
+    function populateMapControls(state, config) {
+      if (!state.available_files.length) {
+        mapBrowseModeSelect.value = preferredBrowseMode;
+        mapBrowseModeSelect.disabled = true;
+        mapRegionField.classList.toggle("hidden", preferredBrowseMode === "individual");
+        mapPackageField.classList.toggle("hidden", preferredBrowseMode === "region");
+        mapRegionSelect.innerHTML = `<option value="all">All Installed Maps</option>`;
+        mapRegionSelect.disabled = true;
+        mapPackageSelect.innerHTML = "";
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "No PMTiles files found";
+        mapPackageSelect.appendChild(option);
+        mapPackageSelect.disabled = true;
+      } else {
+        mapBrowseModeSelect.disabled = false;
+        mapBrowseModeSelect.value = preferredBrowseMode;
+        mapRegionField.classList.toggle("hidden", preferredBrowseMode === "individual");
+        mapPackageField.classList.toggle("hidden", preferredBrowseMode === "region");
+        populateRegionControl(installedMapEntries, state.active_file);
+        if (preferredBrowseMode === "individual") {
+          populateMapPackageControl(installedMapEntries, state.active_file);
+        }
+      }
+      setMapMetaChips([
+        { label: "Archive", value: state.active_valid ? "Valid" : (state.active_exists ? "Invalid" : "Missing"), tone: state.active_valid ? "ok" : (state.active_exists ? "error" : "warn") },
+        { label: "Theme", value: state.flavor || config.flavor || "dark", tone: "muted" },
+        { label: "Language", value: state.language || config.language || "en", tone: "muted" }
+      ]);
+    }
+
+    function populateFallbackControls(config) {
+      mapBrowseModeSelect.value = preferredBrowseMode;
+      mapBrowseModeSelect.disabled = true;
+      mapRegionField.classList.toggle("hidden", preferredBrowseMode === "individual");
+      mapPackageField.classList.toggle("hidden", preferredBrowseMode === "region");
+      mapRegionSelect.innerHTML = `<option value="${preferredMapRegion}">${preferredMapRegion === "all" ? "All Installed Maps" : "Loading region..."}</option>`;
+      mapRegionSelect.value = preferredMapRegion;
+      mapRegionSelect.disabled = true;
+      mapPackageSelect.innerHTML = `<option value="${config.pmtilesFile}">${friendlyMapName(config.pmtilesFile)}</option>`;
+      mapPackageSelect.disabled = true;
+      setMapMetaChips([
+        { label: "Archive", value: "Checking", tone: "warn" },
+        { label: "Theme", value: config.flavor || "dark", tone: "muted" },
+        { label: "Language", value: config.language || "en", tone: "muted" }
+      ]);
+    }
+
+    function isUsableBounds(header) {
+      if (!header) return false;
+      const minLon = Number(header.minLon);
+      const minLat = Number(header.minLat);
+      const maxLon = Number(header.maxLon);
+      const maxLat = Number(header.maxLat);
+      if (![minLon, minLat, maxLon, maxLat].every(Number.isFinite)) return false;
+      if (minLon >= maxLon || minLat >= maxLat) return false;
+      if (minLon === -180 && minLat <= -85 && maxLon === 180 && maxLat >= 85) return false;
+      return true;
+    }
+
+    function archiveBounds(filename, header) {
+      if (!isUsableBounds(header)) return null;
+      const { minLon, minLat, maxLon, maxLat } = header;
+      // Alaska spans both sides of the date line. PMTiles stores a nearly
+      // world-wide bounding box for this state, so fit the Alaskan longitudes.
+      if (/^(state-|country-us-)?alaska(?:_\d{4}-\d{2})?\.pmtiles$/.test(filename) && maxLon - minLon > 300) {
+        return [-190, minLat, -129, maxLat];
+      }
+      return [minLon, minLat, maxLon, maxLat];
+    }
+
+    function combinedArchiveBounds(archives) {
+      const bounds = archives.map(({ filename, header }) => archiveBounds(filename, header)).filter(Boolean);
+      if (!bounds.length) return null;
+      const south = Math.min(...bounds.map((item) => item[1]));
+      const north = Math.max(...bounds.map((item) => item[3]));
+      // Try each western edge as the start of the longitude interval and
+      // choose the shortest interval that contains all the installed coverage.
+      let west = -180;
+      let width = 360;
+      for (const [origin] of bounds) {
+        const span = Math.max(...bounds.map(([left, , right]) =>
+          ((left - origin) % 360 + 360) % 360 + right - left
+        ));
+        if (span < width) {
+          west = origin;
+          width = span;
+        }
+      }
+      return [[west, south], [west + width, north]];
+    }
+
+    function updateCameraControls(map) {
+      const center = map.getCenter();
+      const zoom = Math.round(map.getZoom());
+      latInput.value = center.lat.toFixed(4);
+      lonInput.value = center.wrap().lng.toFixed(4);
+      zoomInput.value = String(zoom);
+      zoomValue.textContent = String(zoom);
+    }
+
+    async function buildMap() {
+      mapReloadInProgress = true;
+      try {
+        clearMapStatus();
+        mapBanner.classList.add("hidden");
+        const config = await loadConfig();
+        currentConfigSignature = configSignature(config);
+        populateFallbackControls(config);
+        saveMapSettingsButton.disabled = true;
+
+        const state = await loadMapState().catch(() => null);
+        installedMapEntries = state ? buildInstalledMapEntries(state) : [];
+        if (preferredMapRegion !== "all" && !installedMapEntries.some(({ regionSlug }) => regionSlug === preferredMapRegion)) {
+          preferredMapRegion = "all";
+        }
+        const browsingRegion = preferredBrowseMode === "region" && installedMapEntries.length > 0;
+        const filenames = browsingRegion
+          ? installedMapEntries.filter(({ regionSlug }) => preferredMapRegion === "all" || regionSlug === preferredMapRegion)
+            .map(({ filename }) => filename)
+          : [config.pmtilesFile];
+        const protocol = new pmtiles.Protocol();
+        maplibregl.addProtocol("pmtiles", protocol.tile);
+
+        const results = await Promise.allSettled(filenames.map(async (filename) => {
+          const path = filename === config.pmtilesFile ? config.pmtilesUrl : `/pmtiles/${encodeURIComponent(filename)}`;
+          const url = window.location.origin + path;
+          const archive = new pmtiles.PMTiles(url);
+          const header = await archive.getHeader();
+          protocol.add(archive);
+          return { filename, url, header };
+        }));
+        const archives = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
+        if (state) populateMapControls(state, config);
+        if (!archives.length) {
+          throw new Error("No readable offline map archives were found for this selection.");
+        }
+
+        const minZoom = browsingRegion ? 0 : config.minZoom;
+        const maxZoom = Math.max(config.maxZoom, ...archives.map(({ header }) => header.maxZoom));
+        zoomInput.min = String(minZoom);
+        zoomInput.max = String(maxZoom);
+
+        const sources = Object.fromEntries(archives.map(({ url }, index) => [
+          `archive-${index}`, { type: "vector", url: `pmtiles://${url}`, attribution: "Protomaps © OpenStreetMap" }
+        ]));
+        const sourceIds = Object.keys(sources);
+        const layers = basemaps.layers(sourceIds[0], basemaps.namedFlavor(config.flavor), { lang: config.language })
+          .flatMap((layer) => layer.source
+            ? sourceIds.map((source) => ({ ...layer, id: `${layer.id}-${source}`, source }))
+            : [layer]);
+
+        if (mapInstance) mapInstance.remove();
+        const map = new maplibregl.Map({
+          container: "map",
+          center: [config.defaultLon, config.defaultLat],
+          zoom: config.defaultZoom,
+          minZoom,
+          maxZoom,
+          attributionControl: true,
+          style: {
+            version: 8,
+            glyphs: window.location.origin + config.glyphsUrl,
+            sprite: window.location.origin + config.spriteBaseUrl,
+            sources,
+            layers
+          }
+        });
+        mapInstance = map;
+        map.addControl(new maplibregl.NavigationControl(), "top-right");
+        const bounds = combinedArchiveBounds(archives);
+        if (bounds) {
+          map.fitBounds(bounds, { padding: 32, maxZoom: Math.min(maxZoom, 10), duration: 0 });
+        }
+        updateCameraControls(map);
+        map.on("moveend", () => updateCameraControls(map));
+
+        if (browsingRegion) {
+          const missing = filenames.length - archives.length;
+          setMapMetaChips([
+            { label: "Archives", value: `${archives.length}/${filenames.length}`, tone: missing ? "warn" : "ok" },
+            { label: "Theme", value: config.flavor, tone: "muted" },
+            { label: "Language", value: config.language, tone: "muted" }
+          ]);
+          if (missing) showMapStatus(`${missing} regional map archive(s) could not be opened.`);
+        }
+
+        map.on("error", (event) => {
+          const message = event.error?.message || "MapLibre could not render the selected map.";
+          showMapStatus(`Map error: ${message}`);
+        });
+      } finally {
+        mapReloadInProgress = false;
+        saveMapSettingsButton.disabled = false;
+      }
+    }
+
+    async function showSelectedRegion() {
+      if (mapReloadInProgress) return;
+      try {
+        await buildMap();
+      } catch (error) {
+        showMapStatus(error.message);
+      }
+    }
+
+    async function saveMapSettings() {
+      if (preferredBrowseMode === "region") {
+        await showSelectedRegion();
+        return;
+      }
+      const filename = mapPackageSelect.value;
+      if (!filename) {
+        showMapStatus("Choose a valid PMTiles archive before applying map settings.");
+        return;
+      }
+
+      saveMapSettingsButton.disabled = true;
+      mapPackageSelect.disabled = true;
+      saveMapSettingsButton.textContent = "Applying...";
+      try {
+        clearMapStatus();
+        const response = await fetch("/api/maps/select", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename
+          })
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || "Unable to set active map");
+        }
+        if (payload && payload.active_file) {
+          mapPackageSelect.value = payload.active_file;
+          preferredMapPackage = payload.active_file;
+          saveStoredMapSelection();
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
+        await buildMap();
+      } catch (error) {
+        showMapStatus(`Map settings error: ${error.message}`);
+      } finally {
+        saveMapSettingsButton.disabled = false;
+        mapPackageSelect.disabled = false;
+        saveMapSettingsButton.textContent = "Apply / Refresh";
+      }
+    }
+
+    zoomInput.addEventListener("input", () => {
+      zoomValue.textContent = zoomInput.value;
+    });
+
+    async function syncConfigFromDisk() {
+      try {
+        if (mapReloadInProgress) {
+          return;
+        }
+        const config = await loadConfig();
+        const nextSignature = configSignature(config);
+        if (nextSignature !== currentConfigSignature) {
+          clearMapStatus();
+          await buildMap();
+        }
+      } catch (error) {
+        // Ignore periodic sync failures and keep the current map view.
+      }
+    }
+
+    document.getElementById("go-button").addEventListener("click", () => {
+      const lat = Number.parseFloat(latInput.value);
+      const lon = Number.parseFloat(lonInput.value);
+      const zoom = Number.parseInt(zoomInput.value, 10);
+
+      if (mapInstance && Number.isFinite(lat) && Number.isFinite(lon) && Number.isFinite(zoom)) {
+        mapInstance.flyTo({ center: [lon, lat], zoom });
+        clearMapStatus();
+      }
+    });
+
+    mapRegionSelect.addEventListener("change", () => {
+      preferredMapRegion = mapRegionSelect.value || "all";
+      saveStoredMapSelection();
+      showSelectedRegion();
+    });
+
+    mapBrowseModeSelect.addEventListener("change", () => {
+      preferredBrowseMode = mapBrowseModeSelect.value === "individual" ? "individual" : "region";
+      mapRegionField.classList.toggle("hidden", preferredBrowseMode === "individual");
+      mapPackageField.classList.toggle("hidden", preferredBrowseMode === "region");
+      saveStoredMapSelection();
+      showSelectedRegion();
+    });
+
+    mapPackageSelect.addEventListener("change", () => {
+      preferredMapPackage = mapPackageSelect.value || "";
+      saveStoredMapSelection();
+    });
+
+    saveMapSettingsButton.addEventListener("click", saveMapSettings);
+
+    loadStoredMapSelection();
+    buildMap().catch((error) => {
+      showMapStatus(`Map startup error: ${error.message}`);
+      mapBanner.textContent = `Map startup error: ${error.message}`;
+      mapBanner.classList.remove("hidden");
+    });
+    window.setInterval(syncConfigFromDisk, 15000);
+  </script>
+  <script defer src="/job-status.js"></script>
+</body>
+</html>
