@@ -75,6 +75,8 @@
 
     .top-actions {
       display: flex;
+      flex-wrap: wrap;
+      align-items: center;
       gap: 10px;
       justify-content: flex-end;
       margin-bottom: 10px;
@@ -1366,6 +1368,13 @@
     <div class="top-actions">
       <button class="button back-link" id="back-button" type="button" aria-label="Go back" title="Back">←</button>
       <a class="button home-link" href="/" aria-label="Return to main page" title="Home">⌂</a>
+      <div class="appearance-control">
+        <label for="portal-theme">Appearance</label>
+        <select id="portal-theme">
+          <option value="charcoal-blue">Charcoal / Blue</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
     </div>
     <a class="brand-link" href="/"><img src="/images/preppercache.png" data-light-src="/images/preppercache.png" data-blue-src="/images/preppercache-blue.png" alt="PrepperCache home" width="2172" height="724"></a>
     <h1>Settings</h1>
@@ -1407,13 +1416,6 @@
               <div class="subvalue" id="system-memory-detail">Available: loading</div>
               <div class="meter"><div class="meter-track"><div class="meter-fill" id="system-memory-fill"></div></div></div>
             </div>
-          </div>
-          <div class="appearance-control">
-            <label for="portal-theme">Appearance</label>
-            <select id="portal-theme">
-              <option value="charcoal-blue">Charcoal / Blue</option>
-              <option value="light">Light</option>
-            </select>
           </div>
           <div class="system-services" id="system-services-list">Checking application services...</div>
           <div class="actions">

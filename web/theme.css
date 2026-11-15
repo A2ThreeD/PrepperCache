@@ -101,7 +101,6 @@ html[data-theme="charcoal-blue"] .button.button:is(:disabled, [aria-disabled="tr
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
-  margin: 0 0 1rem;
 }
 .appearance-control label { font-weight: 600; }
 .appearance-control select { width: auto; }

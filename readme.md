@@ -124,7 +124,7 @@ For a fresh install, use the steps above. For an in-place cutover, back up the c
 
 ## Appearance
 
-PrepperCache defaults to **Charcoal / Blue**. Choose **Light** under **Settings → System → Appearance**. See the [branding guide](docs/branding.md) for the artwork, palette, and styling conventions.
+PrepperCache defaults to **Charcoal / Blue**. Choose **Light** under **Appearance** at the top right of **Settings**. See the [branding guide](docs/branding.md) for the artwork, palette, and styling conventions.
 
 ## Notes
 
