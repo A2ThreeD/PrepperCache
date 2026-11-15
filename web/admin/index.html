@@ -1124,6 +1124,8 @@
       flex-wrap: wrap;
     }
 
+    #content-library-note:empty { display: none; }
+
     .substatus {
       margin-top: 8px;
       color: var(--muted);
@@ -3469,7 +3471,7 @@
           ? "Quick test mode is active with the tiny validation library."
           : (content.custom_selected_count || 0) > 0
             ? `This device has ${content.custom_selected_count || 0} saved extra ZIM ${content.custom_selected_count === 1 ? "selection" : "selections"} in addition to the installed library.`
-            : "This device is using the installed PrepperCache content library."
+            : ""
       );
       document.getElementById("content-set-tile").textContent = contentSetTileLabel(content);
       document.getElementById("content-set-status").textContent = describeInstalledContentSet(content);
