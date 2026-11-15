@@ -12,9 +12,10 @@ Use this checklist when validating PrepperCache on a fresh Raspberry Pi or prepa
 
 ## Automated Checks
 
-GitHub Actions runs the unit, syntax, web installer, and browser smoke checks on pushes and pull requests. Run the same checks locally from the repository root. The first command needs Bash, Python, and Node.js. Use a Python virtual environment for the optional browser dependencies.
+GitHub Actions runs the unit, syntax, web installer, and browser smoke checks on pushes and pull requests. Run the same checks locally from the repository root. Use Bash, Node.js, and a Python virtual environment for test dependencies.
 
 ```bash
+python3 -m pip install -r tests/requirements-unit.txt
 bash scripts/check.sh
 python3 -m pip install -r tests/requirements-smoke.txt
 python3 -m playwright install chromium

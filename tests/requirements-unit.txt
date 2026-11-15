@@ -1,0 +1,2 @@
+# PrepperCache portal dependency for unit tests.
+PyYAML==6.0.2
