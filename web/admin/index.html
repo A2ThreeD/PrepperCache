@@ -73,6 +73,15 @@
       box-shadow: 0 24px 60px var(--shadow-strong-tint, rgba(23, 43, 45, 0.12));
     }
 
+    .about-credits {
+      display: grid;
+      gap: 0.65rem;
+      padding-inline-start: 1.5rem;
+      line-height: 1.55;
+    }
+
+    .about-credits a { color: var(--accent); }
+
     .top-actions {
       display: flex;
       flex-wrap: wrap;
@@ -1390,6 +1399,7 @@
       <button class="button tab-button" data-icon="⌖" type="button" data-panel="maps">Maps</button>
       <button class="button tab-button" data-icon="🗂" type="button" data-panel="files">Files</button>
       <button class="button tab-button" data-icon="🖴" type="button" data-panel="storage">Storage</button>
+      <button class="button tab-button" data-icon="ⓘ" type="button" data-panel="about">About</button>
     </div>
 
     <section class="panel-group active" data-panel-group="system">
@@ -1834,6 +1844,25 @@
     <div class="actions">
       <button class="button" data-icon="⚙" id="run-setup-again-button" type="button">Run Setup Again</button>
     </div>
+    <section class="panel-group" data-panel-group="about" aria-labelledby="about-title">
+      <section class="card">
+        <h2 id="about-title">About PrepperCache</h2>
+        <p>PrepperCache turns a Raspberry Pi into a local hub for offline reference books, preparedness guides, maps, and optional learning resources. Once downloaded, the library and maps are available to devices on the same network without internet access.</p>
+        <p>Written by <strong>Aaron Morris / A2ThreeD</strong>.</p>
+        <div class="actions">
+          <a class="button" href="https://github.com/A2ThreeD/PrepperCache">PrepperCache on GitHub</a>
+        </div>
+
+        <h3>Project credits</h3>
+        <ul class="about-credits">
+          <li><a href="https://kiwix.org/en/">Kiwix</a> and <a href="https://openzim.org/">openZIM</a> power the offline library. <a href="https://www.gutenberg.org/">Project Gutenberg</a> provides the classic books collection.</li>
+          <li><a href="https://maplibre.org/">MapLibre GL JS</a> renders the map. <a href="https://protomaps.com/">Protomaps</a> provides the basemap and PMTiles tooling. Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>.</li>
+          <li>The <a href="https://github.com/jmarler/prepperpi/blob/998a8f1c0beed00975b539c16acfeddd90f61c3a/services/prepperpi-tiles/regions.json">PrepperPi catalog</a> provides the starting point for country bounds, bundles, and size estimates. The <a href="https://www.census.gov/geographies/mapping-files/2025/geo/carto-boundary-file.html">U.S. Census Bureau</a> provides state boundaries.</li>
+          <li><a href="https://learningequality.org/kolibri/about-kolibri/">Kolibri by Learning Equality</a> provides optional offline learning.</li>
+          <li><a href="https://www.raspberrypi.com/software/">Raspberry Pi OS</a> and <a href="https://nginx.org/">NGINX</a> provide the operating system and web server.</li>
+        </ul>
+      </section>
+    </section>
   </main>
   <script>
     let currentState = null;
@@ -4683,7 +4712,7 @@
 
     function initialPanelFromLocation() {
       const hash = (window.location.hash || "").replace(/^#/, "").trim().toLowerCase();
-      if (["wifi", "system", "content", "maps", "storage", "files"].includes(hash)) {
+      if (["wifi", "system", "content", "maps", "storage", "files", "about"].includes(hash)) {
         return hash;
       }
       return "system";
