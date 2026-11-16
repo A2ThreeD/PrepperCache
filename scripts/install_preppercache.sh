@@ -57,6 +57,9 @@ python3 "$REPO_ROOT/scripts/build_kiwix_zim_manifest.py" \
 echo "Installing portal API service..."
 "$REPO_ROOT/scripts/install_portal_service.sh"
 
+echo "Installing Raspberry Pi GPIO support..."
+bash "$REPO_ROOT/scripts/install_gpio_service.sh"
+
 echo "Installing Kiwix service..."
 "$REPO_ROOT/scripts/install_kiwix_service.sh"
 

@@ -4,14 +4,7 @@
 
 PrepperCache is an offline-first Raspberry Pi project for serving emergency preparedness, medical, survival, and general reference material on a local network.
 
-The current plan is to build on a fresh Raspberry Pi OS Lite install and automate:
-
-- Base OS preparation
-- Required package installation
-- Directory layout for content and site assets
-- Custom web, admin, and offline PMTiles maps scaffold
-- Kiwix ZIM downloads into `/library/zims/content`
-- ZIM selection generated from `catalog/kiwix-categories.yaml`
+[PrepperCache v1.0](https://github.com/A2ThreeD/PrepperCache/releases/tag/v1.0.0) serves an offline Kiwix library and maps from one local dashboard. The Settings page manages content, storage, Wi-Fi access, and optional GPIO accessories.
 
 ## Current Repository Layout
 
@@ -100,7 +93,7 @@ ssh <your-username>@preppercache.local
 ### 4. Clone and install PrepperCache
 
 ```bash
-git clone https://github.com/A2ThreeD/PrepperCache.git preppercache
+git clone --branch v1.0.0 https://github.com/A2ThreeD/PrepperCache.git preppercache
 sudo ./preppercache/scripts/install_preppercache.sh
 ```
 
@@ -112,7 +105,7 @@ The ZIM library is stored at `/library/zims/content`. Large libraries can take c
 
 While setup runs, **Settings → Content** shows the current step and download progress. The installed library and disk usage appear automatically when setup finishes. A status panel at the bottom of PrepperCache pages follows active setup, content, and map jobs as you navigate. It links to job details and hides when there is nothing to show.
 
-Use **Settings → Content → Change Content Set** to switch between Essential, Standard, and Comprehensive. The preview shows how much extra space the missing files are estimated to need and how much is free on each destination drive. PrepperCache blocks the change when the estimate exceeds the available space. Changing sets keeps your existing files, so switching to a smaller set does not free space.
+In **Settings → Content**, the highlighted button shows the current base set. Select another to review its contents and space requirements. Larger sets keep existing ZIMs. Switching to a smaller set requires explicit confirmation and permanently removes ZIMs outside that set from the local library and mounted PrepperCache library drives. PrepperCache verifies the smaller set is complete first.
 
 **Update Content Now** checks the configured mirror and downloads newer editions alongside your existing files. Open **Update Schedule** to enable weekly updates while the Pi is on. The schedule is off by default. Failed downloads appear by filename in Content. Use **Add Content** to browse the mirror or download missing files.
 
@@ -124,7 +117,13 @@ To apply interface updates to an existing Pi checkout without restarting Prepper
 
 For a fresh install, use the steps above. For an in-place cutover, back up the current configuration, library index, and service definitions first. Existing ZIM and PMTiles archives can be reused without downloading them again. Set their locations in `config/preppercache.env` before activating the new services. Rebuild the Kiwix index to regenerate category tags and verify that all map archives appear in Settings. The old stack and PrepperCache cannot serve the same ports at the same time; plan the cutover after all active jobs finish.
 
+Settings opens to the dashboard with a local overview of the installed library, map packages, service status, and system drive. On phones, use **Menu** to open Settings navigation.
+
 Settings tabs have direct links such as `/admin/#content` and `/admin/#maps`. **Add Content** and **Add Maps** open their respective catalogs. Review the items, destination, and storage estimate before starting a selected download. Failed files from an extra content batch and failed country or regional maps can be retried from their job status.
+
+Under **Settings → WiFi**, edit the SSID and passphrase, then use **Save Config** to store the settings or **Apply Config** to apply them. Network and DHCP options are under **Advanced Settings**. The access point indicator appears in the header, and action results appear in the shared popup.
+
+Under **Settings → About**, you can find the installed version, web update date, license, and project credits.
 
 ## Appearance
 
@@ -173,3 +172,12 @@ This workflow extracts existing vector tiles. Generating tiles from raw OSM extr
 ## Validation
 
 Use [release checklist](docs/release-checklist.md) when validating a fresh PrepperCache install or preparing a new release.
+
+
+## Raspberry Pi accessories
+
+Configure a physical shutdown button or a 0.91-inch OLED under **Settings → System → GPIO Accessories**. See the [wiring and setup guide](docs/gpio.md).
+
+## License
+
+PrepperCache's original code and documentation are available under the [MIT License](LICENSE). Third-party software, datasets, and downloaded content retain their own licenses.

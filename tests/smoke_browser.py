@@ -47,6 +47,7 @@ class BrowserSmokeTests(unittest.TestCase):
         self.jobs = {"status": "idle"}
         self.completed_setup = True
         self.posts = []
+        self.content_profile = "essential"
         self.page.route("**/api/**", self.api_fixture)
 
     def api_fixture(self, route):
@@ -61,7 +62,7 @@ class BrowserSmokeTests(unittest.TestCase):
             "/api/state": {"setup_complete": self.completed_setup, "profile": {}, "storage": {"disk": disk}},
             "/api/apply": self.jobs,
             "/api/maps/sync": {"status": "idle"},
-            "/api/content": {"mode": "full", "profile": "essential", "installed_count": 4, "automatic_updates": {"enabled": False}},
+            "/api/content": {"mode": "full", "profile": self.content_profile, "installed_count": 4, "automatic_updates": {"enabled": False}},
             "/api/content/catalog": {
                 "items": [{
                     "path": "test/handbook.zim", "name": "handbook.zim", "category": "test",
@@ -83,10 +84,12 @@ class BrowserSmokeTests(unittest.TestCase):
     def test_settings_links_back_refresh_and_download_review(self):
         self.page.goto(self.origin + "/admin/#about")
         expect(self.page.get_by_role("heading", name="About PrepperCache")).to_be_visible()
+        self.page.get_by_role("button", name="Menu").click()
         self.page.locator('.section-tabs a[href="#content"]').click()
         expect(self.page).to_have_url(self.origin + "/admin/#content")
         self.page.go_back()
         expect(self.page.get_by_role("heading", name="About PrepperCache")).to_be_visible()
+        self.page.get_by_role("button", name="Menu").click()
         self.page.locator('.section-tabs a[href="#content"]').click()
         self.page.reload()
         expect(self.page.get_by_role("heading", name="Installed Content")).to_be_visible()
@@ -102,16 +105,18 @@ class BrowserSmokeTests(unittest.TestCase):
         expect(review).to_be_hidden()
         self.assertEqual(self.posts, [])
 
-    def test_content_set_review_blocks_oversized_download_and_names_failed_file(self):
+    def test_content_set_review_blocks_oversized_download_and_requires_downgrade_confirmation(self):
+        self.content_profile = "standard"
+
         def content_set(route):
             too_large = route.request.url.endswith("comprehensive")
             route.fulfill(json={
-                "download_count": 1, "required_bytes": 2 * 1024**3, "unknown_sizes": 0,
+                "download_count": int(too_large), "required_bytes": 2 * 1024**3, "unknown_sizes": 0,
                 "problem": "Not enough free space." if too_large else None,
-                "disks": [{
-                    "destinations": ["/library"], "required_bytes": 2 * 1024**3,
-                    "free_bytes": (1 if too_large else 4) * 1024**3,
-                }],
+                "disks": [{"destinations": ["/library"], "required_bytes": 2 * 1024**3, "free_bytes": 1024**3}] if too_large else [],
+                "downgrade": not too_large, "review_id": "preview-123",
+                "added_titles": ["Repair Manual"] if too_large else [],
+                "remove_files": [{"path": "/library/extra.zim"}], "remove_bytes": 1024**3,
             })
 
         self.page.route("**/api/content/set?profile=*", content_set)
@@ -121,16 +126,34 @@ class BrowserSmokeTests(unittest.TestCase):
         }
         self.page.goto(self.origin + "/admin/#content")
         expect(self.page.locator("#content-failed-files")).to_contain_text("handbook.zim")
-        self.page.get_by_text("Change Content Set", exact=True).click()
-        select = self.page.get_by_label("New content set")
-        confirm = self.page.get_by_role("button", name="Apply Content Set")
-        select.select_option("comprehensive")
-        expect(self.page.locator("#content-set-estimate")).to_contain_text("Not enough free space")
+        expect(self.page.get_by_role("button", name="Standard", exact=True)).to_have_attribute("aria-pressed", "true")
+        self.page.get_by_role("button", name="Comprehensive", exact=True).click()
+        review = self.page.get_by_role("dialog")
+        expect(review).to_contain_text("Not enough free space")
+        expect(review.get_by_role("button", name="Apply Content Set")).to_be_disabled()
+        review.get_by_text("What’s included in addition to your current set").click()
+        expect(review.get_by_text("Repair Manual")).to_be_visible()
+        review.get_by_role("button", name="Cancel").click()
+        self.page.get_by_role("button", name="Essential", exact=True).click()
+        confirm = review.get_by_role("button", name="Confirm Downgrade")
         expect(confirm).to_be_disabled()
-        select.select_option("standard")
-        expect(self.page.locator("#content-set-estimate")).to_contain_text("2.0 GB estimated additional space")
+        review.get_by_text("Files to remove", exact=False).click()
+        expect(review.get_by_text("/library/extra.zim")).to_be_visible()
+        review.get_by_role("checkbox").check()
         expect(confirm).to_be_enabled()
         self.assertEqual(self.posts, [])
+
+    def test_settings_opens_dashboard_and_phone_menu_navigates(self):
+        self.page.goto(self.origin + "/admin/")
+        expect(self.page.get_by_role("heading", name="Welcome to PrepperCache")).to_be_visible()
+        expect(self.page.locator("#dashboard-library")).to_have_text("4")
+        expect(self.page.get_by_label("Settings Layout")).to_have_count(0)
+        navigation = self.page.get_by_role("navigation", name="Settings sections")
+        expect(navigation).to_be_hidden()
+        self.page.get_by_role("button", name="Menu").click()
+        navigation.get_by_role("link", name="About").click()
+        expect(navigation).to_be_hidden()
+        expect(self.page.get_by_role("heading", name="About PrepperCache")).to_be_visible()
 
     def test_download_progress_survives_navigation_and_clears(self):
         self.jobs = {

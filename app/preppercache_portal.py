@@ -4,6 +4,7 @@
 # Offline portal, content management, and device services.
 
 import argparse
+import hashlib
 import html
 import json
 import os
@@ -543,6 +544,7 @@ class PortalState:
                             "id": resource_id,
                             "url": resource_url,
                             "filename": Path(urlparse(resource_url).path).name,
+                            "title": resource.get("title") or resource.get("label") or resource_id,
                             "size_mb": size_mb,
                         }
                     )
@@ -557,6 +559,7 @@ class PortalState:
                         "id": str(option.get("id", "")).strip(),
                         "url": option_url,
                         "filename": Path(urlparse(option_url).path).name,
+                        "title": option.get("name") or option.get("label") or "Wikipedia",
                         "size_mb": int(option.get("size_mb", 0) or 0),
                     }
                 )
@@ -1459,21 +1462,49 @@ class PortalState:
             "install_destinations": self.install_destinations("zims"),
         }
 
+    def content_set_removals(self, keep: set[str], destinations: set[Path]) -> list[dict]:
+        root = self.kiwix_library_dir()
+        removals = []
+        for directory in sorted({root, *destinations}, key=str):
+            if not directory.is_dir():
+                continue
+            for path in sorted(directory.iterdir()):
+                if path.name in keep or path.suffix.lower() != ".zim" or not path.is_file():
+                    continue
+                info = path.lstat()
+                symlink = path.is_symlink()
+                removals.append({
+                    "path": str(path),
+                    "name": path.name,
+                    "identity": str(path.readlink()) if symlink else [info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns],
+                    "size_bytes": 0 if symlink else info.st_size,
+                })
+        return removals
+
     def content_set_plan(self, profile: str) -> tuple[dict, list[str]]:
         if profile not in ("essential", "standard", "comprehensive"):
             raise ValueError("Choose Essential, Standard, or Comprehensive.")
 
         env = self.maps_env()
         seen = {item["name"] for item in self.list_installed_zims()}
-        resources = self.curated_resources(profile, env.get("PREPPERCACHE_WIKIPEDIA_OPTION", "top-mini"))
+        wikipedia_choice = env.get("PREPPERCACHE_WIKIPEDIA_OPTION", "top-mini")
+        resources = {item["filename"]: item for item in self.curated_resources(profile, wikipedia_choice)}
+        levels = ("essential", "standard", "comprehensive")
+        previous = env.get("PREPPERCACHE_ZIM_PROFILE", "essential")
+        if env.get("PREPPERCACHE_ZIM_MODE") == "custom":
+            previous = self.custom_base_profile()
+        if env.get("PREPPERCACHE_ZIM_MODE") == "quick-test" or previous not in levels:
+            previous = None
+        downgrade = previous is not None and levels.index(profile) < levels.index(previous)
+        previous_files = {item["filename"] for item in self.curated_resources(previous, wikipedia_choice)} if previous else set()
         library = self.preferred_zim_install_dir()
         wikipedia = self.preferred_wikipedia_install_dir()
         mounted = {Path(item["path"]) for item in self.install_destinations("zims") if item["mounted"]}
         requirements: dict[Path, int] = {}
         urls = []
         unknown_sizes = 0
-        for resource in resources:
-            name, url = resource["filename"], resource["url"]
+        for name, resource in resources.items():
+            url = resource["url"]
             if name in seen:
                 continue
             seen.add(name)
@@ -1500,29 +1531,84 @@ class PortalState:
 
         if not problem and any(disk["required_bytes"] > disk["free_bytes"] for disk in disks.values()):
             problem = "Not enough free space. Free up space or choose another download destination."
+        if not resources:
+            problem = "The content set catalog is unavailable."
+        removals = self.content_set_removals(set(resources), mounted) if downgrade and resources else []
+        review_id = None
+        if downgrade:
+            review = {"profile": profile, "previous": previous, "required": sorted(resources), "removals": removals}
+            review_id = hashlib.sha256(json.dumps(review, sort_keys=True).encode()).hexdigest()
         return {
             "download_count": len(urls),
+            "included_count": len(resources),
+            "included_bytes": sum(max(0, item["size_mb"]) * 1024**2 for item in resources.values()),
+            "added_titles": [item.get("title", name) for name, item in resources.items() if name not in previous_files],
+            "downgrade": downgrade,
+            "remove_files": [{"name": item["name"], "path": item["path"]} for item in removals],
+            "remove_bytes": sum(item["size_bytes"] for item in removals),
+            "review_id": review_id,
+            "_removals": removals,
+            "_required_filenames": list(resources),
+
             "required_bytes": sum(requirements.values()),
             "unknown_sizes": unknown_sizes,
             "disks": list(disks.values()),
             "problem": problem,
         }, urls
 
-    def change_content_set(self, profile: str) -> dict:
+    def change_content_set(self, profile: str, confirmed_review: str | None = None) -> dict:
         with self.apply_lock, self.map_sync_lock:
             if self.load_apply_state().get("status") == "running":
                 raise RuntimeError("Wait for the current content job to finish.")
             plan, urls = self.content_set_plan(profile)
             if plan["problem"]:
                 raise ValueError(plan["problem"])
-            if urls:
-                (self.data_dir / "content-set-urls.txt").write_text("\n".join(urls) + "\n")
-            update_env_file(self.preppercache_env, {
-                "PREPPERCACHE_ZIM_MODE": "full",
-                "PREPPERCACHE_ZIM_PROFILE": profile,
-            })
-            apply = self.launch_apply("change-content-set", clear_log=True) if urls else None
+            if plan["downgrade"]:
+                if confirmed_review != plan["review_id"]:
+                    raise ValueError("Review and confirm the current list of files to remove.")
+                (self.data_dir / "content-downgrade.json").write_text(json.dumps({
+                    "profile": profile,
+                    "urls": urls,
+                    "required": plan["_required_filenames"],
+                    "remove": plan["_removals"],
+                }))
+                apply = self.launch_apply("downgrade-content-set", clear_log=True)
+            else:
+                if confirmed_review is not None:
+                    raise ValueError("The selected set changed. Review it again before applying.")
+                if urls:
+                    (self.data_dir / "content-set-urls.txt").write_text("\n".join(urls) + "\n")
+                self.activate_content_profile(profile)
+                apply = self.launch_apply("change-content-set", clear_log=True) if urls else None
         return {"content": self.content_status(), "apply": apply}
+
+    def activate_content_profile(self, profile: str) -> None:
+        update_env_file(self.preppercache_env, {
+            "PREPPERCACHE_ZIM_MODE": "full",
+            "PREPPERCACHE_ZIM_PROFILE": profile,
+        })
+
+    def remove_downgrade_files(self, job: dict) -> None:
+        if not job.get("required"):
+            raise ValueError("The confirmed content set could not be loaded.")
+        installed = {item["name"] for item in self.list_installed_zims()}
+        if not set(job["required"]).issubset(installed):
+            raise ValueError("The smaller set is incomplete. Existing ZIMs were kept.")
+        approved = {item["path"]: item["identity"] for item in job["remove"]}
+        mounted = {Path(item["path"]) for item in self.install_destinations("zims") if item["mounted"]}
+        allowed = {self.kiwix_library_dir(), *mounted}
+        if any(Path(path).parent not in allowed for path in approved):
+            raise ValueError("A reviewed download drive is unavailable. Reconnect it and review again.")
+        current = self.content_set_removals(set(job["required"]), mounted)
+        if any(item["identity"] != approved.get(item["path"]) for item in current):
+            raise ValueError("The installed files changed. Review the downgrade again.")
+        # Remove managed links first. Inventory refresh can then recreate only links for files still present.
+        paths = [Path(item["path"]) for item in current]
+        for path in sorted(paths, key=lambda path: not path.is_symlink()):
+            path.unlink(missing_ok=True)
+        self.sync_external_content_links()
+        if self.custom_zim_selection_path().is_file():
+            self.write_custom_zim_selection([], self.zim_catalog_root())
 
     def save_content_settings(self, payload: dict) -> dict:
         if "zim_mirror" in payload:
@@ -2275,6 +2361,48 @@ class PortalState:
             ),
             "services": services,
         }
+
+    def gpio_settings(self) -> dict:
+        settings = {
+            "shutdown_enabled": False,
+            "shutdown_gpio": 17,
+            "oled_enabled": False,
+            "oled_address": "0x3c",
+        }
+        stored = read_json(self.data_dir / "gpio-settings.json", {})
+        settings.update({key: stored[key] for key in settings if key in stored})
+        return {
+            **settings,
+            "supported": Path("/etc/systemd/system/preppercache-gpio.service").is_file(),
+            "i2c_available": Path("/dev/i2c-1").exists(),
+            "shutdown_pins": [4, 5, 6, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27],
+        }
+
+    def save_gpio_settings(self, payload: dict) -> dict:
+        current = self.gpio_settings()
+        if not current["supported"]:
+            raise ValueError("Install the Raspberry Pi GPIO service before configuring these controls.")
+        if not isinstance(payload, dict):
+            raise ValueError("Invalid GPIO settings.")
+        pin = payload.get("shutdown_gpio")
+        address = payload.get("oled_address")
+        if type(pin) is not int or pin not in current["shutdown_pins"]:
+            raise ValueError("Choose an available BCM GPIO pin.")
+        if address not in ("0x3c", "0x3d"):
+            raise ValueError("Choose OLED address 0x3C or 0x3D.")
+        if any(type(payload.get(key)) is not bool for key in ("shutdown_enabled", "oled_enabled")):
+            raise ValueError("Specify whether the button and OLED are enabled.")
+        if payload["oled_enabled"] and not current["i2c_available"]:
+            raise ValueError("Enable I²C in Raspberry Pi OS before turning on the OLED.")
+        settings = {key: payload[key] for key in ("shutdown_enabled", "shutdown_gpio", "oled_enabled", "oled_address")}
+        with tempfile.NamedTemporaryFile(mode="w", dir=self.data_dir, delete=False) as handle:
+            pending = Path(handle.name)
+            json.dump(settings, handle)
+        try:
+            pending.replace(self.data_dir / "gpio-settings.json")
+        finally:
+            pending.unlink(missing_ok=True)
+        return {**current, **settings}
 
     def system_health(self) -> dict:
         storage = self.storage_health()
@@ -3173,7 +3301,7 @@ class PortalState:
             return
 
         action = state.get("action", "full")
-        if action not in {"full", "refresh-content", "rebuild-library", "download-extra-content", "update-content", "change-content-set"}:
+        if action not in {"full", "refresh-content", "rebuild-library", "download-extra-content", "update-content", "change-content-set", "downgrade-content-set"}:
             return
 
         self.launch_apply(
@@ -3201,6 +3329,14 @@ class PortalState:
                     "Restarting Kiwix service",
                     ["systemctl", "restart", "preppercache-kiwix.service"],
                 ),
+            ]
+
+        if action == "downgrade-content-set":
+            return [
+                ("Downloading selected Kiwix content", [str(self.repo_root / "scripts" / "download_kiwix_zims.sh")]),
+                ("Removing confirmed extra ZIMs", ["__remove_downgrade_files__"]),
+                ("Rebuilding Kiwix library", [str(self.repo_root / "scripts" / "rebuild_kiwix_library.sh")]),
+                ("Restarting Kiwix service", ["systemctl", "restart", "preppercache-kiwix.service"]),
             ]
 
         if action in {"refresh-content", "change-content-set"}:
@@ -3282,6 +3418,7 @@ class PortalState:
         if action == "change-content-set":
             env["PREPPERCACHE_JOB_ZIM_MANIFEST"] = str(self.data_dir / "content-set-urls.txt")
 
+        downgrade = read_json(self.data_dir / "content-downgrade.json", {}) if action == "downgrade-content-set" else None
         exit_code = 0
         error_message = None
         result_message = None
@@ -3297,6 +3434,23 @@ class PortalState:
                 )
                 log_handle.write(f"\n== {step} ==\n")
                 log_handle.flush()
+                if downgrade is not None and index == 1:
+                    installed = {item["name"] for item in self.list_installed_zims()}
+                    pending = [url for url in downgrade.get("urls", []) if Path(urlparse(url).path).name not in installed]
+                    if not pending:
+                        continue
+                    manifest = self.data_dir / "content-downgrade-urls.txt"
+                    manifest.write_text("\n".join(pending) + "\n")
+                    env["PREPPERCACHE_JOB_ZIM_MANIFEST"] = str(manifest)
+                if command == ["__remove_downgrade_files__"]:
+                    try:
+                        self.remove_downgrade_files(downgrade)
+                        self.activate_content_profile(downgrade["profile"])
+                    except (ValueError, OSError) as exc:
+                        exit_code, error_message = 1, str(exc)
+                        break
+                    result_message = "Smaller content set applied."
+                    continue
                 if command == ["__prepare_content_update__"]:
                     try:
                         manifest = self.prepare_content_update_manifest()
@@ -3959,6 +4113,9 @@ class PortalHandler(BaseHTTPRequestHandler):
         if path == "/api/status":
             self.send_json(self.portal_state.status())
             return
+        if path == "/api/system/gpio":
+            self.send_json(self.portal_state.gpio_settings())
+            return
         if path == "/api/system/health":
             self.send_json(self.portal_state.system_health())
             return
@@ -3987,7 +4144,7 @@ class PortalHandler(BaseHTTPRequestHandler):
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, status=400)
                 return
-            self.send_json(plan)
+            self.send_json({key: value for key, value in plan.items() if not key.startswith("_")})
             return
         if path == "/api/content/catalog":
             try:
@@ -4052,7 +4209,7 @@ class PortalHandler(BaseHTTPRequestHandler):
 
         if self.path == "/api/content/set":
             try:
-                result = self.portal_state.change_content_set(payload.get("profile"))
+                result = self.portal_state.change_content_set(payload.get("profile"), payload.get("confirmed_review"))
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, status=400)
                 return
@@ -4112,7 +4269,11 @@ class PortalHandler(BaseHTTPRequestHandler):
 
         if self.path == "/api/content/remove":
             try:
-                state = self.portal_state.remove_zim_files(payload.get("filenames", []))
+                with self.portal_state.apply_lock:
+                    if self.portal_state.load_apply_state().get("status") == "running":
+                        self.send_json({"error": "Wait for the current content job to finish."}, status=409)
+                        return
+                    state = self.portal_state.remove_zim_files(payload.get("filenames", []))
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, status=400)
                 return
@@ -4163,6 +4324,13 @@ class PortalHandler(BaseHTTPRequestHandler):
                 self.send_json({"error": str(exc)}, status=409)
                 return
             self.send_json(state, status=202)
+            return
+
+        if self.path == "/api/system/gpio":
+            try:
+                self.send_json(self.portal_state.save_gpio_settings(payload))
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, status=400)
             return
 
         if self.path == "/api/system/power":

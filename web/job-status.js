@@ -40,6 +40,8 @@
     const endpoints = ["/api/apply", "/api/maps/sync"];
     const jobs = [null, null];
     let checking = false;
+    let notice = null;
+    let noticeTimer;
 
     try {
       const saved = JSON.parse(sessionStorage.getItem(cacheKey));
@@ -78,6 +80,7 @@
       const mapProblem = mapCanvas?.dataset.problem;
       const views = jobs.map((job, index) => displayJob(job, index === 1));
       views.push(mapProblem ? { title: "Offline map problem", detail: mapProblem, problem: true, mapSettings: true } : null);
+      views.push(notice);
       const serialized = JSON.stringify(views);
       if (lastView === serialized) return;
       lastView = serialized;
@@ -87,12 +90,14 @@
         if (view.problem) {
           section.dataset.problem = "";
           section.setAttribute("role", "alert");
+        } else if (view.href) {
+          section.setAttribute("role", "status");
         }
         const header = document.createElement("header");
         const title = document.createElement("strong");
         title.textContent = view.title;
         const link = document.createElement("a");
-        link.href = view.mapSettings || index === 1 ? "/admin/#maps" : "/admin/#content";
+        link.href = view.href || (view.mapSettings || index === 1 ? "/admin/#maps" : "/admin/#content");
         link.textContent = view.mapSettings ? "Map Settings" : "Details";
         const detail = document.createElement("p");
         detail.textContent = view.detail;
@@ -132,6 +137,18 @@
         render();
       }
     }
+
+    document.addEventListener("preppercache:notice", ({ detail }) => {
+      clearTimeout(noticeTimer);
+      notice = detail;
+      render();
+      if (!notice.busy) {
+        noticeTimer = window.setTimeout(() => {
+          notice = null;
+          render();
+        }, notice.problem ? 12000 : 6500);
+      }
+    });
 
     if (mapCanvas) {
       new MutationObserver(render).observe(mapCanvas, { attributeFilter: ["data-problem"] });

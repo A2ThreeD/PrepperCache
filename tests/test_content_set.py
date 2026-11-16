@@ -72,3 +72,39 @@ class ContentSetTests(unittest.TestCase):
         self.assertIsNone(result["apply"])
         self.assertEqual(result["content"]["PREPPERCACHE_ZIM_PROFILE"], "comprehensive")
         self.state.launch_apply.assert_not_called()
+
+    def test_downgrade_requires_confirmation_and_rechecks_before_deleting(self):
+        state = self.state
+        state.maps_env = lambda: {"PREPPERCACHE_ZIM_PROFILE": "standard"}
+        state.kiwix_library_dir = lambda: self.library
+        state.sync_external_content_links = Mock()
+        state.custom_zim_selection_path = lambda: state.data_dir / "selection.json"
+        state.curated_resources.side_effect = lambda tier, _: self.resources[:1] if tier == "essential" else self.resources
+        kept = self.library / "already.zim"
+        extra = self.library / "extra.zim"
+        external_extra = self.wikipedia / "extra.zim"
+        for path in (kept, extra, external_extra):
+            path.write_bytes(b"test archive")
+        plan, _ = state.content_set_plan("essential")
+        self.assertTrue(plan["downgrade"])
+        self.assertEqual(len(plan["remove_files"]), 2)
+        with self.assertRaisesRegex(ValueError, "confirm"):
+            state.change_content_set("essential")
+        self.assertTrue(extra.exists())
+        self.assertTrue(external_extra.exists())
+        state.change_content_set("essential", plan["review_id"])
+        state.launch_apply.assert_called_once_with("downgrade-content-set", clear_log=True)
+        job = portal.read_json(state.data_dir / "content-downgrade.json", {})
+        state.list_installed_zims = lambda: []
+        with self.assertRaisesRegex(ValueError, "incomplete"):
+            state.remove_downgrade_files(job)
+        state.list_installed_zims = lambda: [{"name": "already.zim"}]
+        extra.write_bytes(b"new file")
+        with self.assertRaisesRegex(ValueError, "changed"):
+            state.remove_downgrade_files(job)
+        self.assertTrue(external_extra.exists())
+        current, _ = state.content_set_plan("essential")
+        state.remove_downgrade_files({"required": ["already.zim"], "remove": current["_removals"]})
+        self.assertTrue(kept.exists())
+        self.assertFalse(extra.exists())
+        self.assertFalse(external_extra.exists())
