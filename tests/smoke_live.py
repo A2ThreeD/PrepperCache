@@ -4,6 +4,7 @@
 
 import argparse
 import json
+from urllib.error import HTTPError
 from urllib.request import urlopen
 
 
@@ -24,13 +25,30 @@ def main():
                 raise SystemExit(f"{path} did not serve the expected PrepperCache page or asset.")
         print(f"OK {path}")
 
-    for path, key in {"/api/state": "setup_complete", "/api/apply": "status",
-                      "/api/maps/sync": "status", "/maps/state.json": "available_files"}.items():
+    with urlopen(base + "/api/admin/session", timeout=10) as response:
+        session = json.load(response)
+    locked = session.get("enabled") is True
+    if session.get("authenticated") is not (not locked):
+        raise SystemExit("The guest admin session returned unexpected access.")
+    print("OK /api/admin/session")
+
+    for path, key in {"/api/state": "admin_locked" if locked else "setup_complete",
+                      "/maps/state.json": "available_files"}.items():
         with urlopen(base + path, timeout=10) as response:
             payload = json.load(response)
             if not isinstance(payload, dict) or key not in payload:
                 raise SystemExit(f"{path} did not return the expected JSON field {key}.")
         print(f"OK {path}")
+
+    for path in ("/api/apply", "/api/maps/sync"):
+        try:
+            with urlopen(base + path, timeout=10) as response:
+                if locked or "status" not in json.load(response):
+                    raise SystemExit(f"{path} returned unexpected guest access.")
+        except HTTPError as error:
+            if not locked or error.code != 401:
+                raise
+        print(f"OK {path}" + (" (locked)" if locked else ""))
 
     # A new installation can serve the built-in placeholder instead of Kiwix.
     with urlopen(base + "/kiwix/", timeout=10) as response:

@@ -4,11 +4,14 @@
 # Offline portal, content management, and device services.
 
 import argparse
+import errno
 import hashlib
+import hmac
 import html
 import json
 import os
 import re
+import secrets
 import shutil
 import subprocess
 import tempfile
@@ -18,6 +21,7 @@ import yaml
 from collections import deque
 from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
+from http.cookies import CookieError, SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import NamedTuple
@@ -32,6 +36,12 @@ APPLY_LOG_MAX_BYTES = 5 * 1024 * 1024
 APPLY_LOG_KEEP_BYTES = 4 * 1024 * 1024
 APPLY_PROGRESS_SCAN_BYTES = 1024 * 1024
 CONTENT_UPDATE_INTERVAL = 7 * 86400
+CONTENT_RETRY_INTERVAL = 60
+CONTENT_RETRY_LIMIT = 3
+CONTENT_DOWNLOAD_ACTIONS = {
+    "full", "refresh-content", "download-extra-content", "update-content",
+    "change-content-set", "downgrade-content-set",
+}
 ZIM_DOWNLOAD_STEPS = {
     "Downloading selected Kiwix content",
     "Downloading selected extra Kiwix content",
@@ -328,6 +338,122 @@ class MapBuild(NamedTuple):
     geometry: dict | None = None
 
 
+class AdminAccessError(Exception):
+    def __init__(self, status: int, message: str) -> None:
+        super().__init__(message)
+        self.status = status
+
+
+class AdminAccess:
+    COOKIE = "preppercache_admin"
+    SESSION_SECONDS = 8 * 60 * 60
+    HASH_ITERATIONS = 600_000
+    ATTEMPT_LIMIT = 5
+    ATTEMPT_WINDOW = 60
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.lock = threading.Lock()
+        self.sessions: dict[str, float] = {}
+        self.failures: deque[float] = deque()
+        try:
+            data = json.loads(path.read_text())
+            salt = bytes.fromhex(data["salt"])
+            digest = bytes.fromhex(data["digest"])
+            if len(salt) != 32 or len(digest) != 32:
+                raise ValueError("Invalid password record.")
+            self.password_record = (salt, digest)
+        except FileNotFoundError:
+            self.password_record = None
+        except (OSError, ValueError, KeyError, TypeError):
+            # A damaged record must not turn protection off.
+            print(f"Could not read the admin password record at {path}. Settings are locked.", flush=True)
+            self.password_record = (b"", b"")
+
+    def _authenticated(self, token: str) -> bool:
+        return self.password_record is None or self.sessions.get(token, 0) > time.monotonic()
+
+    def status(self, token: str) -> dict:
+        with self.lock:
+            return {"enabled": self.password_record is not None, "authenticated": self._authenticated(token)}
+
+    def _hash(self, password: str, salt: bytes) -> bytes:
+        return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, self.HASH_ITERATIONS)
+
+    def _verify(self, password: object) -> None:
+        now = time.monotonic()
+        while self.failures and now - self.failures[0] >= self.ATTEMPT_WINDOW:
+            self.failures.popleft()
+        if len(self.failures) >= self.ATTEMPT_LIMIT:
+            raise AdminAccessError(429, "Too many attempts. Wait a minute and try again.")
+        salt, expected = self.password_record
+        try:
+            valid = bool(salt) and isinstance(password, str) and 0 < len(password) <= 128 and hmac.compare_digest(
+                self._hash(password, salt), expected
+            )
+        except UnicodeEncodeError:
+            valid = False
+        if not valid:
+            self.failures.append(now)
+            raise AdminAccessError(403, "Incorrect admin password.")
+        self.failures.clear()
+
+    def _new_session(self) -> str:
+        now = time.monotonic()
+        self.sessions = {key: end for key, end in self.sessions.items() if end > now}
+        if len(self.sessions) >= 32:
+            self.sessions.pop(min(self.sessions, key=self.sessions.get))
+        token = secrets.token_urlsafe(32)
+        self.sessions[token] = now + self.SESSION_SECONDS
+        return token
+
+    def login(self, password: object, token: str) -> str:
+        with self.lock:
+            if self.password_record is None:
+                return ""
+            self._verify(password)
+            self.sessions.pop(token, None)
+            return self._new_session()
+
+    def logout(self, token: str) -> None:
+        with self.lock:
+            self.sessions.pop(token, None)
+
+    def configure(self, token: str, enabled: object, current_password: object, new_password: object) -> str:
+        with self.lock:
+            if not self._authenticated(token):
+                raise AdminAccessError(401, "Enter the admin password to unlock Settings.")
+            if not isinstance(enabled, bool):
+                raise AdminAccessError(400, "Choose whether to enable admin password protection.")
+            if self.password_record is not None:
+                self._verify(current_password)
+
+            if enabled:
+                if not isinstance(new_password, str) or not 8 <= len(new_password) <= 128 or not new_password.strip():
+                    raise AdminAccessError(400, "Use an admin password between 8 and 128 characters.")
+                salt = secrets.token_bytes(32)
+                try:
+                    digest = self._hash(new_password, salt)
+                except UnicodeEncodeError as exc:
+                    raise AdminAccessError(400, "Enter a valid admin password.") from exc
+                with tempfile.NamedTemporaryFile(mode="w", dir=self.path.parent, delete=False) as handle:
+                    temporary = Path(handle.name)
+                    try:
+                        json.dump({"salt": salt.hex(), "digest": digest.hex()}, handle)
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                        temporary.replace(self.path)
+                    finally:
+                        temporary.unlink(missing_ok=True)
+                self.password_record = (salt, digest)
+            else:
+                self.path.unlink(missing_ok=True)
+                self.password_record = None
+            self.sessions.clear()
+            self.failures.clear()
+            return self._new_session() if enabled else ""
+
+
 class PortalState:
     def __init__(self, repo_root: Path, data_dir: Path) -> None:
         self.repo_root = repo_root
@@ -335,6 +461,7 @@ class PortalState:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.preppercache_env = Path(os.environ.get("PREPPERCACHE_ENV_FILE") or self.repo_root / "config" / "preppercache.env")
         self.install_profile_env = self.repo_root / "config" / "install-profile.env"
+        self.admin_access = AdminAccess(self.data_dir / "admin-password.json")
         self.state_file = self.data_dir / "portal-state.json"
         self.apply_state_file = self.data_dir / "apply-state.json"
         self.apply_log_file = self.data_dir / "apply.log"
@@ -344,7 +471,12 @@ class PortalState:
         self.content_catalog_cache_file = self.data_dir / "content-catalog-cache.json"
         self.external_maps_links_file = self.data_dir / "external-maps-links.json"
         self.external_zims_links_file = self.data_dir / "external-zims-links.json"
+        self.storage_prepare_lock = threading.Lock()
+        self.storage_prepare_job: dict = {}
+        self.file_transfer_lock = threading.Lock()
+        self.file_transfer: dict = {}
         self.apply_lock = threading.Lock()
+        self.zim_upload_lock = threading.Lock()
         self.apply_thread: threading.Thread | None = None
         self.map_sync_lock = threading.Lock()
         self.map_build_cancel = threading.Event()
@@ -355,8 +487,8 @@ class PortalState:
         self.content_catalog_refresh_attempt = 0.0
         self.write_maps_runtime_config()
         self.recover_interrupted_map_sync()
-        self.recover_interrupted_apply()
         self.sync_external_content_links()
+        self.recover_interrupted_apply()
 
     def wikipedia_catalog(self) -> dict:
         catalog = read_json(
@@ -1005,13 +1137,13 @@ class PortalState:
         config = {
             "pmtilesUrl": f"/pmtiles/{active_file}{cache_buster}",
             "pmtilesFile": active_file,
-            "flavor": env.get("PREPPERCACHE_MAP_STYLE_FLAVOR", "dark"),
+            "flavor": env.get("PREPPERCACHE_MAP_STYLE_FLAVOR", "light"),
             "language": env.get("PREPPERCACHE_MAP_LANGUAGE", "en"),
             "defaultLat": float(env.get("PREPPERCACHE_MAP_DEFAULT_LAT", "39.8283")),
             "defaultLon": float(env.get("PREPPERCACHE_MAP_DEFAULT_LON", "-98.5795")),
             "defaultZoom": int(env.get("PREPPERCACHE_MAP_DEFAULT_ZOOM", "4")),
             "minZoom": int(env.get("PREPPERCACHE_MAP_MIN_ZOOM", "2")),
-            "maxZoom": int(env.get("PREPPERCACHE_MAP_MAX_ZOOM", "14")),
+            "maxZoom": int(env.get("PREPPERCACHE_MAP_MAX_ZOOM", "20")),
         }
         (maps_web_root / "config.json").write_text(json.dumps(config, indent=2) + "\n")
         (maps_web_root / "state.json").write_text(json.dumps(status, indent=2) + "\n")
@@ -1045,7 +1177,7 @@ class PortalState:
                 for state in region["states"]
             },
             "inventory": inventory,
-            "flavor": env.get("PREPPERCACHE_MAP_STYLE_FLAVOR", "dark"),
+            "flavor": env.get("PREPPERCACHE_MAP_STYLE_FLAVOR", "light"),
             "language": env.get("PREPPERCACHE_MAP_LANGUAGE", "en"),
             "install_dir": str(self.preferred_map_install_dir()),
             "install_destinations": self.install_destinations("maps"),
@@ -1746,6 +1878,76 @@ class PortalState:
             pending.replace(manifest)
             return self.launch_apply("download-extra-content", clear_log=True)
 
+    def upload_zim(self, filename: str, length: int, source, *, destination: Path | None = None) -> dict:
+        if (
+            not filename.lower().endswith(".zim") or filename.startswith(".")
+            or any(char in filename for char in "/\\")
+            or any(ord(char) < 32 or ord(char) == 127 for char in filename)
+            or len(filename.encode("utf-8")) > 255
+        ):
+            raise ValueError("Choose a ZIM file with a valid filename.")
+        filename = filename[:-4] + ".zim"
+        if length < 80:
+            raise ValueError("This file is too small to be a ZIM archive.")
+        if not self.zim_upload_lock.acquire(blocking=False):
+            raise RuntimeError("Another ZIM upload is in progress.")
+        try:
+            destination = destination or self.preferred_zim_install_dir()
+            if not any(item["mounted"] and Path(item["path"]) == destination
+                       for item in self.install_destinations("zims")) or not destination.is_dir():
+                raise ValueError("The selected content drive is unavailable.")
+            target = destination / filename
+            library_file = self.kiwix_library_dir() / filename
+            if os.path.lexists(target) or os.path.lexists(library_file):
+                raise FileExistsError("A ZIM with that name is already installed.")
+            if shutil.disk_usage(destination).free < length:
+                raise ValueError("There is not enough free space on the selected content drive.")
+
+            header = source.read(80)
+            if len(header) != 80 or header[:4] != b"ZIM\x04":
+                raise ValueError("This file does not have a valid ZIM header.")
+            identity = destination.stat()
+            staging = destination / ".preppercache-upload-tmp"
+            staging.mkdir(mode=0o700, exist_ok=True)
+            if staging.is_symlink() or not staging.is_dir():
+                raise ValueError("The upload staging directory is unavailable.")
+
+            with tempfile.TemporaryDirectory(prefix="zim-", dir=staging) as job_dir:
+                temporary = Path(job_dir) / "upload.part"
+                with temporary.open("wb") as output:
+                    output.write(header)
+                    remaining = length - len(header)
+                    while remaining:
+                        chunk = source.read(min(1024 * 1024, remaining))
+                        if not chunk:
+                            raise ValueError("The upload ended before the full file arrived.")
+                        output.write(chunk)
+                        remaining -= len(chunk)
+                    output.flush()
+                    os.fsync(output.fileno())
+
+                with self.apply_lock:
+                    current = destination.stat()
+                    if (identity.st_dev, identity.st_ino) != (current.st_dev, current.st_ino):
+                        raise ValueError("The selected content drive changed during the upload.")
+                    if os.path.lexists(library_file):
+                        raise FileExistsError("A ZIM with that name is already installed.")
+                    # Hard links publish atomically. GNU mv covers drives such as exFAT.
+                    try:
+                        os.link(temporary, target)
+                    except FileExistsError:
+                        raise FileExistsError("A ZIM with that name is already installed.") from None
+                    except OSError as exc:
+                        if exc.errno not in {errno.EPERM, errno.EOPNOTSUPP}:
+                            raise
+                        subprocess.run(["mv", "-nT", "--", str(temporary), str(target)], check=True)
+                        if temporary.exists():
+                            raise FileExistsError("A ZIM with that name is already installed.")
+                    self.sync_external_content_links()
+            return {"name": filename, "size_bytes": length}
+        finally:
+            self.zim_upload_lock.release()
+
     def remove_zim_files(self, filenames: list[str]) -> dict:
         if not isinstance(filenames, list) or not filenames:
             raise ValueError("No ZIM files selected")
@@ -2420,14 +2622,20 @@ class PortalState:
         total, used, free = shutil.disk_usage("/")
         volumes = self.storage_volumes()
         targets = self.storage_targets(volumes)
-        seen_targets: set[str] = set()
-        preppercache_bytes = 0
-        for target in targets:
-            resolved = str(target.get("resolved_path", ""))
-            if resolved in seen_targets:
+        root_device = os.stat("/").st_dev
+        counted_paths: set[Path] = set()
+        root_content_bytes = 0
+        for target in sorted(targets, key=lambda item: len(Path(item["resolved_path"]).parts)):
+            path = Path(target["resolved_path"])
+            if path in counted_paths or any(parent in counted_paths for parent in path.parents):
                 continue
-            seen_targets.add(resolved)
-            preppercache_bytes += int(target.get("current_bytes", 0) or 0)
+            try:
+                if path.stat().st_dev != root_device:
+                    continue
+            except OSError:
+                continue
+            counted_paths.add(path)
+            root_content_bytes += target["current_bytes"]
         return {
             "disk": {
                 "total_bytes": total,
@@ -2437,7 +2645,7 @@ class PortalState:
                 "used_gb": round(used / (1024 ** 3), 1),
                 "free_gb": round(free / (1024 ** 3), 1),
             },
-            "preppercache_bytes": preppercache_bytes,
+            "preppercache_bytes": min(root_content_bytes, used),
             "volumes": volumes,
             "targets": targets,
         }
@@ -2450,7 +2658,7 @@ class PortalState:
                     "-J",
                     "-b",
                     "-o",
-                    "NAME,PATH,SIZE,TYPE,MOUNTPOINTS,RM,HOTPLUG,MODEL,LABEL,FSTYPE,UUID,TRAN",
+                    "NAME,PATH,SIZE,TYPE,MOUNTPOINTS,RM,HOTPLUG,MODEL,LABEL,FSTYPE,UUID,TRAN,RO",
                 ],
                 capture_output=True,
                 text=True,
@@ -2508,6 +2716,12 @@ class PortalState:
                     }
                 )
                 preppercache_layout = self.storage_layout_for_mount(mountpoint) if mountpoint else {}
+                disk_sequence = ""
+                if device_type == "disk" and transport == "usb":
+                    try:
+                        disk_sequence = (Path("/sys/class/block") / device["name"] / "diskseq").read_text().strip()
+                    except (OSError, KeyError):
+                        pass
                 volumes.append(
                     {
                         "name": str(device.get("name") or "").strip(),
@@ -2527,14 +2741,18 @@ class PortalState:
                         "free_bytes": free_bytes,
                         "used_percent": round((used_bytes / total_bytes) * 100) if mountpoint and total_bytes else 0,
                         "is_partition": device_type == "part",
-                        "can_mount": bool(filesystem and not mountpoint and device_type == "part"),
-                        "can_unmount": bool(external and mountpoint and device_type == "part" and mountpoint.startswith("/media/")),
-                        "can_prepare": bool(external and device_type == "part"),
+                        "transport": transport,
+                        "parent_path": str(inherited.get("disk_path") or ""),
+                        "can_mount": bool(filesystem and not mountpoint and (device_type == "part" or (external and not children))),
+                        "can_unmount": bool(external and not children and mountpoint.startswith("/media/")),
+                        "disk_sequence": disk_sequence,
+                        "can_prepare": bool(disk_sequence and str(device.get("ro")).lower() in {"0", "false"}),
                         "preppercache_layout": preppercache_layout,
                     }
                 )
             inherited_child = {
                 "transport": transport,
+                "disk_path": device.get("path") if device_type == "disk" else inherited.get("disk_path"),
                 "model": str(device.get("model") or inherited.get("model") or "").strip(),
                 "removable": removable,
             }
@@ -2580,10 +2798,11 @@ class PortalState:
                 return volume
         return None
 
-    def run_storage_command(self, command: list[str], error_hint: str) -> None:
+    def run_storage_command(self, command: list[str], error_hint: str, *, input_text: str | None = None) -> None:
         try:
             result = subprocess.run(
                 command,
+                input=input_text,
                 capture_output=True,
                 text=True,
                 check=False,
@@ -2642,12 +2861,10 @@ class PortalState:
         volume = self.storage_volume_by_device(device_path)
         if not volume:
             raise ValueError("That drive was not found.")
-        if not volume.get("is_partition"):
-            raise ValueError("Choose a partition instead of the whole disk.")
         if volume.get("mounted"):
             return self.storage_health()
-        if not volume.get("filesystem"):
-            raise ValueError("This drive is not formatted yet. Use Prepare Drive first.")
+        if not volume.get("can_mount"):
+            raise ValueError("Choose a drive or partition with a readable filesystem.")
         mountpoint = str(volume.get("suggested_mountpoint") or "").strip()
         if not mountpoint:
             raise RuntimeError("Unable to determine a mount point for this drive.")
@@ -2706,42 +2923,117 @@ class PortalState:
         )
         return self.storage_health()
 
-    def prepare_storage_volume(self, payload: dict) -> dict:
-        device_path = str(payload.get("device_path", "")).strip()
-        if not device_path:
-            raise ValueError("Choose a drive to prepare.")
-        volume = self.storage_volume_by_device(device_path)
-        if not volume:
-            raise ValueError("That drive was not found.")
-        if not volume.get("can_prepare"):
-            raise ValueError("Only external partitions can be prepared from PrepperCache.")
-        expected = f"FORMAT {device_path}"
-        if str(payload.get("confirm_text", "")).strip() != expected:
-            raise ValueError(f'Type "{expected}" to confirm preparing this drive.')
+    def storage_prepare_status(self) -> dict:
+        with self.storage_prepare_lock:
+            return dict(self.storage_prepare_job)
+
+    def check_usb_disk(self, device: str, sequence: str) -> list[dict]:
+        volumes = self.storage_volumes()
+        disk = next((volume for volume in volumes if volume["path"] == device), None)
+        if not disk or not disk["can_prepare"] or disk["disk_sequence"] != sequence:
+            raise ValueError("The selected USB drive changed or is no longer available. Refresh Storage and try again.")
+        members = [volume for volume in volumes if volume["path"] == device or volume["parent_path"] == device]
+        for volume in members:
+            holders = Path("/sys/class/block") / volume["name"] / "holders"
+            if any(holders.iterdir()):
+                raise ValueError("This drive is in use by another block device and cannot be erased.")
+            if any(not mount.startswith("/media/") for mount in volume["mountpoints"]):
+                raise ValueError("This drive has a system or active mount. Unmount it outside PrepperCache first.")
+        return members
+
+    def start_storage_prepare(self, payload: dict) -> dict:
+        device = str(payload.get("device_path") or "")
+        sequence = str(payload.get("disk_sequence") or "")
+        if not device or payload.get("confirm_text") != f"ERASE {device}":
+            raise ValueError(f'Type "ERASE {device}" to confirm erasing the whole USB drive.')
         label = self.validate_storage_label(payload.get("label", "PrepperCacheDATA"))
-        if volume.get("mounted"):
-            self.run_storage_command(["umount", device_path], "Unable to unmount the selected drive.")
-        self.run_storage_command(
-            ["mkfs.ext4", "-F", "-L", label, device_path],
-            "Unable to format the selected drive.",
-        )
-        refreshed_volume = self.storage_volume_by_device(device_path) or volume
-        mountpoint = str(refreshed_volume.get("suggested_mountpoint") or volume.get("suggested_mountpoint") or "").strip()
-        if not mountpoint:
-            raise RuntimeError("Unable to determine a mount point for this drive.")
-        Path(mountpoint).mkdir(parents=True, exist_ok=True)
-        self.run_storage_command(["mount", device_path, mountpoint], "Unable to mount the prepared drive.")
-        root = Path(mountpoint)
-        for directory_name in ("maps", "library", "media"):
-            (root / directory_name).mkdir(parents=True, exist_ok=True)
-        (root / "PrepperCache-DRIVE.txt").write_text(
-            "This drive was prepared by PrepperCache.\n\n"
-            "maps/    offline map archives\n"
-            "library/ offline knowledge library content\n"
-            "media/   extra media files\n"
-        )
-        self.sync_external_content_links()
-        return self.storage_health()
+        with self.storage_prepare_lock, self.file_transfer_lock:
+            if self.storage_prepare_job.get("status") == "running":
+                raise ValueError("A drive is already being prepared.")
+            self.require_file_manager_idle()
+            if any(job().get("status") == "running" for job in (self.load_apply_state, self.load_map_sync_state)):
+                raise ValueError("Wait for content and map jobs to finish before preparing a drive.")
+            self.check_usb_disk(device, sequence)
+            for command in ("sfdisk", "udevadm", "mkfs.ext4", "mount", "umount"):
+                if not shutil.which(command):
+                    raise RuntimeError(f"Drive preparation requires {command}.")
+            self.storage_prepare_job = {
+                "status": "running", "device": device, "label": label,
+                "step": f"Checking {device} before erasing all partitions.",
+            }
+            worker = threading.Thread(target=self.run_storage_prepare, args=(device, sequence, label), daemon=True)
+            try:
+                worker.start()
+            except RuntimeError:
+                self.storage_prepare_job = {}
+                raise
+            return dict(self.storage_prepare_job)
+
+    def run_storage_prepare(self, device: str, sequence: str, label: str) -> None:
+        def report(step: str, status: str = "running", **extra: str) -> None:
+            with self.storage_prepare_lock:
+                self.storage_prepare_job.update(step=step, status=status, **extra)
+                if status != "running":
+                    self.storage_prepare_job["finished_at"] = datetime.now(timezone.utc).isoformat()
+
+        try:
+            members = self.check_usb_disk(device, sequence)
+            mountpoint = Path(self.default_mountpoint_for_volume({"label": label}))
+            existing_mounts = {point for volume in members for point in volume["mountpoints"]}
+            if mountpoint.is_symlink() or (mountpoint.exists() and (
+                not mountpoint.is_dir() or (str(mountpoint) not in existing_mounts and
+                (mountpoint.is_mount() or any(mountpoint.iterdir())))
+            )):
+                raise ValueError("A drive or folder already uses this drive name. Choose a different name.")
+            if existing_mounts:
+                report("Unmounting existing partitions.")
+                for point in sorted(existing_mounts, reverse=True):
+                    self.run_storage_command(["umount", "--", point], "Could not unmount an existing partition.")
+            if any(volume["mounted"] for volume in self.check_usb_disk(device, sequence)):
+                raise ValueError("The drive is still mounted. Unmount it before trying again.")
+            updates = {}
+            for key, current, fallback in (
+                ("PREPPERCACHE_ZIM_INSTALL_DIR", self.preferred_zim_install_dir(), self.kiwix_library_dir()),
+                ("PREPPERCACHE_MAP_INSTALL_DIR", self.preferred_map_install_dir(), self.maps_root()),
+            ):
+                if any(current.is_relative_to(point) for point in existing_mounts):
+                    updates[key] = str(fallback)
+            if updates:
+                update_env_file(self.preppercache_env, updates)
+                self.write_maps_runtime_config()
+
+            report("Replacing the partition table with one Linux partition.")
+            self.run_storage_command(
+                ["sfdisk", "--lock=nonblock", "--wipe=always", "--wipe-partitions=always", "--", device],
+                "Could not create a partition on the USB drive.",
+                input_text="label: gpt\n\n, , linux\n",
+            )
+            self.run_storage_command(["udevadm", "settle", "--timeout=10"], "The new partition did not become available.")
+            partitions = [volume for volume in self.check_usb_disk(device, sequence) if volume["is_partition"]]
+            if len(partitions) != 1 or partitions[0]["mounted"]:
+                raise RuntimeError("Expected one unmounted partition after replacing the partition table.")
+            partition = partitions[0]["path"]
+            report(f"Formatting {partition} as ext4.")
+            self.run_storage_command(["mkfs.ext4", "-F", "-L", label, partition], "Could not format the new partition.")
+
+            report("Mounting the drive and creating library, maps, and media folders.")
+            self.check_usb_disk(device, sequence)
+            mountpoint.mkdir(parents=True, exist_ok=True)
+            if mountpoint.is_symlink() or mountpoint.is_mount() or any(mountpoint.iterdir()):
+                raise RuntimeError("The new drive could not be mounted because its mount folder is already in use.")
+            self.run_storage_command(["mount", "--", partition, str(mountpoint)], "Could not mount the prepared drive.")
+            for directory in ("library", "maps", "media"):
+                (mountpoint / directory).mkdir(exist_ok=True)
+            (mountpoint / "PrepperCache-DRIVE.txt").write_text(
+                "This drive was prepared by PrepperCache.\n\n"
+                "library/ offline knowledge library content\n"
+                "maps/    offline map archives\n"
+                "media/   extra media files\n"
+            )
+            self.sync_external_content_links()
+            report(f"{label} is mounted and ready for library and maps use.", "succeeded", partition=partition)
+        except (OSError, RuntimeError, ValueError) as exc:
+            report(str(exc), "failed")
 
     def rename_storage_volume(self, payload: dict) -> dict:
         device_path = str(payload.get("device_path", "")).strip()
@@ -2837,21 +3129,31 @@ class PortalState:
         }
 
     def directory_size_bytes(self, path: Path) -> int:
-        if not path.exists():
+        path = path.resolve()
+        try:
+            path_stat = path.stat()
+        except OSError:
             return 0
         if path.is_file():
-            try:
-                return path.stat().st_size
-            except OSError:
-                return 0
+            return path_stat.st_blocks * 512
         total = 0
-        for root, _, files in os.walk(path):
+        seen_inodes: set[int] = set()
+        for root, directories, files in os.walk(path):
             root_path = Path(root)
-            for filename in files:
+            for name in directories + files:
                 try:
-                    total += (root_path / filename).stat().st_size
+                    entry = (root_path / name).lstat()
                 except OSError:
+                    if name in directories:
+                        directories.remove(name)
                     continue
+                if entry.st_dev != path_stat.st_dev:
+                    if name in directories:
+                        directories.remove(name)
+                    continue
+                if entry.st_ino not in seen_inodes:
+                    seen_inodes.add(entry.st_ino)
+                    total += entry.st_blocks * 512
         return total
 
     def volume_for_path(self, path: Path, volumes: list[dict]) -> dict | None:
@@ -2906,15 +3208,15 @@ class PortalState:
             "enabled": configured_enabled,
             "interface": env.get("PREPPERCACHE_AP_INTERFACE", "wlan0"),
             "ssid": env.get("PREPPERCACHE_AP_SSID", "PrepperCache"),
-            "passphrase": env.get("PREPPERCACHE_AP_PASSPHRASE", ""),
+            "passphrase": env.get("PREPPERCACHE_AP_PASSPHRASE", "prepperlocal"),
             "country": env.get("PREPPERCACHE_AP_COUNTRY", "US"),
             "channel": env.get("PREPPERCACHE_AP_CHANNEL", "6"),
-            "address": env.get("PREPPERCACHE_AP_ADDRESS", "192.168.50.1"),
+            "address": env.get("PREPPERCACHE_AP_ADDRESS", "10.10.10.10"),
             "netmask": env.get("PREPPERCACHE_AP_NETMASK", "255.255.255.0"),
             "cidr": env.get("PREPPERCACHE_AP_CIDR", "24"),
-            "dhcp_start": env.get("PREPPERCACHE_AP_DHCP_START", "192.168.50.20"),
-            "dhcp_end": env.get("PREPPERCACHE_AP_DHCP_END", "192.168.50.120"),
-            "lease": env.get("PREPPERCACHE_AP_DHCP_LEASE", "24h"),
+            "dhcp_start": env.get("PREPPERCACHE_AP_DHCP_START", "10.10.10.50"),
+            "dhcp_end": env.get("PREPPERCACHE_AP_DHCP_END", "10.10.10.150"),
+            "lease": env.get("PREPPERCACHE_AP_DHCP_LEASE", "12h"),
             "services": services,
             "enabled_services": enabled_services,
             "running": running,
@@ -3139,6 +3441,10 @@ class PortalState:
 
     def run_content_update_schedule(self) -> None:
         while True:
+            try:
+                self.recover_interrupted_apply()
+            except (OSError, RuntimeError, ValueError) as exc:
+                print(f"Content recovery deferred: {exc}", flush=True)
             settings = self.content_update_settings()
             if (settings.get("enabled") and (settings.get("next_at") or 0) <= time.time()
                     and read_json(self.state_file, {}).get("setup_complete")):
@@ -3191,6 +3497,21 @@ class PortalState:
         report = re.sub(r"(https?://[^\s?]+)\?[^\s]*", r"\1?[redacted]", report)
         return report + "\n"
 
+    def rejected_zim_names(self, log_tail: list[str]) -> list[str]:
+        library_xml = self.maps_env().get("KIWIX_LIBRARY_XML", str(self.data_dir / "kiwix" / "library.xml"))
+        try:
+            report = Path(f"{library_xml}.rejected").read_bytes()
+        except FileNotFoundError:
+            # Older installs only recorded rejected archives in the job log.
+            names = []
+            for line in log_tail:
+                if line.startswith("Kiwix could not index: "):
+                    names.append(line.removeprefix("Kiwix could not index: "))
+                elif match := re.fullmatch(r"Cannot add zim (.+) to the library\.", line):
+                    names.append(Path(match[1]).name)
+            return sorted(set(names))
+        return sorted({os.fsdecode(name) for name in report.split(b"\0") if name})
+
     def load_apply_state(self) -> dict:
         state = read_json(
             self.apply_state_file,
@@ -3207,6 +3528,7 @@ class PortalState:
             },
         )
         state["log_tail"] = self.read_log_tail()
+        state["rejected_zim_names"] = self.rejected_zim_names(state["log_tail"])
         state.update(self.parse_apply_progress(state))
         step = str(state.get("step") or "")
         state["downloads_active"] = bool(
@@ -3217,12 +3539,32 @@ class PortalState:
             state.get("status") == "succeeded"
             or state.get("downloads_active")
         )
+        state["can_retry_download"] = (
+            state.get("action") in CONTENT_DOWNLOAD_ACTIONS
+            and (
+                state.get("status") == "running" and not (self.apply_thread and self.apply_thread.is_alive())
+                or state.get("status") in {"failed", "succeeded"}
+                and (
+                    bool(state["failed_download_names"])
+                    or step in ZIM_DOWNLOAD_STEPS
+                    and "Kiwix could not index any ZIM files. Kept the existing library index." not in state["log_tail"]
+                )
+            )
+        )
         return state
 
     def save_apply_state(self, payload: dict) -> dict:
         current = read_json(self.apply_state_file, {})
         current.update(payload)
-        self.apply_state_file.write_text(json.dumps(current, indent=2) + "\n")
+        with tempfile.NamedTemporaryFile(mode="w", dir=self.data_dir, delete=False) as handle:
+            pending = Path(handle.name)
+            json.dump(current, handle, indent=2)
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            pending.replace(self.apply_state_file)
+        finally:
+            pending.unlink(missing_ok=True)
         return self.load_apply_state()
 
     def read_log_tail(self, lines: int = 30) -> list[str]:
@@ -3238,6 +3580,9 @@ class PortalState:
         clear_log: bool,
         started_at: str | None = None,
         resumed: bool = False,
+        start_index: int = 1,
+        retry_names: list[str] | None = None,
+        automatic_retries: int = 0,
     ) -> dict:
         if clear_log:
             self.apply_log_file.write_text("")
@@ -3253,7 +3598,9 @@ class PortalState:
                 "status": "running",
                 "action": action,
                 "total_steps": len(self.commands_for_action(action)),
-                "current_step_index": 0,
+                "current_step_index": start_index,
+                "retry_download_names": retry_names or [],
+                "automatic_retries": automatic_retries,
                 "started_at": started_at
                 or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "finished_at": None,
@@ -3268,7 +3615,7 @@ class PortalState:
         )
         self.apply_thread = threading.Thread(
             target=self.run_apply_workflow,
-            args=(action,),
+            args=(action, start_index, retry_names, resumed),
             daemon=True,
         )
         self.apply_thread.start()
@@ -3287,7 +3634,11 @@ class PortalState:
 
             if action == "update-content":
                 settings = self.content_update_settings()
-                if scheduled and (not settings.get("enabled") or (settings.get("next_at") or 0) > time.time()):
+                retry_pending = (
+                    state["can_retry_download"] and state["network_download_failures"]
+                    and (state.get("automatic_retries") or 0) < CONTENT_RETRY_LIMIT
+                )
+                if scheduled and (retry_pending or not settings.get("enabled") or (settings.get("next_at") or 0) > time.time()):
                     return state
                 now = time.time()
                 settings.update(last_attempt_at=now, next_at=now + CONTENT_UPDATE_INTERVAL if settings["enabled"] else None)
@@ -3295,21 +3646,54 @@ class PortalState:
 
             return self.launch_apply(action, clear_log=True)
 
-    def recover_interrupted_apply(self) -> None:
-        state = read_json(self.apply_state_file, {})
-        if state.get("status") != "running":
-            return
+    def recover_interrupted_apply(self, *, manual: bool = False) -> dict | None:
+        with self.apply_lock, self.map_sync_lock:
+            state = self.load_apply_state()
+            action = state.get("action")
+            status = state.get("status")
+            if self.apply_thread and self.apply_thread.is_alive():
+                if manual:
+                    raise RuntimeError("A content job is already running.")
+                return None
 
-        action = state.get("action", "full")
-        if action not in {"full", "refresh-content", "rebuild-library", "download-extra-content", "update-content", "change-content-set", "downgrade-content-set"}:
-            return
+            interrupted = status == "running" and action in CONTENT_DOWNLOAD_ACTIONS | {"rebuild-library"}
+            if not interrupted and not state["can_retry_download"]:
+                if manual:
+                    raise ValueError("There is no interrupted or failed content download to resume.")
+                return None
+            if manual and action not in CONTENT_DOWNLOAD_ACTIONS:
+                raise ValueError("There is no content download to resume.")
 
-        self.launch_apply(
-            action,
-            clear_log=False,
-            started_at=state.get("started_at"),
-            resumed=True,
-        )
+            retries = state.get("automatic_retries") or 0
+            if not manual and not interrupted:
+                if not state["network_download_failures"] or retries >= CONTENT_RETRY_LIMIT:
+                    return None
+                finished_at = state.get("finished_at")
+                if not finished_at:
+                    return None
+                elapsed = time.time() - datetime.fromisoformat(finished_at.replace("Z", "+00:00")).timestamp()
+                if elapsed < CONTENT_RETRY_INTERVAL * 2**retries:
+                    return None
+                retries += 1
+
+            if action == "full" and self.load_map_sync_state().get("status") == "running":
+                if manual:
+                    raise RuntimeError("Wait for the current map job to finish.")
+                return None
+
+            if interrupted:
+                start_index = max(1, state.get("current_step_index") or 0)
+                names = state.get("retry_download_names", [])
+            else:
+                start_index = next(index for index, (step, _) in enumerate(self.commands_for_action(action), 1)
+                                   if step in ZIM_DOWNLOAD_STEPS)
+                names = state["failed_download_names"]
+
+            return self.launch_apply(
+                action, clear_log=not interrupted, started_at=state.get("started_at"),
+                resumed=True, start_index=start_index, retry_names=names,
+                automatic_retries=0 if manual else retries,
+            )
 
     def commands_for_action(self, action: str) -> list[tuple[str, list[str]]]:
         if action == "update-content":
@@ -3398,7 +3782,9 @@ class PortalState:
             ),
         ]
 
-    def run_apply_workflow(self, action: str) -> None:
+    def run_apply_workflow(
+        self, action: str, start_index: int = 1, retry_names: list[str] | None = None, resumed: bool = False,
+    ) -> None:
         commands = self.commands_for_action(action)
 
         env = dict(os.environ)
@@ -3418,6 +3804,13 @@ class PortalState:
         if action == "change-content-set":
             env["PREPPERCACHE_JOB_ZIM_MANIFEST"] = str(self.data_dir / "content-set-urls.txt")
 
+        if resumed and action != "refresh-content":
+            env["PREPPERCACHE_SKIP_INSTALLED_ZIMS"] = "1"
+        if retry_names:
+            env["PREPPERCACHE_RETRY_ZIM_NAMES"] = json.dumps(retry_names)
+        if action == "update-content" and start_index > 1:
+            env["PREPPERCACHE_JOB_ZIM_MANIFEST"] = str(self.data_dir / "content-update-urls.txt")
+
         downgrade = read_json(self.data_dir / "content-downgrade.json", {}) if action == "downgrade-content-set" else None
         exit_code = 0
         error_message = None
@@ -3425,6 +3818,8 @@ class PortalState:
 
         with self.apply_log_file.open("a", encoding="utf-8") as log_handle:
             for index, (step, command) in enumerate(commands, start=1):
+                if index < start_index:
+                    continue
                 self.save_apply_state(
                     {
                         "step": step,
@@ -3531,6 +3926,7 @@ class PortalState:
             "active_downloads": [],
             "download_failed": 0,
             "failed_download_names": [],
+            "network_download_failures": [],
         }
 
         total_steps = state.get("total_steps") or 0
@@ -3574,6 +3970,7 @@ class PortalState:
                 active_downloads.clear()
                 progress["download_failed"] = 0
                 progress["failed_download_names"].clear()
+                progress["network_download_failures"].clear()
                 continue
 
             file_match = file_pattern.match(line)
@@ -3587,6 +3984,11 @@ class PortalState:
             bytes_match = bytes_pattern.match(line)
             if bytes_match:
                 active_downloads[bytes_match.group(3)] = (int(bytes_match.group(1)), int(bytes_match.group(2) or 0))
+                continue
+
+            network_failure = re.fullmatch(r"Failed: (.+) \((?:wget exited with code 4|408 .*|429 .*|5\d\d .*)\)", line)
+            if network_failure:
+                progress["network_download_failures"].append(network_failure[1])
                 continue
 
             if line.startswith(failed_prefix):
@@ -3882,7 +4284,7 @@ class PortalState:
             "message": f'{service["label"]} restarted.',
         }
 
-    def file_manager_roots(self) -> list[dict[str, str]]:
+    def file_manager_roots(self, volumes: list[dict] | None = None) -> list[dict[str, str]]:
         roots: list[dict[str, str]] = [
             {
                 "id": "internal-library",
@@ -3901,8 +4303,8 @@ class PortalState:
             },
         ]
         seen = {item["path"] for item in roots}
-        for volume in self.storage_volumes():
-            if not volume.get("mounted"):
+        for volume in self.storage_volumes() if volumes is None else volumes:
+            if volume["location"] != "external" or not volume["mounted"]:
                 continue
             mountpoint = str(volume.get("mountpoint") or "").strip()
             if not mountpoint:
@@ -3984,7 +4386,8 @@ class PortalState:
         }
 
     def file_manager_list(self, path_value: str | None = None) -> dict:
-        roots = self.file_manager_roots()
+        volumes = self.storage_volumes()
+        roots = self.file_manager_roots(volumes)
         default_path = roots[0]["path"] if roots else str(self.repo_root)
         path = self._resolve_managed_file_path(path_value or default_path)
         if not path.exists():
@@ -4004,39 +4407,198 @@ class PortalState:
             "parent_path": self._file_manager_parent(path),
             "entries": entries,
             "roots": roots,
+            "usb_connected": any(volume["transport"] == "usb" for volume in volumes),
+            "unmounted_usb": [
+                {"path": volume["path"], "display_name": volume["display_name"]}
+                for volume in volumes if volume["transport"] == "usb" and volume["can_mount"]
+            ],
         }
 
-    def file_manager_copy(self, source_path: str, target_dir: str) -> dict:
+    def file_transfer_paths(self, operation: str, source_path: str, target_dir: str) -> tuple[Path, Path]:
+        if operation not in ("copy", "move"):
+            raise ValueError("Choose Copy or Move.")
         source = self._resolve_managed_file_path(source_path)
-        destination_dir = self._resolve_managed_file_path(target_dir)
-        if not destination_dir.is_dir():
+        folder = self._resolve_managed_file_path(target_dir)
+        if not folder.is_dir():
             raise ValueError("Choose a destination folder.")
-        destination = destination_dir / source.name
-        if destination.exists():
-            raise ValueError("A file or folder with that name already exists in the destination.")
-        if source.is_dir():
-            shutil.copytree(source, destination)
-        else:
-            shutil.copy2(source, destination)
+        if operation == "move" and source in self._allowed_file_roots():
+            raise ValueError("Cannot move a protected root folder.")
+        if source.is_dir() and (folder == source or source in folder.parents):
+            raise ValueError("Choose a destination outside the selected folder.")
+        destination = folder / source.name
+        if destination.exists() or destination.is_symlink():
+            raise ValueError("An item with that name already exists here. Choose another folder.")
+        return source, destination
+
+    def transfer_file(self, operation: str, source: Path, destination: Path) -> str:
+        if operation == "move":
+            try:
+                source.rename(destination)
+                return f"Moved {source.name}."
+            except OSError as exc:
+                if exc.errno != errno.EXDEV:
+                    raise
+
+        # Publish a complete copy only after writing all data to the target drive.
+        with tempfile.TemporaryDirectory(prefix=".preppercache-transfer-", dir=destination.parent) as temp_dir:
+            staged = Path(temp_dir) / source.name
+            if source.is_dir():
+                shutil.copytree(source, staged, symlinks=True)
+            else:
+                shutil.copy2(source, staged)
+            if destination.exists() or destination.is_symlink():
+                raise ValueError("An item with that name already exists in the destination.")
+            staged.rename(destination)
+
+        if operation == "move":
+            try:
+                if source.is_dir():
+                    shutil.rmtree(source)
+                else:
+                    source.unlink()
+            except OSError as exc:
+                raise RuntimeError(f"Copied {source.name}, but could not fully remove the source: {exc}") from exc
+            return f"Moved {source.name}."
+        return f"Copied {source.name}."
+
+    def zim_import_options(self) -> dict:
+        primary = {}
+        for volume in self.storage_volumes():
+            if volume["transport"] != "usb" or not (volume["mounted"] or volume["can_mount"]):
+                continue
+            if volume["filesystem"] == "swap" or re.fullmatch(r"EFI( SYSTEM( PARTITION)?)?|ESP", volume["label"], re.I):
+                continue
+            disk = volume["parent_path"] or volume["path"]
+            layout = volume["preppercache_layout"]
+            rank = (bool(layout.get("library") and layout.get("maps")), volume["size_bytes"])
+            if disk not in primary or rank > primary[disk][0]:
+                primary[disk] = (rank, volume)
         return {
-            "message": f"Copied {source.name} to {destination_dir}.",
-            "source": self.file_manager_list(str(source.parent)),
-            "target": self.file_manager_list(str(destination_dir)),
+            "drives": [volume for _, volume in primary.values()],
+            "libraries": [item for item in self.install_destinations("zims") if item["mounted"]],
         }
 
-    def file_manager_move(self, source_path: str, target_dir: str) -> dict:
-        source = self._resolve_managed_file_path(source_path)
-        destination_dir = self._resolve_managed_file_path(target_dir)
-        if not destination_dir.is_dir():
-            raise ValueError("Choose a destination folder.")
-        destination = destination_dir / source.name
-        if destination.exists():
-            raise ValueError("A file or folder with that name already exists in the destination.")
-        shutil.move(str(source), str(destination))
+    def start_zim_import(self, device: str, target_dir: str) -> dict:
+        with self.storage_prepare_lock, self.file_transfer_lock:
+            self.require_file_manager_idle()
+            options = self.zim_import_options()
+            drive = next((item for item in options["drives"] if item["path"] == device), None)
+            if not drive:
+                raise ValueError("Choose a readable USB drive that is still connected.")
+            if not any(item["path"] == target_dir for item in options["libraries"]):
+                raise ValueError("The selected library is unavailable.")
+            return self.launch_file_transfer({
+                "status": "running", "operation": "import-zims", "source_dir": drive["mountpoint"],
+                "target_dir": target_dir, "message": "Checking the USB drive for ZIMs…",
+            }, self.run_zim_import, drive, Path(target_dir))
+
+    def run_zim_import(self, drive: dict, destination: Path) -> None:
+        def report(**fields) -> None:
+            with self.file_transfer_lock:
+                self.file_transfer.update(fields)
+
+        imported = skipped = failed = 0
+        errors = []
+        try:
+            device = drive["path"]
+            if not drive["mounted"]:
+                # The preparation API takes the same lock before changing a drive.
+                with self.storage_prepare_lock:
+                    current = self.storage_volume_by_device(device)
+                    if not current or current["transport"] != "usb" or current["uuid"] != drive["uuid"]:
+                        raise ValueError("The USB drive changed before it could be mounted.")
+                    self.mount_storage_volume({"device_path": device})
+            current = self.storage_volume_by_device(device)
+            if not current or not current["mounted"] or current["uuid"] != drive["uuid"]:
+                raise ValueError("The USB drive is no longer available.")
+            root = Path(current["mountpoint"])
+            identity = root.stat()
+            report(source_dir=str(root))
+            archives = sorted(
+                entry for entry in root.iterdir()
+                if entry.suffix.lower() == ".zim" and not entry.is_symlink() and entry.is_file()
+            )
+            self.sync_external_content_links()
+            for index, archive in enumerate(archives, 1):
+                report(message=f"Importing {index} of {len(archives)}: {archive.name}")
+                try:
+                    mounted = root.stat()
+                    if (identity.st_dev, identity.st_ino) != (mounted.st_dev, mounted.st_ino):
+                        raise ValueError("The USB drive was disconnected.")
+                    with archive.open("rb") as source:
+                        self.upload_zim(archive.name, os.fstat(source.fileno()).st_size, source, destination=destination)
+                    imported += 1
+                except FileExistsError:
+                    skipped += 1
+                except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
+                    failed += 1
+                    if len(errors) < 3:
+                        errors.append(f"{archive.name}: {exc}")
+
+            message = (
+                f"Imported {imported}, skipped {skipped} already installed, {failed} failed."
+                if archives else "No ZIM files found at the root of this USB drive."
+            )
+            if imported:
+                try:
+                    self.start_apply("rebuild-library")
+                    message += " Kiwix library rebuild started."
+                except (OSError, RuntimeError):
+                    message += " Use Content → Rebuild Kiwix Library once other jobs finish."
+            if errors:
+                message += " " + " ".join(errors)
+            report(status="complete" if imported or not failed else "failed", message=message, imported=imported)
+        except Exception as exc:
+            report(status="failed", message=f"USB import failed: {exc}", imported=imported)
+
+    def file_transfer_status(self) -> dict:
+        with self.file_transfer_lock:
+            return dict(self.file_transfer)
+
+    def require_file_manager_idle(self) -> None:
+        if self.storage_prepare_job.get("status") == "running":
+            raise ValueError("Wait for USB drive preparation to finish.")
+        if self.file_transfer.get("status") == "running":
+            raise ValueError("Wait for the current file transfer to finish.")
+
+    def start_file_transfer(self, operation: str, source_path: str, target_dir: str) -> dict:
+        with self.file_transfer_lock:
+            self.require_file_manager_idle()
+            source, destination = self.file_transfer_paths(operation, source_path, target_dir)
+            return self.launch_file_transfer({
+                "status": "running",
+                "operation": operation,
+                "source_dir": str(source.parent),
+                "target_dir": str(destination.parent),
+                "message": f'{"Copying" if operation == "copy" else "Moving"} {source.name}…',
+            }, self.run_file_transfer, operation, source, destination)
+
+    def launch_file_transfer(self, job: dict, run, *args) -> dict:
+        self.file_transfer = job
+        worker = threading.Thread(target=run, args=args, daemon=True)
+        try:
+            worker.start()
+        except RuntimeError:
+            self.file_transfer = {}
+            raise
+        return dict(job)
+
+    def run_file_transfer(self, operation: str, source: Path, destination: Path) -> None:
+        try:
+            message = self.transfer_file(operation, source, destination)
+            status = "complete"
+        except Exception as exc:
+            status = "failed"
+            message = f"Transfer failed: {exc}"
+        with self.file_transfer_lock:
+            self.file_transfer.update(status=status, message=message)
+
+    def file_manager_transfer(self, operation: str, source_path: str, target_dir: str) -> dict:
+        source, destination = self.file_transfer_paths(operation, source_path, target_dir)
         return {
-            "message": f"Moved {source.name} to {destination_dir}.",
+            "message": self.transfer_file(operation, source, destination),
             "source": self.file_manager_list(str(source.parent)),
-            "target": self.file_manager_list(str(destination_dir)),
+            "target": self.file_manager_list(str(destination.parent)),
         }
 
     def file_manager_rename(self, source_path: str, new_name: str) -> dict:
@@ -4098,14 +4660,25 @@ class PortalHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self) -> None:
         self.send_response(204)
         self.send_common_headers()
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
     def do_GET(self) -> None:
         parsed = parse.urlparse(self.path)
         path = parsed.path
         query = parse.parse_qs(parsed.query)
+        access = self.portal_state.admin_access.status(self.admin_token())
+        if path == "/api/admin/session":
+            self.send_json(access)
+            return
+        if not access["authenticated"]:
+            if path == "/api/state":
+                self.send_json({
+                    "admin_locked": True,
+                    "storage": {"kolibri_installed": Path("/usr/bin/kolibri").exists()},
+                })
+            else:
+                self.send_json({"error": "Enter the admin password to unlock Settings."}, status=401)
+            return
 
         if path == "/api/state":
             self.send_json(self.portal_state.load_state())
@@ -4115,6 +4688,15 @@ class PortalHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/system/gpio":
             self.send_json(self.portal_state.gpio_settings())
+            return
+        if path == "/api/system/storage/prepare":
+            self.send_json(self.portal_state.storage_prepare_status())
+            return
+        if path == "/api/system/storage/volumes":
+            self.send_json({"volumes": [
+                volume for volume in self.portal_state.storage_volumes()
+                if volume["location"] == "external"
+            ]})
             return
         if path == "/api/system/health":
             self.send_json(self.portal_state.system_health())
@@ -4169,15 +4751,44 @@ class PortalHandler(BaseHTTPRequestHandler):
         if path == "/api/apply":
             self.send_json(self.portal_state.load_apply_state())
             return
+        if path == "/api/files/zim-import":
+            try:
+                self.send_json(self.portal_state.zim_import_options())
+            except OSError as exc:
+                self.send_json({"error": str(exc)}, status=500)
+            return
+        if path == "/api/files/transfer":
+            self.send_json(self.portal_state.file_transfer_status())
+            return
         if path == "/api/files":
             try:
                 self.send_json(self.portal_state.file_manager_list(query.get("path", [""])[0]))
-            except ValueError as exc:
+            except (ValueError, OSError) as exc:
                 self.send_json({"error": str(exc)}, status=400)
             return
         self.send_json({"error": "Not found"}, status=404)
 
     def do_POST(self) -> None:
+        parsed = parse.urlparse(self.path)
+        origin = self.headers.get("Origin")
+        scheme = "https" if self.headers.get("X-Forwarded-Proto") == "https" else "http"
+        if (origin is not None and origin != f"{scheme}://{self.headers.get('Host')}") or (
+            self.headers.get("Sec-Fetch-Site") in {"cross-site", "same-site"}
+        ):
+            self.send_json({"error": "Open PrepperCache directly to change Settings."}, status=403)
+            return
+
+        token = self.admin_token()
+        if parsed.path in {"/api/admin/login", "/api/admin/logout", "/api/admin/password"}:
+            self.handle_admin_action(parsed.path, token, secure=scheme == "https")
+            return
+        if not self.portal_state.admin_access.status(token)["authenticated"]:
+            self.send_json({"error": "Enter the admin password to unlock Settings."}, status=401)
+            return
+
+        if parsed.path == "/api/content/upload":
+            self.receive_zim_upload(parsed.query)
+            return
         length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(length)
         try:
@@ -4241,6 +4852,18 @@ class PortalHandler(BaseHTTPRequestHandler):
                 self.send_json({"error": str(exc)}, status=502)
                 return
             self.send_json(state)
+            return
+
+        if self.path == "/api/content/resume-download":
+            try:
+                state = self.portal_state.recover_interrupted_apply(manual=True)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, status=400)
+                return
+            except RuntimeError as exc:
+                self.send_json({"error": str(exc)}, status=409)
+                return
+            self.send_json(state, status=202)
             return
 
         if self.path == "/api/content/retry-downloads":
@@ -4357,60 +4980,45 @@ class PortalHandler(BaseHTTPRequestHandler):
             self.send_json(state)
             return
 
-        if self.path == "/api/files/copy":
+        if self.path == "/api/files/zim-import":
             try:
-                state = self.portal_state.file_manager_copy(
-                    str(payload.get("source_path", "")).strip(),
-                    str(payload.get("target_dir", "")).strip(),
-                )
-            except ValueError as exc:
+                job = self.portal_state.start_zim_import(payload.get("device_path"), payload.get("target_dir"))
+            except (ValueError, OSError, RuntimeError) as exc:
                 self.send_json({"error": str(exc)}, status=400)
                 return
-            self.send_json(state)
+            self.send_json(job, status=202)
             return
-
-        if self.path == "/api/files/move":
+        if self.path == "/api/files/transfer":
             try:
-                state = self.portal_state.file_manager_move(
-                    str(payload.get("source_path", "")).strip(),
-                    str(payload.get("target_dir", "")).strip(),
+                job = self.portal_state.start_file_transfer(
+                    payload.get("operation"), payload.get("source_path"), payload.get("target_dir")
                 )
-            except ValueError as exc:
+            except (ValueError, OSError) as exc:
                 self.send_json({"error": str(exc)}, status=400)
                 return
-            self.send_json(state)
-            return
-
-        if self.path == "/api/files/rename":
-            try:
-                state = self.portal_state.file_manager_rename(
-                    str(payload.get("source_path", "")).strip(),
-                    str(payload.get("new_name", "")).strip(),
-                )
-            except ValueError as exc:
-                self.send_json({"error": str(exc)}, status=400)
+            except RuntimeError as exc:
+                self.send_json({"error": str(exc)}, status=500)
                 return
-            self.send_json(state)
+            self.send_json(job, status=202)
             return
 
-        if self.path == "/api/files/delete":
+        file_actions = {
+            "/api/files/copy": (self.portal_state.file_manager_transfer, ("source_path", "target_dir")),
+            "/api/files/move": (self.portal_state.file_manager_transfer, ("source_path", "target_dir")),
+            "/api/files/rename": (self.portal_state.file_manager_rename, ("source_path", "new_name")),
+            "/api/files/delete": (self.portal_state.file_manager_delete, ("source_path",)),
+            "/api/files/mkdir": (self.portal_state.file_manager_mkdir, ("parent_path", "name")),
+        }
+        if self.path in file_actions:
+            action, fields = file_actions[self.path]
+            args = [str(payload.get(field, "")).strip() for field in fields]
+            if self.path in {"/api/files/copy", "/api/files/move"}:
+                args.insert(0, self.path.rsplit("/", 1)[-1])
             try:
-                state = self.portal_state.file_manager_delete(
-                    str(payload.get("source_path", "")).strip(),
-                )
-            except ValueError as exc:
-                self.send_json({"error": str(exc)}, status=400)
-                return
-            self.send_json(state)
-            return
-
-        if self.path == "/api/files/mkdir":
-            try:
-                state = self.portal_state.file_manager_mkdir(
-                    str(payload.get("parent_path", "")).strip(),
-                    str(payload.get("name", "")).strip(),
-                )
-            except ValueError as exc:
+                with self.portal_state.file_transfer_lock:
+                    self.portal_state.require_file_manager_idle()
+                    state = action(*args)
+            except (ValueError, OSError, RuntimeError) as exc:
                 self.send_json({"error": str(exc)}, status=400)
                 return
             self.send_json(state)
@@ -4430,7 +5038,13 @@ class PortalHandler(BaseHTTPRequestHandler):
 
         if self.path == "/api/system/storage/mount":
             try:
-                state = self.portal_state.mount_storage_volume(payload)
+                with self.portal_state.storage_prepare_lock:
+                    if self.portal_state.storage_prepare_job.get("status") == "running":
+                        raise ValueError("Wait for USB drive preparation to finish.")
+                    transfer = self.portal_state.file_transfer_status()
+                    if transfer.get("operation") == "import-zims" and transfer.get("status") == "running":
+                        raise ValueError("Wait for the USB ZIM import to finish.")
+                    state = self.portal_state.mount_storage_volume(payload)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, status=400)
                 return
@@ -4442,7 +5056,13 @@ class PortalHandler(BaseHTTPRequestHandler):
 
         if self.path == "/api/system/storage/unmount":
             try:
-                state = self.portal_state.unmount_storage_volume(payload)
+                with self.portal_state.storage_prepare_lock:
+                    if self.portal_state.storage_prepare_job.get("status") == "running":
+                        raise ValueError("Wait for USB drive preparation to finish.")
+                    transfer = self.portal_state.file_transfer_status()
+                    if transfer.get("operation") == "import-zims" and transfer.get("status") == "running":
+                        raise ValueError("Wait for the USB ZIM import to finish.")
+                    state = self.portal_state.unmount_storage_volume(payload)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, status=400)
                 return
@@ -4454,19 +5074,25 @@ class PortalHandler(BaseHTTPRequestHandler):
 
         if self.path == "/api/system/storage/prepare":
             try:
-                state = self.portal_state.prepare_storage_volume(payload)
+                state = self.portal_state.start_storage_prepare(payload)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, status=400)
                 return
-            except RuntimeError as exc:
+            except (OSError, RuntimeError) as exc:
                 self.send_json({"error": str(exc)}, status=500)
                 return
-            self.send_json(state)
+            self.send_json(state, status=202)
             return
 
         if self.path == "/api/system/storage/rename":
             try:
-                state = self.portal_state.rename_storage_volume(payload)
+                with self.portal_state.storage_prepare_lock:
+                    if self.portal_state.storage_prepare_job.get("status") == "running":
+                        raise ValueError("Wait for USB drive preparation to finish.")
+                    transfer = self.portal_state.file_transfer_status()
+                    if transfer.get("operation") == "import-zims" and transfer.get("status") == "running":
+                        raise ValueError("Wait for the USB ZIM import to finish.")
+                    state = self.portal_state.rename_storage_volume(payload)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, status=400)
                 return
@@ -4478,17 +5104,88 @@ class PortalHandler(BaseHTTPRequestHandler):
 
         self.send_json({"error": "Not found"}, status=404)
 
-    def send_json(self, payload: dict, status: int = 200) -> None:
+    def admin_token(self) -> str:
+        try:
+            cookie = SimpleCookie(self.headers.get("Cookie", ""))
+        except CookieError:
+            return ""
+        entry = cookie.get(AdminAccess.COOKIE)
+        return entry.value if entry else ""
+
+    def handle_admin_action(self, path: str, token: str, *, secure: bool) -> None:
+        access = self.portal_state.admin_access
+        if self.headers.get_content_type() != "application/json":
+            self.send_json({"error": "Send Settings changes as JSON."}, status=415)
+            return
+        length = self.headers.get("Content-Length", "")
+        if not length.isascii() or not length.isdecimal() or len(length) > 4 or not 0 < int(length) <= 4096:
+            self.send_json({"error": "Invalid admin request size."}, status=400)
+            return
+        try:
+            payload = json.loads(self.rfile.read(int(length)))
+            if not isinstance(payload, dict):
+                raise ValueError
+        except (ValueError, UnicodeError):
+            self.send_json({"error": "Invalid admin request."}, status=400)
+            return
+
+        try:
+            if path == "/api/admin/login":
+                token = access.login(payload.get("password"), token)
+            elif path == "/api/admin/logout":
+                access.logout(token)
+                token = ""
+            else:
+                token = access.configure(
+                    token, payload.get("enabled"), payload.get("current_password"), payload.get("new_password")
+                )
+        except AdminAccessError as exc:
+            self.send_json({"error": str(exc)}, status=exc.status)
+            return
+        except OSError:
+            self.send_json({"error": "Could not save the admin password. Check device storage."}, status=500)
+            return
+
+        max_age = AdminAccess.SESSION_SECONDS if token else 0
+        cookie = f"{AdminAccess.COOKIE}={token}; Path=/api/; Max-Age={max_age}; HttpOnly; SameSite=Strict"
+        if secure:
+            cookie += "; Secure"
+        self.send_json(access.status(token), cookie=cookie)
+
+    def receive_zim_upload(self, query: str) -> None:
+        self.close_connection = True
+        if self.headers.get_content_type() != "application/octet-stream":
+            self.send_json({"error": "Send a ZIM file as a binary upload."}, status=415)
+            return
+        if self.headers.get("Transfer-Encoding") or not self.headers.get("Content-Length", "").isdigit():
+            self.send_json({"error": "The upload must include its file size."}, status=411)
+            return
+        self.connection.settimeout(120)
+        name = parse.parse_qs(query).get("name", [""])[0]
+        try:
+            result = self.portal_state.upload_zim(name, int(self.headers["Content-Length"]), self.rfile)
+        except ValueError as exc:
+            self.send_json({"error": str(exc)}, status=400)
+        except (FileExistsError, RuntimeError) as exc:
+            self.send_json({"error": str(exc)}, status=409)
+        except (OSError, subprocess.CalledProcessError) as exc:
+            print(f"ZIM upload failed: {exc}", flush=True)
+            self.send_json({"error": "Unable to finish the upload. Check the drive and try again."}, status=500)
+        else:
+            self.send_json(result, status=201)
+
+    def send_json(self, payload: dict, status: int = 200, *, cookie: str | None = None) -> None:
         encoded = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_common_headers()
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(encoded)))
+        if cookie is not None:
+            self.send_header("Set-Cookie", cookie)
         self.end_headers()
         self.wfile.write(encoded)
 
     def send_common_headers(self) -> None:
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Cache-Control", "no-store")
 
     def log_message(self, fmt: str, *args) -> None:

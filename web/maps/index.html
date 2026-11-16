@@ -308,6 +308,10 @@
     }
 
     @media (max-width: 980px) {
+      .brand-link {
+        display: none;
+      }
+
       .layout {
         grid-template-columns: 1fr;
       }
@@ -379,7 +383,7 @@
           <div class="field">
             <label for="zoom-input">Zoom</label>
             <div class="zoom-row">
-              <input id="zoom-input" type="range" min="2" max="14" step="1" value="4">
+              <input id="zoom-input" type="range" min="2" max="20" step="1" value="4">
               <span class="zoom-value" id="zoom-value">4</span>
             </div>
           </div>
@@ -402,15 +406,15 @@
     const fallbackConfig = {
       pmtilesUrl: "/pmtiles/basemap.pmtiles",
       pmtilesFile: "basemap.pmtiles",
-      flavor: "dark",
+      flavor: "light",
       language: "en",
       defaultLat: 39.8283,
       defaultLon: -98.5795,
       defaultZoom: 4,
       minZoom: 2,
-      maxZoom: 14,
+      maxZoom: 20,
       glyphsUrl: "/maps/assets/fonts/{fontstack}/{range}.pbf",
-      spriteBaseUrl: "/maps/assets/sprites/v4/dark",
+      spriteBaseUrl: "/maps/assets/sprites/v4/light",
     };
 
     const mapCanvas = document.getElementById("map");
@@ -489,7 +493,9 @@
           throw new Error(`config returned ${response.status}`);
         }
         const loaded = await response.json();
-        return { ...fallbackConfig, ...loaded };
+        const config = { ...fallbackConfig, ...loaded };
+        config.spriteBaseUrl = loaded.spriteBaseUrl || `/maps/assets/sprites/v4/${config.flavor}`;
+        return config;
       } catch (error) {
         return fallbackConfig;
       }
@@ -676,8 +682,8 @@
         zoomInput.min = String(minZoom);
         zoomInput.max = String(maxZoom);
 
-        const sources = Object.fromEntries(archives.map(({ url }, index) => [
-          `archive-${index}`, { type: "vector", url: `pmtiles://${url}`, attribution: "Protomaps © OpenStreetMap" }
+        const sources = Object.fromEntries(archives.map(({ url, header }, index) => [
+          `archive-${index}`, { type: "vector", url: `pmtiles://${url}`, maxzoom: header.maxZoom, attribution: "Protomaps © OpenStreetMap" }
         ]));
         const sourceIds = Object.keys(sources);
         const layers = basemaps.layers(sourceIds[0], basemaps.namedFlavor(config.flavor), { lang: config.language })

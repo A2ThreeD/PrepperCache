@@ -208,12 +208,31 @@ These are the main areas still worth iterating on next:
 - better test/validation tooling for fresh Pi installs and browser flows
 - optional health/status improvements around disk, temperature, and long-running sync jobs
 
+## Future Release Backlog
+
+### Features
+
+- [ ] **USB drive sharing:** Let users browse and download shared files from an attached USB drive through PrepperCache on the local network. Decide how users select what to share and how PrepperCache handles drive removal.
+- [ ] **USB drive mounting and ZIM import.** Automatically mount attached USB drives read-only and copy any ZIM files found on them into the local library.
+- [ ] **Network storage in File Manager.** Let users connect to a NAS or other network storage, browse its files, and copy additional content into PrepperCache.
+- [ ] **View files in File Manager.** Add a View button that opens the selected file from File Manager.
+- [ ] **USB backups.** Evaluate options for backing up the entire unit or selected content to a USB drive. Define how users designate a writable backup destination and restore from it.
+- [ ] **Content tagging:** Let users assign one or more predefined PrepperCache tags to installed content. Show each item under the matching dashboard category buttons and preserve user choices when the library is rebuilt.
+- [ ] **Main page category selector.** Let users choose in Settings which category buttons appear on the main page and save their choices.
+- [ ] **Ham and GMRS repeater directory:** Define a CSV import format for amateur radio (ham) and GMRS repeater records, store the imported records in SQLite, and provide a searchable page that works offline. Consider filters for service, location, call sign, and frequency.
+- [ ] **Content beyond ZIM:** Evaluate how PrepperCache can store, organize, and display PDFs and HTML offline. Decide how users add, browse, and open these files from the portal.
+
+### Fixes
+
+- [x] **Storage bar graph.** Calculate each segment from its own drive and use the matching legend color. The deployed Pi reported nonzero values for all three system drive segments.
+
 ## Longer-Term Software Ideas
 
 - media hosting (plex/jellyfin)
 - NAS capabilities
 - optional battery/power awareness in the dashboard
 - [offline address search](#planned-offline-address-search)
+- evaluate offline search for place names and points of interest alongside address search
 - better local diagnostics and recovery tools in `/admin`
 - a more formal update channel for catalogs and application assets
 - additional packaged offline services beyond Kiwix and maps when they fit PrepperCache’s storage and reliability goals

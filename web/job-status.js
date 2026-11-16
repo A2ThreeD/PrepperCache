@@ -28,6 +28,8 @@
         header { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
         section[data-problem] strong { color: var(--status-error, #8a2828); }
         a { color: var(--accent-primary, #006e68); }
+        .notice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .9rem; margin-top: .4rem; }
+        .dismiss { border: 0; background: transparent; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; padding: .15rem 0; }
         p { margin: .2rem 0; overflow-wrap: anywhere; }
         progress { display: block; width: 100%; height: .55rem; accent-color: var(--accent-primary, #006e68); margin-top: .35rem; }
         @media (prefers-reduced-motion: reduce) { aside { transition: none; } }
@@ -42,6 +44,76 @@
     let checking = false;
     let notice = null;
     let noticeTimer;
+    let storageJob = {};
+
+    function updateStorageJob(job) {
+      if (JSON.stringify(storageJob) !== JSON.stringify(job)) {
+        storageJob = job;
+        document.dispatchEvent(new CustomEvent("preppercache:storage-progress", { detail: job }));
+      }
+      render();
+    }
+
+    function storageJobView() {
+      const { status, device, step, partition, finished_at: finishedAt } = storageJob;
+      if (!status || (status !== "running" && Date.now() - Date.parse(finishedAt) > 20000)) return null;
+      const running = status === "running";
+      const failed = status === "failed";
+      const href = partition ? `/admin/#files?device=${encodeURIComponent(partition)}`
+        : `/admin/#storage?device=${encodeURIComponent(device)}`;
+      return {
+        title: running ? "Preparing USB drive" : failed ? "Drive preparation failed" : "USB drive ready",
+        detail: step, href, busy: running, problem: failed, linkLabel: partition ? "Browse drive" : "Storage",
+      };
+    }
+    const usbNotices = new Map();
+    let knownUsbDrives = null;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem("preppercache-usb-drives"));
+      if (Array.isArray(saved)) knownUsbDrives = new Set(saved);
+    } catch (_) {}
+
+    function updateUsbDrives(volumes) {
+      const drives = new Map();
+      for (const volume of volumes) {
+        if (volume.transport !== "usb" || !volume.path) continue;
+        const key = volume.parent_path || volume.path;
+        if (!drives.has(key)) drives.set(key, []);
+        drives.get(key).push(volume);
+      }
+      for (const key of usbNotices.keys()) {
+        if (!drives.has(key)) usbNotices.delete(key);
+      }
+      for (const [key, volumes] of drives) {
+        if (knownUsbDrives?.has(key) && !usbNotices.has(key)) continue;
+        const disk = volumes.find((volume) => !volume.is_partition);
+        const partitions = volumes.filter((volume) => volume.is_partition);
+        const choices = partitions.length ? partitions : volumes;
+        const name = disk?.display_name || choices[0].display_name || key;
+        const ready = choices.some((volume) => volume.preppercache_layout?.maps && volume.preppercache_layout?.library);
+        const actions = [];
+        let detail = `${name} has PrepperCache library and maps folders.`;
+        if (!ready) {
+          detail = disk?.can_prepare
+            ? `${name} can be set up for library and maps use. Preparing erases all partitions on the drive.`
+            : `${name} cannot be prepared by PrepperCache.`;
+          actions.push({
+            href: `/admin/#storage?device=${encodeURIComponent(key)}`,
+            label: disk?.can_prepare ? "Set up drive" : "Storage settings",
+          });
+        }
+        for (const volume of choices) {
+          if (!volume.mounted && !volume.can_mount) continue;
+          const label = choices.length > 1 ? `Browse ${volume.label || volume.path}` : "Browse drive";
+          actions.push({ href: `/admin/#files?device=${encodeURIComponent(volume.path)}`, label });
+        }
+        usbNotices.set(key, { title: "USB drive inserted", detail, actions, usbKey: key });
+      }
+      knownUsbDrives = new Set(drives.keys());
+      document.dispatchEvent(new CustomEvent("preppercache:usb-presence", { detail: drives.size > 0 }));
+      try { sessionStorage.setItem("preppercache-usb-drives", JSON.stringify([...knownUsbDrives])); } catch (_) {}
+      render();
+    }
 
     try {
       const saved = JSON.parse(sessionStorage.getItem(cacheKey));
@@ -50,17 +122,18 @@
 
     function displayJob(state, map) {
       if (!state) return null;
-      const problem = state.status === "failed" || (state.status === "succeeded" && state.download_failed > 0);
+      const indexWarning = !map && state.indexWarning;
+      const problem = state.status === "failed" || (state.status === "succeeded" && (state.download_failed > 0 || indexWarning));
       if (state.status !== "running" && !(problem && Date.now() - Date.parse(state.finished_at) < 45000)) return null;
       const setup = !map && state.action === "full";
       const title = map ? "Offline maps" : setup ? "PrepperCache installation" : "Offline content";
       if (problem) {
         const failed = Number(state.download_failed);
-        const summary = state.error || `Finished with ${failed} failed download${failed === 1 ? "" : "s"}.`;
+        const summary = indexWarning || state.error || `Finished with ${failed} failed download${failed === 1 ? "" : "s"}.`;
         const filenames = state.failed_download_names || [];
         const files = filenames.slice(0, 2).join(", ");
         const more = filenames.length > 2 ? ` and ${filenames.length - 2} more` : "";
-        return { title, detail: files ? `${summary} ${files}${more}` : summary, problem: true };
+        return { title, detail: files ? `${summary} ${files}${more}` : summary, problem: true, href: map ? "/admin/#maps" : "/admin/#content-log" };
       }
       const percent = map && state.total_files && state.current_index && Number.isFinite(state.current_percent)
         ? Math.floor(((state.current_index - 1) * 100 + state.current_percent) / state.total_files)
@@ -80,7 +153,7 @@
       const mapProblem = mapCanvas?.dataset.problem;
       const views = jobs.map((job, index) => displayJob(job, index === 1));
       views.push(mapProblem ? { title: "Offline map problem", detail: mapProblem, problem: true, mapSettings: true } : null);
-      views.push(notice);
+      views.push(notice, storageJobView(), ...usbNotices.values());
       const serialized = JSON.stringify(views);
       if (lastView === serialized) return;
       lastView = serialized;
@@ -90,20 +163,46 @@
         if (view.problem) {
           section.dataset.problem = "";
           section.setAttribute("role", "alert");
-        } else if (view.href) {
+        } else if (view.href || view.actions) {
           section.setAttribute("role", "status");
         }
         const header = document.createElement("header");
         const title = document.createElement("strong");
         title.textContent = view.title;
         const link = document.createElement("a");
-        link.href = view.href || (view.mapSettings || index === 1 ? "/admin/#maps" : "/admin/#content");
-        link.textContent = view.mapSettings ? "Map Settings" : "Details";
+        const localHref = (href) => location.pathname === "/admin/" && href.startsWith("/admin/#") ? href.slice(7) : href;
+        link.href = localHref(view.href || (view.mapSettings || index === 1 ? "/admin/#maps" : "/admin/#content"));
+        link.textContent = view.linkLabel || (view.mapSettings ? "Map Settings" : "Details");
         const detail = document.createElement("p");
         detail.textContent = view.detail;
-        header.append(title, link);
+        header.append(title);
+        if (!view.actions) header.append(link);
         section.append(header, detail);
-        if ("percent" in view) {
+        if (view.actions) {
+          const actions = document.createElement("div");
+          actions.className = "notice-actions";
+          for (const action of view.actions) {
+            const anchor = document.createElement("a");
+            anchor.href = localHref(action.href);
+            anchor.textContent = action.label;
+            anchor.addEventListener("click", () => {
+              usbNotices.delete(view.usbKey);
+              render();
+            });
+            actions.append(anchor);
+          }
+          const dismiss = document.createElement("button");
+          dismiss.type = "button";
+          dismiss.className = "dismiss";
+          dismiss.textContent = "Dismiss";
+          dismiss.onclick = () => {
+            usbNotices.delete(view.usbKey);
+            render();
+          };
+          actions.append(dismiss);
+          section.append(actions);
+        }
+        if ("percent" in view || view.busy) {
           const meter = document.createElement("progress");
           meter.max = 100;
           meter.setAttribute("aria-label", view.title);
@@ -124,11 +223,22 @@
       if (checking || document.hidden) return;
       checking = true;
       try {
-        await Promise.allSettled(endpoints.map(async (url, index) => {
+        await Promise.allSettled([...endpoints, "/api/system/storage/volumes", "/api/system/storage/prepare"].map(async (url, index) => {
           const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(4500) });
           if (!response.ok) return;
-          const state = await response.json();
-          jobs[index] = displayJob(state, index === 1) ? { ...state, log_tail: undefined } : null;
+          const { log_tail: log, ...state } = await response.json();
+          if (url === "/api/system/storage/prepare") {
+            updateStorageJob(state);
+            return;
+          }
+          if (url === "/api/system/storage/volumes") {
+            if (Array.isArray(state.volumes)) updateUsbDrives(state.volumes);
+            return;
+          }
+          if (index === 0) {
+            state.indexWarning = (log || []).findLast((line) => line.startsWith("Kiwix could not index: "));
+          }
+          jobs[index] = displayJob(state, index === 1) ? state : null;
           render();
         }));
         try { sessionStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), jobs })); } catch (_) {}
@@ -137,6 +247,8 @@
         render();
       }
     }
+
+    document.addEventListener("preppercache:storage-started", ({ detail }) => updateStorageJob(detail));
 
     document.addEventListener("preppercache:notice", ({ detail }) => {
       clearTimeout(noticeTimer);

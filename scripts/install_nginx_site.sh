@@ -39,6 +39,7 @@ server {
     }
 
     location /admin/ {
+        add_header X-Frame-Options DENY always;
         alias $PREPPERCACHE_ADMIN_ROOT/;
         index index.html;
         try_files \$uri \$uri/ /admin/index.html;
@@ -54,14 +55,26 @@ server {
         alias $PREPPERCACHE_MAP_PMTILES_ROOT/;
         default_type application/octet-stream;
         access_log off;
-        expires 7d;
-        add_header Cache-Control "public";
+        # Archives can be replaced at the same URL. Revalidate cached byte ranges.
+        expires -1;
+    }
+
+    location = /api/content/upload {
+        client_max_body_size 0;
+        client_body_timeout 120s;
+        proxy_request_buffering off;
+        proxy_http_version 1.1;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 180s;
+        proxy_set_header Host \$http_host;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_pass http://127.0.0.1:$ADMIN_PORT;
     }
 
     location /api/ {
         proxy_pass http://127.0.0.1:$ADMIN_PORT/api/;
         proxy_http_version 1.1;
-        proxy_set_header Host \$host;
+        proxy_set_header Host \$http_host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;

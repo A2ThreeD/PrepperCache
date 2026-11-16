@@ -145,6 +145,8 @@
       border-radius: 0;
     }
 
+    .message a { color: inherit; text-decoration: underline; }
+
     .message.error {
       color: var(--status-error, #8a2828);
     }
@@ -1049,6 +1051,31 @@
       margin: 0 auto;
     }
 
+    .dashboard-search label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .dashboard-search-controls {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+    }
+
+    #kiwix-search-status:not(:empty) {
+      margin-top: 8px;
+    }
+
+    .dashboard-search input[type="search"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      background: var(--panel-3);
+      color: var(--text);
+      font: inherit;
+    }
+
     .dashboard-tile {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
@@ -1072,6 +1099,10 @@
     }
 
     @media (max-width: 640px) {
+      .dashboard-search-controls {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
       .dashboard-tile {
         grid-template-columns: auto minmax(0, 1fr);
         grid-template-areas: "icon copy" "action action";
@@ -1452,6 +1483,15 @@
 
     <section id="dashboard-view">
       <main class="dashboard-grid">
+        <form class="dashboard-search" id="dashboard-search" role="search">
+          <label for="kiwix-search-query">Search Kiwix (English)</label>
+          <div class="dashboard-search-controls">
+            <input type="search" id="kiwix-search-query" name="pattern" required pattern=".*\S.*">
+            <button class="button primary" type="submit">Search</button>
+          </div>
+          <div id="kiwix-search-status" role="status"></div>
+        </form>
+
         <section class="dashboard-tile">
           <a class="dashboard-icon icon-library" href="/kiwix/#tag=" aria-label="Kiwix Full Library"><span aria-hidden="true">📚</span></a>
           <div class="dashboard-copy">
@@ -1461,17 +1501,6 @@
           </div>
           <div class="actions">
             <a class="button primary" id="kiwix-link" href="/kiwix/#tag=">Open Kiwix</a>
-          </div>
-        </section>
-
-        <section class="dashboard-tile">
-          <a class="dashboard-icon icon-books" href="/kiwix/#tag=gutenberg" aria-label="Classic Books"><span aria-hidden="true">📖</span></a>
-          <div class="dashboard-copy">
-            <h2>Classic Books</h2>
-            <p>Read books from Project Gutenberg offline.</p>
-          </div>
-          <div class="actions">
-            <a class="button" href="/kiwix/#tag=gutenberg"><span aria-hidden="true">📖</span> Project Gutenberg Library</a>
           </div>
         </section>
 
@@ -1496,6 +1525,17 @@
           </div>
           <div class="actions">
             <a class="button" href="/kiwix/#tag=preppercache-medical">Open Medical</a>
+          </div>
+        </section>
+
+        <section class="dashboard-tile">
+          <a class="dashboard-icon" href="/kiwix/#category=wikipedia" aria-label="Wikipedia"><span aria-hidden="true">W</span></a>
+          <div class="dashboard-copy">
+            <h2>Wikipedia</h2>
+            <p>Browse installed Wikipedia editions offline.</p>
+          </div>
+          <div class="actions">
+            <a class="button" href="/kiwix/#category=wikipedia">Open Wikipedia</a>
           </div>
         </section>
 
@@ -1544,6 +1584,17 @@
         </section>
 
         <section class="dashboard-tile">
+          <a class="dashboard-icon icon-books" href="/kiwix/#tag=gutenberg" aria-label="Classic Books"><span aria-hidden="true">📖</span></a>
+          <div class="dashboard-copy">
+            <h2>Classic Books</h2>
+            <p>Read books from Project Gutenberg offline.</p>
+          </div>
+          <div class="actions">
+            <a class="button" href="/kiwix/#tag=gutenberg"><span aria-hidden="true">📖</span> Project Gutenberg Library</a>
+          </div>
+        </section>
+
+        <section class="dashboard-tile">
           <a class="dashboard-icon icon-power" href="/kiwix/#tag=preppercache-power-energy" aria-label="Power and Energy"><span aria-hidden="true">⚡</span></a>
           <div class="dashboard-copy">
             <h2>Power and Energy</h2>
@@ -1585,6 +1636,47 @@
     if (new URLSearchParams(window.location.search).get("mode") === "setup") {
       document.documentElement.classList.add("force-setup");
     }
+
+    const dashboardSearch = document.getElementById("dashboard-search");
+    dashboardSearch.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const query = dashboardSearch.elements.pattern.value.trim();
+      const button = dashboardSearch.querySelector("button");
+      if (!query || button.disabled) return;
+
+      const status = document.getElementById("kiwix-search-status");
+      button.disabled = true;
+      status.textContent = "Checking the Kiwix library…";
+      try {
+        const response = await fetch("/catalog/v2/entries?lang=eng&count=-1");
+        if (!response.ok) throw new Error("Kiwix catalog unavailable");
+        const catalog = new DOMParser().parseFromString(await response.text(), "application/xml");
+        const atom = "http://www.w3.org/2005/Atom";
+        if (catalog.documentElement.namespaceURI !== atom ||
+            catalog.documentElement.localName !== "feed") throw new Error("Invalid Kiwix catalog");
+
+        const search = new URLSearchParams({ pattern: query });
+        for (const entry of catalog.getElementsByTagNameNS(atom, "entry")) {
+          const language = entry.getElementsByTagNameNS(atom, "language")[0]?.textContent;
+          const tags = entry.getElementsByTagNameNS(atom, "tags")[0]?.textContent.split(";") || [];
+          const id = entry.getElementsByTagNameNS(atom, "id")[0]?.textContent;
+          // Kiwix's language filter also returns multilingual books, which cannot join this search.
+          if (language === "eng" && id?.startsWith("urn:uuid:") && !tags.includes("_ftindex:no")) {
+            search.append("books.id", id.slice("urn:uuid:".length));
+          }
+        }
+        if (search.has("books.id")) {
+          window.location.assign(`/search?${search}`);
+          status.textContent = "";
+        } else {
+          status.textContent = "No searchable English archives are installed in Kiwix.";
+        }
+      } catch {
+        status.textContent = "Could not read the Kiwix library. Try again when Kiwix is available.";
+      } finally {
+        button.disabled = false;
+      }
+    });
 
     const apiBase = "/api";
     const params = new URLSearchParams(window.location.search);
@@ -1659,7 +1751,7 @@
     let storageState = null;
     let activeMessageText = "";
     let activeMessageIsError = false;
-    let driveNoticeText = "";
+    let showUnmountedUsbNotice = false;
 
     function formatSize(sizeMb) {
       if (!sizeMb) return "Size not listed";
@@ -1701,17 +1793,20 @@
     }
 
     function renderTopMessage() {
-      const text = activeMessageText || driveNoticeText;
-      const isError = activeMessageText ? activeMessageIsError : false;
-      if (!text) {
+      if (activeMessageText) {
+        message.textContent = activeMessageText;
+      } else if (showUnmountedUsbNotice) {
+        if (!message.querySelector("a")) {
+          const link = document.createElement("a");
+          link.href = "/admin/#storage";
+          link.textContent = "Settings > Storage";
+          message.replaceChildren("USB drives attached, but not mounted. Open ", link, " to mount them.");
+        }
+      } else {
         message.textContent = "";
-        message.style.display = "none";
-        message.classList.remove("error");
-        return;
       }
-      message.textContent = text;
-      message.style.display = "block";
-      message.classList.toggle("error", isError);
+      message.style.display = activeMessageText || showUnmountedUsbNotice ? "block" : "none";
+      message.classList.toggle("error", Boolean(activeMessageText && activeMessageIsError));
     }
 
     function showMessage(text, isError = false) {
@@ -1728,27 +1823,12 @@
 
     function updateDriveNotice() {
       const volumes = Array.isArray(storageState?.volumes) ? storageState.volumes : [];
-      const unmountedExternal = volumes.filter((volume) =>
-        volume
-        && volume.location === "external"
-        && volume.is_partition
-        && volume.filesystem
-        && !volume.mounted
+      const usbVolumes = volumes.filter((volume) => volume?.transport === "usb" &&
+        volume.filesystem !== "swap" && !/^(EFI( SYSTEM( PARTITION)?)?|ESP)$/i.test(volume.label || "")
       );
-      if (!unmountedExternal.length) {
-        driveNoticeText = "";
-        renderTopMessage();
-        return;
-      }
-      const driveNames = unmountedExternal
-        .map((volume) => volume.display_name || volume.label || volume.model || volume.path || "USB drive")
-        .slice(0, 2);
-      const listedNames = driveNames.join(", ");
-      const extraCount = unmountedExternal.length - driveNames.length;
-      const suffix = extraCount > 0 ? ` and ${extraCount} more` : "";
-      driveNoticeText = unmountedExternal.length === 1
-        ? `External drive detected but not mounted: ${listedNames}. Open Settings > Storage to mount it.`
-        : `External drives detected but not mounted: ${listedNames}${suffix}. Open Settings > Storage to mount them.`;
+      const driveKey = (volume) => volume.parent_path || volume.path;
+      const mountedDrives = new Set(usbVolumes.filter((volume) => volume.mounted).map(driveKey));
+      showUnmountedUsbNotice = usbVolumes.some((volume) => volume.can_mount && !mountedDrives.has(driveKey(volume)));
       renderTopMessage();
     }
 
@@ -2454,6 +2534,17 @@
             response.ok ? response.json() : { status: "idle", log_tail: [] }
           )).catch(() => ({ status: "idle", log_tail: [] }))
         ]);
+
+        if (state.admin_locked) {
+          if (forceSetup) {
+            window.location.replace("/admin/");
+          } else {
+            setupView.classList.add("hidden");
+            dashboardView.classList.remove("hidden");
+            configureKolibriTile(state);
+          }
+          return;
+        }
 
         wikipediaOptions = Array.isArray(state.setup_options?.wikipedia?.options)
           ? state.setup_options.wikipedia.options

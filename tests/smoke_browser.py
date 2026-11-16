@@ -59,6 +59,7 @@ class BrowserSmokeTests(unittest.TestCase):
 
         disk = {"total_bytes": 16_000_000_000, "used_bytes": 4_000_000_000, "free_bytes": 12_000_000_000}
         fixture = {
+            "/api/admin/session": {"enabled": False, "authenticated": True},
             "/api/state": {"setup_complete": self.completed_setup, "profile": {}, "storage": {"disk": disk}},
             "/api/apply": self.jobs,
             "/api/maps/sync": {"status": "idle"},
@@ -81,6 +82,77 @@ class BrowserSmokeTests(unittest.TestCase):
         self.page.locator("#next-step-button").click()
         expect(self.page.locator(".step-panel.active")).to_contain_text("Wikipedia")
 
+    def test_optional_admin_password_can_be_enabled_unlocked_and_disabled(self):
+        session = {"enabled": False, "authenticated": True}
+
+        def admin(route):
+            action = route.request.url.split("/")[-1]
+            if action == "password":
+                session.update(enabled=route.request.post_data_json["enabled"], authenticated=True)
+            elif action == "logout":
+                session["authenticated"] = False
+            elif action == "login":
+                if route.request.post_data_json != {"password": "test password"}:
+                    route.fulfill(status=403, json={"error": "Incorrect admin password."})
+                    return
+                session["authenticated"] = True
+            route.fulfill(json=session)
+
+        self.page.route("**/api/admin/*", admin)
+        self.page.goto(self.origin + "/admin/#system")
+        checkbox = self.page.get_by_label("Require an admin password")
+        indicator = self.page.locator("#admin-protection-status")
+        save = self.page.get_by_role("button", name="Save Admin Access")
+        expect(indicator).to_have_attribute("data-tone", "error")
+        expect(save).not_to_have_class(re.compile(r"\bprimary\b"))
+        expect(checkbox).not_to_be_checked()
+        checkbox.check()
+        expect(save).to_have_class(re.compile(r"\bprimary\b"))
+        expect(indicator).to_have_attribute("data-tone", "error")
+        self.page.get_by_label("New admin password").fill("test password")
+        self.page.get_by_label("Confirm admin password").fill("different password")
+        self.page.get_by_role("button", name="Save Admin Access").click()
+        expect(self.page.locator("#admin-password-status")).to_have_text("The new passwords do not match.")
+        self.page.get_by_label("Confirm admin password").fill("test password")
+        self.page.get_by_role("button", name="Save Admin Access").click()
+        expect(self.page.locator("#admin-password-status")).to_have_text("Admin password saved.")
+        expect(indicator).to_have_attribute("data-tone", "good")
+        expect(save).not_to_have_class(re.compile(r"\bprimary\b"))
+        self.page.get_by_label("New admin password").fill("new test password")
+        expect(save).to_have_class(re.compile(r"\bprimary\b"))
+        self.page.get_by_label("New admin password").clear()
+        expect(save).not_to_have_class(re.compile(r"\bprimary\b"))
+
+        self.page.get_by_role("button", name="Sign Out").click()
+        expect(self.page.locator("#admin-settings")).to_be_hidden()
+        expect(self.page.locator("#admin-login-form input")).to_have_count(1)
+        self.page.get_by_label("Admin password", exact=True).fill("wrong password")
+        self.page.get_by_role("button", name="Login").click()
+        expect(self.page.locator("#admin-gate-status")).to_have_text("Incorrect admin password.")
+        self.page.get_by_label("Admin password", exact=True).fill("test password")
+        self.page.get_by_role("button", name="Login").click()
+        expect(checkbox).to_be_checked()
+
+        checkbox.uncheck()
+        expect(save).to_have_class(re.compile(r"\bprimary\b"))
+        expect(indicator).to_have_attribute("data-tone", "good")
+        self.page.get_by_label("Current admin password").fill("test password")
+        self.page.get_by_role("button", name="Save Admin Access").click()
+        expect(self.page.locator("#admin-password-status")).to_have_text("Admin password protection is off.")
+        expect(indicator).to_have_attribute("data-tone", "error")
+        expect(save).not_to_have_class(re.compile(r"\bprimary\b"))
+        self.page.reload()
+        expect(self.page.get_by_role("heading", name="Admin Access")).to_be_visible()
+
+    def test_locked_admin_leaves_home_dashboard_available(self):
+        self.page.route("**/api/state", lambda route: route.fulfill(json={"admin_locked": True}))
+        self.page.route("**/api/apply", lambda route: route.fulfill(status=401, json={}))
+        self.page.goto(self.origin)
+        expect(self.page.locator("#dashboard-view")).to_be_visible()
+        expect(self.page.get_by_role("button", name="Search", exact=True)).to_be_visible()
+        self.page.goto(self.origin + "/?mode=setup")
+        expect(self.page).to_have_url(self.origin + "/admin/")
+
     def test_settings_links_back_refresh_and_download_review(self):
         self.page.goto(self.origin + "/admin/#about")
         expect(self.page.get_by_role("heading", name="About PrepperCache")).to_be_visible()
@@ -93,7 +165,12 @@ class BrowserSmokeTests(unittest.TestCase):
         self.page.locator('.section-tabs a[href="#content"]').click()
         self.page.reload()
         expect(self.page.get_by_role("heading", name="Installed Content")).to_be_visible()
+        expect(self.page.locator("#content-progress-shell")).to_be_hidden()
+        expect(self.page.locator("#content-local-list")).to_be_hidden()
+        self.page.locator("#installed-zim-heading").click()
+        expect(self.page.locator("#content-local-list")).to_be_visible()
         self.page.locator("#toggle-add-content-button").click()
+        expect(self.page.locator("#content-local-list")).to_be_hidden()
         self.page.locator("#refresh-zim-catalog-button").click()
         self.page.locator("#zim-catalog-list input[type=checkbox]").check()
         self.page.locator("#download-selected-zims-button").click()
@@ -143,6 +220,94 @@ class BrowserSmokeTests(unittest.TestCase):
         expect(confirm).to_be_enabled()
         self.assertEqual(self.posts, [])
 
+    def test_download_and_indexing_failures_have_separate_recovery_steps(self):
+        self.jobs = {
+            "status": "succeeded", "action": "refresh-content", "can_retry_download": True,
+            "failed_download_names": ["interrupted.zim"],
+            "rejected_zim_names": ["broken.zim", "old.zim"],
+        }
+        self.page.goto(self.origin + "/admin/#content")
+        downloads = self.page.get_by_role("list", name="Failed downloads")
+        rejected = self.page.get_by_role("list", name="Files Kiwix could not index")
+        expect(downloads.get_by_role("listitem")).to_have_text(["interrupted.zim"])
+        expect(rejected.get_by_role("listitem")).to_have_text(["broken.zim", "old.zim"])
+        expect(self.page.get_by_role("button", name="Resume Content Download")).to_be_visible()
+        expect(self.page.locator("#content-index-issues")).to_contain_text("Rebuild Kiwix Library")
+
+    def test_interrupted_content_can_be_resumed_from_settings(self):
+        self.jobs = {
+            "status": "running", "action": "change-content-set", "can_retry_download": True,
+        }
+
+        def resume(route):
+            self.assertEqual(route.request.method, "POST")
+            self.jobs = {"status": "running", "action": "change-content-set", "can_retry_download": False}
+            route.fulfill(status=202, json=self.jobs)
+
+        self.page.route("**/api/content/resume-download", resume)
+        self.page.goto(self.origin + "/admin/#content")
+        expect(self.page.locator("#content-action-status")).to_contain_text("Content download interrupted")
+        button = self.page.get_by_role("button", name="Resume Content Download")
+        button.click()
+        expect(button).to_be_hidden()
+        expect(self.page.locator("#content-action-status")).to_contain_text("Working on your content")
+
+    def test_file_management_rebuilds_kiwix_without_leaving_the_panel(self):
+        actions = []
+
+        def apply(route):
+            if route.request.method == "POST":
+                actions.append(route.request.post_data_json)
+                self.jobs = {"status": "running", "action": "rebuild-library"}
+                route.fulfill(status=202, json=self.jobs)
+            else:
+                route.fulfill(json=self.jobs)
+
+        self.page.route("**/api/apply", apply)
+        self.page.goto(self.origin + "/admin/#files")
+        button = self.page.get_by_role("button", name="Rebuild Kiwix Library")
+        expect(button).to_be_enabled()
+        button.click()
+        status = self.page.locator("#files-rebuild-status")
+        expect(status).to_have_text("Rebuilding Kiwix library…")
+        expect(button).to_be_disabled()
+        self.jobs = {"status": "succeeded", "action": "rebuild-library", "rejected_zim_names": []}
+        expect(status).to_have_text("Kiwix library rebuilt.", timeout=10000)
+        expect(button).to_be_enabled()
+        expect(self.page).to_have_url(self.origin + "/admin/#files")
+        self.assertEqual(actions, [{"action": "rebuild-library"}])
+
+    def test_upload_zim_from_content_and_file_management(self):
+        uploaded = []
+
+        def upload(route):
+            uploaded.append(route.request.post_data_buffer)
+            route.fulfill(status=201, json={"name": "local.zim"})
+
+        self.page.route("**/api/content/upload?*", upload)
+        self.page.route("**/api/apply", lambda route: route.fulfill(
+            status=202 if route.request.method == "POST" else 200,
+            json={"status": "running", "action": "rebuild-library"} if route.request.method == "POST" else self.jobs,
+        ))
+        for panel in ("content", "files"):
+            self.page.goto(self.origin + f"/admin/#{panel}")
+            section = self.page.locator(".panel-group.active [data-zim-upload]")
+            expect(section.get_by_role("button", name="Choose ZIM Files")).to_be_visible()
+            if panel == "content":
+                section.locator('input[type="file"]').set_input_files({
+                    "name": "local.zim", "mimeType": "application/octet-stream", "buffer": b"example archive",
+                })
+            else:
+                transfer = self.page.evaluate_handle("""() => {
+                    const transfer = new DataTransfer();
+                    transfer.items.add(new File(["example archive"], "local.zim", {type: "application/octet-stream"}));
+                    return transfer;
+                }""")
+                section.locator(".zim-upload-drop").dispatch_event("drop", {"dataTransfer": transfer})
+                transfer.dispose()
+            expect(section.get_by_role("status")).to_contain_text("Kiwix library rebuild started")
+        self.assertEqual(uploaded, [b"example archive", b"example archive"])
+
     def test_settings_opens_dashboard_and_phone_menu_navigates(self):
         self.page.goto(self.origin + "/admin/")
         expect(self.page.get_by_role("heading", name="Welcome to PrepperCache")).to_be_visible()
@@ -163,6 +328,7 @@ class BrowserSmokeTests(unittest.TestCase):
         }
         self.page.goto(self.origin + "/admin/#content")
         expect(self.page.locator("#content-library-details")).to_be_hidden()
+        expect(self.page.locator("#content-progress-shell")).to_be_visible()
         popup = self.page.locator("#preppercache-job-status aside")
         expect(popup).to_contain_text("62%")
         self.page.goto(self.origin)
@@ -184,8 +350,11 @@ class BrowserSmokeTests(unittest.TestCase):
                     addProtocol() {}, NavigationControl: class {},
                     Map: class {
                         constructor(options) {
-                            document.querySelector("#map").dataset.testSources =
-                                Object.keys(options.style.sources).length;
+                            const canvas = document.querySelector("#map");
+                            const sources = Object.values(options.style.sources);
+                            canvas.dataset.testSources = sources.length;
+                            canvas.dataset.testCameraZoom = options.maxZoom;
+                            canvas.dataset.testTileZoom = sources[0].maxzoom;
                         }
                         addControl() {} remove() {} on() {}
                         getCenter() { return {lat: 0, wrap: () => ({lng: 0})}; }
@@ -213,6 +382,8 @@ class BrowserSmokeTests(unittest.TestCase):
         self.page.goto(self.origin + "/maps/")
         picker = self.page.get_by_label("Choose a map")
         expect(self.page.locator("#map")).to_have_attribute("data-test-sources", "2")
+        expect(self.page.locator("#map")).to_have_attribute("data-test-camera-zoom", "20")
+        expect(self.page.locator("#map")).to_have_attribute("data-test-tile-zoom", "14")
         expect(picker.locator("optgroup")).to_have_count(2)
         picker.select_option("map:state-oregon.pmtiles")
         expect(self.page.locator("#map")).to_have_attribute("data-test-sources", "1")

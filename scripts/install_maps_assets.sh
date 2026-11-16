@@ -94,15 +94,15 @@ cat > "$PREPPERCACHE_MAPS_ROOT/config.json" <<EOF
 {
   "pmtilesUrl": "/pmtiles/${PREPPERCACHE_MAP_PMTILES_FILE}",
   "pmtilesFile": "${PREPPERCACHE_MAP_PMTILES_FILE}",
-  "flavor": "${PREPPERCACHE_MAP_STYLE_FLAVOR:-dark}",
+  "flavor": "${PREPPERCACHE_MAP_STYLE_FLAVOR:-light}",
   "language": "${PREPPERCACHE_MAP_LANGUAGE:-en}",
   "defaultLat": ${PREPPERCACHE_MAP_DEFAULT_LAT:-39.8283},
   "defaultLon": ${PREPPERCACHE_MAP_DEFAULT_LON:--98.5795},
   "defaultZoom": ${PREPPERCACHE_MAP_DEFAULT_ZOOM:-4},
   "minZoom": ${PREPPERCACHE_MAP_MIN_ZOOM:-2},
-  "maxZoom": ${PREPPERCACHE_MAP_MAX_ZOOM:-14},
+  "maxZoom": ${PREPPERCACHE_MAP_MAX_ZOOM:-20},
   "glyphsUrl": "/maps/assets/fonts/{fontstack}/{range}.pbf",
-  "spriteBaseUrl": "/maps/assets/sprites/v4/${PREPPERCACHE_MAP_STYLE_FLAVOR:-dark}"
+  "spriteBaseUrl": "/maps/assets/sprites/v4/${PREPPERCACHE_MAP_STYLE_FLAVOR:-light}"
 }
 EOF
 
@@ -117,7 +117,7 @@ cat > "$PREPPERCACHE_MAPS_ROOT/state.json" <<EOF
   "active_size_bytes": 0,
   "available_files": [],
   "invalid_files": [],
-  "flavor": "${PREPPERCACHE_MAP_STYLE_FLAVOR:-dark}",
+  "flavor": "${PREPPERCACHE_MAP_STYLE_FLAVOR:-light}",
   "language": "${PREPPERCACHE_MAP_LANGUAGE:-en}"
 }
 EOF

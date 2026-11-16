@@ -23,7 +23,10 @@ TOPIC_PATTERNS = {
         r"urban-prepper|appropedia|cd3wdproject\.org|wikipedia_[a-z]+_knots"
     ),
     "preppercache-repair": r"ifixit|restarters|(?:diy|mechanics|woodworking)\.stackexchange\.com",
-    "preppercache-communication": r"ham\.stackexchange\.com|repeaterbook|zimgit-(?:radio|communications?)",
+    "preppercache-communication": (
+        r"ham\.stackexchange\.com|repeaterbook|zimgit-(?:radio|communications?)|"
+        r"emcomm-ham-wiki|emcomm ham radio encyclopedia"
+    ),
     "preppercache-power-energy": (
         r"appropedia|(?:sustainability|electronics)\.stackexchange\.com|100r\.co|"
         r"cd3wdproject\.org|solar\.lowtechmagazine\.com|zimgit-(?:power|energy)"

@@ -109,6 +109,8 @@
       color: var(--muted);
     }
 
+    #maps-status-note:empty { display: none; }
+
     .hidden {
       display: none !important;
     }
@@ -467,8 +469,18 @@
       line-height: 1.35;
     }
 
+    .system-grid {
+      align-items: start;
+    }
+
+    .system-settings-stack {
+      display: grid;
+      gap: inherit;
+      min-width: 0;
+    }
+
     .power-controls-box {
-      margin-top: 16px;
+      margin: 0 0 16px;
       padding: 12px 14px;
       border: 1px solid var(--border);
       background: var(--bg-secondary, #ffffff);
@@ -911,44 +923,98 @@
       margin: 0;
     }
 
-    .files-dual-pane {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-      margin-top: 18px;
-    }
-
-    .files-pane {
-      border: 1px solid var(--border-primary, #8da9a5);
-      background: var(--accent-subtle, rgba(96, 159, 153, 0.12));
-      padding: 12px;
-    }
-
-    .files-pane.active {
-      outline: 2px solid #8da9a5;
-      outline-offset: 0;
-    }
-
-    .files-pane-head {
-      margin-bottom: 8px;
-    }
-
-    .files-pane-head h3 {
-      margin: 0 0 6px;
-      font-size: 0.95rem;
-    }
-
-    .files-shortcuts {
+    .files-navigation,
+    .files-breadcrumb,
+    .files-transfer-actions {
       display: flex;
       flex-wrap: wrap;
+      align-items: center;
       gap: 8px;
-      margin-bottom: 10px;
     }
 
-    .files-shortcut-button {
+    .files-navigation {
+      margin: 12px 0;
+    }
+
+    .files-location-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       min-width: 0;
-      padding: 8px 10px;
-      font-size: 0.78rem;
+      max-width: 100%;
+    }
+
+    .files-location-field select {
+      box-sizing: border-box;
+      width: auto;
+      min-width: 0;
+      padding-block: 8px;
+    }
+
+    .files-breadcrumb {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    [data-panel-group="files"] .actions .button,
+    .files-navigation .button,
+    .files-transfer-actions .button {
+      width: auto;
+    }
+
+    #files-open-destination[hidden],
+    #import-zims-button[hidden] {
+      display: none;
+    }
+
+    .files-dialog {
+      box-sizing: border-box;
+      width: min(580px, calc(100% - 24px));
+      max-height: calc(100% - 24px);
+      padding: 18px;
+      border: 1px solid var(--muted);
+      background: var(--surface, var(--panel));
+      color: var(--text);
+    }
+
+    .files-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.7);
+    }
+
+    .files-dialog h3 {
+      margin-top: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .files-dialog .files-list {
+      min-height: 100px;
+      max-height: 40vh;
+    }
+
+    .files-dialog .files-entry {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .files-transfer-actions {
+      justify-content: flex-end;
+    }
+
+    .files-name-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .files-folder-link {
+      border: 0;
+      padding: 4px 0;
+      background: transparent;
+      color: var(--accent);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
     }
 
     .files-list {
@@ -962,7 +1028,7 @@
     .files-header,
     .files-entry {
       display: grid;
-      grid-template-columns: minmax(180px, var(--files-name-col-width, 320px)) 80px 120px;
+      grid-template-columns: minmax(0, 1fr) 80px 120px;
       gap: 10px;
       align-items: center;
     }
@@ -987,20 +1053,6 @@
       text-transform: uppercase;
       letter-spacing: 0.08em;
       padding: 0;
-    }
-
-    .files-name-header {
-      position: relative;
-      padding-right: 14px;
-    }
-
-    .files-column-resizer {
-      position: absolute;
-      top: -8px;
-      right: -7px;
-      width: 14px;
-      height: calc(100% + 16px);
-      cursor: col-resize;
     }
 
     .files-sort-indicator {
@@ -1036,7 +1088,6 @@
       white-space: nowrap;
     }
 
-    .files-entry-kind,
     .files-entry-size,
     .files-entry-modified {
       color: var(--muted);
@@ -1122,7 +1173,10 @@
 
     .content-options { margin-block: .85rem; }
     .content-options summary { cursor: pointer; font-weight: 600; }
-    #content-failed-files, #content-set-disk-space { overflow-wrap: anywhere; }
+    .content-toolbar { align-items: center; }
+    .content-toolbar .content-options { margin: 0; }
+    .content-toolbar .content-options[open] { flex-basis: 100%; }
+    #content-failed-files, #content-rejected-files, #content-set-disk-space { overflow-wrap: anywhere; }
     #content-library-note:empty { display: none; }
 
     .substatus {
@@ -1338,8 +1392,10 @@
         grid-template-columns: 1fr;
       }
 
-      .files-dual-pane {
-        grid-template-columns: 1fr;
+      .files-header,
+      .files-entry {
+        grid-template-columns: minmax(0, 1fr) 54px 76px;
+        gap: 6px;
       }
 
       .button {
@@ -1374,6 +1430,12 @@
       background: var(--bg);
       box-shadow: none;
     }
+    .admin-gate {
+      width: min(28rem, calc(100% - 2rem));
+      margin: clamp(1rem, 12vh, 6rem) auto;
+    }
+    #admin-login-form .field { margin-bottom: 1rem; }
+
     .settings-header {
       grid-area: header;
       min-width: 0;
@@ -1509,8 +1571,15 @@
 
     .system-service-statuses { display: flex; flex-wrap: wrap; gap: .45rem 1.3rem; margin-top: .75rem; }
     .service-indicator { display: inline-flex; align-items: center; gap: .45rem; font-size: .85rem; }
-    .ap-card-header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem 1rem; }
-    .ap-card-header h2 { margin-block: 0; }
+    .card-status-header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem 1rem; }
+    .card-status-header h2 { margin-block: 0; }
+    .system-settings-stack .card-status-header { margin-bottom: .65rem; }
+    #admin-protection-status { margin-inline-start: auto; }
+    #admin-save-button.primary { border-color: var(--accent); }
+    html:not([data-theme="charcoal-blue"]) #admin-save-button.primary {
+      background: var(--accent);
+      color: #fff;
+    }
     .ap-advanced { margin-top: 1rem; }
     .ap-advanced summary { cursor: pointer; font-weight: 600; }
     #ap-status { margin-inline-start: auto; }
@@ -1534,6 +1603,23 @@
     .settings-panels :is(select, input:not([type="checkbox"], [type="radio"]), textarea, .button, .status-chip) {
       border-radius: var(--radius-button, 6px);
     }
+    .zim-upload-drop {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: .65rem;
+      margin-block: .85rem;
+      padding: .9rem;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-card, 8px);
+      background: linear-gradient(150deg, var(--accent-subtle), transparent 78%), var(--panel);
+    }
+    .zim-upload-drop.is-over { border-color: var(--accent); background: var(--accent-subtle); }
+    .zim-upload-progress { width: 100%; }
+    .zim-upload-feedback { margin-block: .4rem 0; overflow-wrap: anywhere; }
+    .zim-upload-feedback:empty { display: none; }
+
     .content-set-options {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
@@ -1619,7 +1705,22 @@
   </style>
 </head>
 <body>
-  <main>
+  <section class="card admin-gate" id="admin-gate" aria-labelledby="admin-gate-title">
+    <h1 id="admin-gate-title">PrepperCache Settings</h1>
+    <form id="admin-login-form" class="hidden">
+      <div class="field">
+        <label for="admin-login-password">Admin password</label>
+        <input type="password" id="admin-login-password" autocomplete="current-password" maxlength="128" required>
+      </div>
+      <button class="button primary" type="submit">Login</button>
+    </form>
+    <p class="status" id="admin-gate-status" role="status">Checking admin access…</p>
+    <div class="actions">
+      <button class="button hidden" id="admin-check-again" type="button">Check Again</button>
+      <a class="button" href="/">Home</a>
+    </div>
+  </section>
+  <main class="hidden" id="admin-settings">
     <header class="settings-header">
     <div class="top-actions">
       <a class="settings-mobile-brand" href="/" aria-label="PrepperCache home">Prepper<span>Cache</span></a>
@@ -1684,17 +1785,23 @@
           <header><h2>Storage</h2><a class="dashboard-card-link" href="#storage">Manage storage →</a></header>
           <p class="dashboard-usage"><span id="dashboard-storage-summary">Checking system drive…</span><span id="dashboard-storage-percent"></span></p>
           <progress id="dashboard-storage-meter" aria-label="System drive space used" max="100" hidden></progress>
+          <p><span class="service-indicator" id="dashboard-usb-status" role="status" data-tone="neutral">Checking USB storage…</span></p>
         </section>
       </div>
     </section>
 
     <section class="panel-group" data-panel-group="system">
-      <div class="grid">
+      <div class="grid system-grid">
         <section class="card">
           <h2>System</h2>
-          <p class="muted">
-            Live Raspberry Pi health and power controls live here so the main page can stay focused on navigation.
-          </p>
+          <div class="power-controls-box">
+            <strong class="power-controls-label">Power Controls</strong>
+            <div class="actions">
+              <button class="button secondary" data-icon="↻" id="restart-system-button" type="button">Restart</button>
+              <button class="button secondary" data-icon="⏻" id="shutdown-system-button" type="button">Shutdown</button>
+            </div>
+            <p class="status" id="system-power-status"></p>
+          </div>
           <div class="health-grid">
             <div class="health-card">
               <strong>Temp</strong>
@@ -1718,46 +1825,68 @@
           <div class="actions">
             <a class="button" href="/api/diagnostics/logs" download>Export Troubleshooting Logs</a>
           </div>
-          <div class="power-controls-box">
-            <strong class="power-controls-label">Power Controls</strong>
-            <div class="actions">
-              <button class="button secondary" data-icon="↻" id="restart-system-button" type="button">Restart</button>
-              <button class="button secondary" data-icon="⏻" id="shutdown-system-button" type="button">Shutdown</button>
-            </div>
-            <p class="status" id="system-power-status"></p>
-          </div>
         </section>
-        <section class="card">
-          <h2>GPIO Accessories</h2>
-          <form id="gpio-form">
-            <fieldset id="gpio-fields" disabled>
-              <legend>Shutdown button and OLED</legend>
-              <p><label><input id="gpio-shutdown-enabled" type="checkbox"> Enable the shutdown button</label></p>
-              <div class="field">
-                <label for="gpio-shutdown-pin">Shutdown button BCM GPIO</label>
-                <select id="gpio-shutdown-pin"></select>
+        <div class="system-settings-stack">
+          <section class="card">
+            <header class="card-status-header">
+              <h2>Admin Access</h2>
+              <span class="service-indicator" id="admin-protection-status" role="status">Checking protection…</span>
+            </header>
+            <form id="admin-password-form">
+              <label><input id="admin-password-enabled" type="checkbox"> Require an admin password</label>
+              <div class="field hidden" id="admin-current-field">
+                <label for="admin-current-password">Current admin password</label>
+                <input type="password" id="admin-current-password" autocomplete="current-password" maxlength="128">
               </div>
-              <p class="muted">Use a normally open switch between the selected GPIO and ground. Hold for two seconds to shut down.</p>
-              <p><label><input id="gpio-oled-enabled" type="checkbox"> Enable the OLED status display</label></p>
-              <div class="field">
-                <label for="gpio-oled-address">OLED I²C address</label>
-                <select id="gpio-oled-address">
-                  <option value="0x3c">0x3C</option><option value="0x3d">0x3D</option>
-                </select>
+              <div id="admin-new-fields" class="hidden">
+                <div class="field">
+                  <label for="admin-new-password">New admin password</label>
+                  <input type="password" id="admin-new-password" autocomplete="new-password" minlength="8" maxlength="128">
+                </div>
+                <div class="field">
+                  <label for="admin-confirm-password">Confirm admin password</label>
+                  <input type="password" id="admin-confirm-password" autocomplete="new-password" minlength="8" maxlength="128">
+                </div>
               </div>
-              <p class="muted">SSD1306, 128×32. SDA is GPIO2 (pin 3), SCL is GPIO3 (pin 5), 3.3 V is pin 1, and ground is pin 6.</p>
-              <button class="button" type="submit">Save GPIO Settings</button>
-            </fieldset>
-          </form>
-          <p class="status" id="gpio-status" role="status">Checking GPIO support…</p>
-        </section>
+              <div class="actions">
+                <button class="button" id="admin-save-button" type="submit">Save Admin Access</button>
+                <button class="button hidden" id="admin-sign-out" type="button">Sign Out</button>
+              </div>
+            </form>
+            <p class="status" id="admin-password-status" role="status"></p>
+          </section>
+          <section class="card">
+            <h2>GPIO Accessories</h2>
+            <form id="gpio-form">
+              <fieldset id="gpio-fields" disabled>
+                <legend>Shutdown button and OLED</legend>
+                <p><label><input id="gpio-shutdown-enabled" type="checkbox"> Enable the shutdown button</label></p>
+                <div class="field">
+                  <label for="gpio-shutdown-pin">Shutdown button BCM GPIO</label>
+                  <select id="gpio-shutdown-pin"></select>
+                </div>
+                <p class="muted">Use a normally open switch between the selected GPIO and ground. Hold for two seconds to shut down.</p>
+                <p><label><input id="gpio-oled-enabled" type="checkbox"> Enable the OLED status display</label></p>
+                <div class="field">
+                  <label for="gpio-oled-address">OLED I²C address</label>
+                  <select id="gpio-oled-address">
+                    <option value="0x3c">0x3C</option><option value="0x3d">0x3D</option>
+                  </select>
+                </div>
+                <p class="muted">SSD1306, 128×32. SDA is GPIO2 (pin 3), SCL is GPIO3 (pin 5), 3.3 V is pin 1, and ground is pin 6.</p>
+                <button class="button" type="submit">Save GPIO Settings</button>
+              </fieldset>
+            </form>
+            <p class="status" id="gpio-status" role="status">Checking GPIO support…</p>
+          </section>
+        </div>
       </div>
     </section>
 
     <section class="panel-group" data-panel-group="wifi">
       <div class="grid">
         <section class="card">
-          <header class="ap-card-header">
+          <header class="card-status-header">
             <h2>Wireless Access Point</h2>
             <span class="service-indicator" id="ap-status" role="status">Checking access point…</span>
           </header>
@@ -1844,7 +1973,17 @@
           <h2>Installed Content</h2>
           <p class="muted" id="content-setup-note" role="status">Checking installation status…</p>
           <p class="status hidden" id="content-action-status" role="status">Content actions: ready</p>
-          <ul class="hidden" id="content-failed-files" aria-label="Failed downloads"></ul>
+          <div class="hidden" id="content-download-issues">
+            <p><strong>Failed downloads</strong></p>
+            <ul id="content-failed-files" aria-label="Failed downloads"></ul>
+            <p class="muted" id="content-download-recovery">Use <strong>Resume Content Download</strong> to retry the failed files.</p>
+          </div>
+          <div class="hidden" id="content-index-issues">
+            <p><strong>Unavailable in Kiwix</strong></p>
+            <p class="muted">Kiwix couldn’t index these ZIM files:</p>
+            <ul id="content-rejected-files" aria-label="Files Kiwix could not index"></ul>
+            <p class="muted">Replace the listed files with fresh downloads or known-good copies, then choose <strong>Rebuild Kiwix Library</strong> in Installed ZIM Files or File Management.</p>
+          </div>
           <div class="progress-shell hidden" id="content-progress-shell">
             <div class="progress-top">
               <span class="progress-label" id="progress-label">Waiting for action</span>
@@ -1856,82 +1995,25 @@
             <p class="status" id="current-file-status">Current file: none</p>
             <p class="substatus" id="content-summary-status">No active operation.</p>
           </div>
-          <div class="actions">
-            <button class="button hidden" data-icon="▤" id="toggle-apply-log-button" type="button">Show Content Log</button>
-            <button class="button hidden" id="retry-content-downloads" type="button">Retry Failed Downloads</button>
-          </div>
-          <div class="log-panel hidden" id="apply-log-panel">
-            <strong>Recent Log</strong>
-            <pre id="apply-log">No active download log.</pre>
-          </div>
-          <div id="content-library-details" class="hidden">
-            <div class="content-set-box">
-              <div class="content-set-top">
-                <strong>Selected Content Set</strong>
-                <button class="button" data-icon="＋" id="toggle-add-content-button" type="button" aria-controls="add-more-content-card" aria-expanded="false">Add Content</button>
-              </div>
-              <div class="content-set-options" role="group" aria-label="Content sets">
-                <button class="button" type="button" data-content-set="essential">Essential</button>
-                <button class="button" type="button" data-content-set="standard">Standard</button>
-                <button class="button" type="button" data-content-set="comprehensive">Comprehensive</button>
-              </div>
-              <div class="content-set-tile hidden" id="content-set-tile"></div>
-              <p class="substatus" id="content-set-status">Loading installed content set.</p>
-
-            </div>
-            <div class="field">
-              <label for="content-install-target">Install New Content To</label>
-              <select id="content-install-target"></select>
-            </div>
-            <div class="content-storage">
-              <p class="content-storage-summary" id="content-storage-summary">Checking disk usage.</p>
-              <div class="content-storage-bar" aria-hidden="true">
-                <div class="content-storage-segment other" id="content-storage-other"></div>
-                <div class="content-storage-segment content" id="content-storage-library-internal"></div>
-                <div class="content-storage-segment content-external" id="content-storage-library-external"></div>
-                <div class="content-storage-segment free" id="content-storage-free"></div>
-              </div>
-              <div class="content-storage-legend">
-                <div class="content-storage-chip">
-                  <strong><span class="content-storage-swatch other" aria-hidden="true"></span>Other Used</strong>
-                  <span id="content-storage-other-label">-</span>
-                </div>
-                <div class="content-storage-chip">
-                  <strong><span class="content-storage-swatch content" aria-hidden="true"></span>Internal Content</strong>
-                  <span id="content-storage-library-internal-label">-</span>
-                </div>
-                <div class="content-storage-chip">
-                  <strong><span class="content-storage-swatch content-external" aria-hidden="true"></span>External Content</strong>
-                  <span id="content-storage-library-external-label">-</span>
-                </div>
-                <div class="content-storage-chip">
-                  <strong><span class="content-storage-swatch free" aria-hidden="true"></span>Free</strong>
-                  <span id="content-storage-free-label">-</span>
-                </div>
-              </div>
-              <div class="content-storage-warning" id="content-storage-warning"></div>
-            </div>
-            <div class="actions">
-              <button class="button" id="update-content-button" type="button">Update Content Now</button>
-            </div>
-            <details class="content-options">
+          <div class="actions content-toolbar">
+            <button class="button hidden" data-content-library-action data-icon="＋" id="toggle-add-content-button" type="button" aria-controls="add-more-content-card" aria-expanded="false">Add More Content</button>
+            <button class="button hidden" data-content-library-action id="update-content-button" type="button">Update Existing Content</button>
+            <button class="button" data-icon="▤" id="toggle-apply-log-button" type="button" aria-controls="apply-log-panel" aria-expanded="false">Show Logs</button>
+            <details class="content-options hidden" data-content-library-action>
               <summary>Update Schedule</summary>
               <label><input id="automatic-content-updates" type="checkbox" disabled> Automatically download updates weekly</label>
               <p class="substatus" id="automatic-content-update-note">New editions are downloaded alongside your existing files.</p>
               <p class="status" id="update-schedule-error" role="status"></p>
             </details>
-            <p class="substatus" id="content-library-note" role="status"></p>
-            <div class="field">
-              <label id="installed-zim-heading">Installed ZIM Files</label>
-              <div id="content-local-list" class="log-panel muted">Checking local ZIM files...</div>
-            </div>
-            <div class="actions">
-              <button class="button" data-icon="↻" id="refresh-installed-zims-button" type="button">Refresh Installed ZIMs</button>
-              <button class="button" data-icon="☑" id="select-all-local-zims-button" type="button">Select All</button>
-              <button class="button" data-icon="☐" id="clear-local-zims-button" type="button">Clear All</button>
-              <button class="button" data-icon="✖" id="remove-local-zims-button" type="button">Remove Selected ZIMs</button>
-              <button class="button" data-icon="⌘" id="rebuild-library-button" type="button">Rebuild Kiwix Library</button>
-            </div>
+          </div>
+          <div class="actions">
+            <button class="button hidden" id="retry-content-downloads" type="button">Resume Content Download</button>
+          </div>
+          <div class="log-panel hidden" id="apply-log-panel" tabindex="-1">
+            <strong>Recent Log</strong>
+            <pre id="apply-log">No active download log.</pre>
+          </div>
+          <div id="content-library-details" class="hidden">
             <section class="hidden" id="add-more-content-card">
               <h2>Add Content</h2>
               <p class="muted">
@@ -1974,6 +2056,72 @@
               </div>
               <p class="substatus" id="zim-catalog-note">Choose any ZIM files you want to add, then download them into the local library.</p>
             </section>
+            <section aria-label="Upload to the content library" data-zim-upload>
+              <div class="zim-upload-drop">
+                <div><strong>Upload ZIM Files</strong><p class="substatus">Drop files here to copy them to your selected content drive.</p></div>
+                <button type="button" class="button" data-zim-choose>Choose ZIM Files</button>
+                <input type="file" accept=".zim" multiple hidden>
+              </div>
+              <progress class="zim-upload-progress" aria-label="ZIM upload progress" max="100" hidden></progress>
+              <p class="zim-upload-feedback status" role="status"></p>
+            </section>
+            <div class="content-set-box">
+              <div class="content-set-top">
+                <strong>Selected Content Set</strong>
+              </div>
+              <div class="content-set-options" role="group" aria-label="Content sets">
+                <button class="button" type="button" data-content-set="essential">Essential</button>
+                <button class="button" type="button" data-content-set="standard">Standard</button>
+                <button class="button" type="button" data-content-set="comprehensive">Comprehensive</button>
+              </div>
+              <div class="content-set-tile hidden" id="content-set-tile"></div>
+              <p class="substatus" id="content-set-status">Loading installed content set.</p>
+
+            </div>
+            <div class="field">
+              <label for="content-install-target">Install New Content To</label>
+              <select id="content-install-target"></select>
+            </div>
+            <div class="content-storage">
+              <p class="content-storage-summary" id="content-storage-summary">Checking disk usage.</p>
+              <div class="content-storage-bar" aria-hidden="true">
+                <div class="content-storage-segment other" id="content-storage-other"></div>
+                <div class="content-storage-segment content" id="content-storage-library-internal"></div>
+                <div class="content-storage-segment content-external" id="content-storage-library-external"></div>
+                <div class="content-storage-segment free" id="content-storage-free"></div>
+              </div>
+              <div class="content-storage-legend">
+                <div class="content-storage-chip">
+                  <strong><span class="content-storage-swatch other" aria-hidden="true"></span>Other Used</strong>
+                  <span id="content-storage-other-label">-</span>
+                </div>
+                <div class="content-storage-chip">
+                  <strong><span class="content-storage-swatch content" aria-hidden="true"></span>Internal Content</strong>
+                  <span id="content-storage-library-internal-label">-</span>
+                </div>
+                <div class="content-storage-chip">
+                  <strong><span class="content-storage-swatch content-external" aria-hidden="true"></span>External Content</strong>
+                  <span id="content-storage-library-external-label">-</span>
+                </div>
+                <div class="content-storage-chip">
+                  <strong><span class="content-storage-swatch free" aria-hidden="true"></span>Free</strong>
+                  <span id="content-storage-free-label">-</span>
+                </div>
+              </div>
+              <div class="content-storage-warning" id="content-storage-warning"></div>
+            </div>
+            <p class="substatus" id="content-library-note" role="status"></p>
+            <details class="content-options" id="installed-zim-files">
+              <summary id="installed-zim-heading">Installed ZIM Files</summary>
+              <div id="content-local-list" class="log-panel muted">Checking local ZIM files...</div>
+              <div class="actions">
+                <button class="button" data-icon="↻" id="refresh-installed-zims-button" type="button">Refresh Installed ZIMs</button>
+                <button class="button" data-icon="☑" id="select-all-local-zims-button" type="button">Select All</button>
+                <button class="button" data-icon="☐" id="clear-local-zims-button" type="button">Clear All</button>
+                <button class="button" data-icon="✖" id="remove-local-zims-button" type="button">Remove Selected ZIMs</button>
+                <button class="button" data-icon="⌘" id="rebuild-library-button" type="button">Rebuild Kiwix Library</button>
+              </div>
+            </details>
           </div>
         </section>
       </div>
@@ -1994,8 +2142,8 @@
             <div class="field">
               <label for="map-flavor">Map Theme</label>
               <select id="map-flavor">
-                <option value="dark">Dark</option>
                 <option value="light">Light</option>
+                <option value="dark">Dark</option>
               </select>
             </div>
             <button class="button" data-icon="💾" id="save-map-button" type="button">Save Theme</button>
@@ -2003,7 +2151,6 @@
           </div>
           <details class="map-download-source">
             <summary>Manage Installed Maps</summary>
-            <p class="muted" id="maps-root">PMTiles root: loading</p>
             <div id="maps-local-list" class="log-panel muted">Checking local PMTiles packages...</div>
             <div class="actions">
               <button class="button" data-icon="↻" id="refresh-maps-button" type="button">Refresh Installed Maps</button>
@@ -2011,8 +2158,7 @@
               <button class="button" data-icon="☐" id="clear-local-maps-button" type="button">Clear All</button>
               <button class="button" data-icon="✖" id="remove-local-maps-button" type="button">Remove Selected Maps</button>
             </div>
-            <div class="status-cluster" id="maps-status" aria-live="polite"></div>
-            <p class="substatus" id="maps-status-note">Loading map package status.</p>
+            <p class="substatus" id="maps-status-note" role="status">Loading map package status.</p>
           </details>
         </section>
         <section class="card hidden" id="add-maps-card">
@@ -2117,16 +2263,14 @@
           <div class="actions">
             <button class="button" data-icon="↻" id="refresh-storage-button" type="button">Refresh Storage</button>
           </div>
-          <div class="status-cluster" id="storage-action-status" aria-live="polite"></div>
           <div class="field">
             <label>Current Storage Paths</label>
             <div id="storage-targets-list" class="log-panel muted">Checking current storage paths...</div>
           </div>
           <div class="field">
-            <label>Detected Volumes</label>
-            <div id="storage-volumes-list" class="log-panel muted">Checking attached storage volumes...</div>
+            <label>USB Storage</label>
+            <div id="storage-volumes-list" class="log-panel muted">Checking for USB storage…</div>
           </div>
-          <p class="substatus" id="storage-status-note">Use this page when you want to move maps or library data onto an external drive later.</p>
         </section>
       </div>
     </section>
@@ -2135,39 +2279,89 @@
       <div class="grid">
         <section class="card">
           <h2>File Management</h2>
-          <p class="muted">
-            Browse PrepperCache storage locations in a dual-pane file manager. File operations are limited to approved PrepperCache roots and delete actions always require confirmation.
-          </p>
+          <div class="files-navigation">
+            <label class="files-location-field">Location <select id="files-location"></select></label>
+            <button class="button" id="files-up" type="button" disabled>Up</button>
+            <nav class="files-breadcrumb" id="files-path" aria-label="Current folder"></nav>
+          </div>
           <div class="actions">
-            <button class="button" data-icon="↻" id="refresh-files-button" type="button">Refresh Files</button>
-            <button class="button" data-icon="📁" id="new-folder-button" type="button">New Folder</button>
-            <button class="button" data-icon="✎" id="rename-file-button" type="button">Rename</button>
-            <button class="button" data-icon="⎘" id="copy-file-button" type="button">Copy To Other Pane</button>
-            <button class="button" data-icon="⇄" id="move-file-button" type="button">Move To Other Pane</button>
-            <button class="button" data-icon="✖" id="delete-file-button" type="button">Delete</button>
+            <button class="button" id="import-zims-button" type="button" hidden>Import ZIMs</button>
+            <button class="button" id="new-folder-button" type="button" disabled>New Folder</button>
+            <button class="button" id="refresh-files-button" type="button">Refresh</button>
+            <button class="button" id="rename-file-button" type="button" disabled>Rename</button>
+            <button class="button" id="copy-file-button" type="button" disabled>Copy to…</button>
+            <button class="button" id="move-file-button" type="button" disabled>Move to…</button>
+            <button class="button" id="delete-file-button" type="button" disabled>Delete</button>
+            <button class="button" data-icon="⌘" id="files-rebuild-library-button" type="button" disabled>Rebuild Kiwix Library</button>
           </div>
-          <p class="status" id="files-action-status">File manager ready.</p>
-          <div class="files-dual-pane">
-            <section class="files-pane" id="files-pane-left">
-              <div class="files-pane-head">
-                <h3>Left Pane</h3>
-                <p class="substatus" id="files-left-path">Loading...</p>
+          <p class="status" id="files-action-status" role="status"></p>
+          <p class="status hidden" id="files-rebuild-status" role="status"></p>
+          <section aria-label="Upload ZIMs to the content library" data-zim-upload>
+            <div class="zim-upload-drop">
+              <div><strong>Upload ZIM Files</strong><p class="substatus">Drop files here to copy them to your selected content drive.</p></div>
+              <button type="button" class="button" data-zim-choose>Choose ZIM Files</button>
+              <input type="file" accept=".zim" multiple hidden>
+            </div>
+            <progress class="zim-upload-progress" aria-label="ZIM upload progress" max="100" hidden></progress>
+            <p class="zim-upload-feedback status" role="status"></p>
+          </section>
+          <div class="files-list" id="files-list">Loading files…</div>
+          <p class="status" id="files-transfer-status" role="status"></p>
+          <button class="button" id="files-open-destination" type="button" hidden>Open destination</button>
+          <dialog class="files-dialog" id="files-destination" aria-labelledby="destination-title">
+            <h3 id="destination-title"></h3>
+            <div class="files-navigation">
+              <label class="files-location-field">Location <select id="destination-location"></select></label>
+              <button class="button" id="destination-up" type="button" disabled>Up</button>
+              <nav class="files-breadcrumb" id="destination-path" aria-label="Destination folder"></nav>
+            </div>
+            <div class="files-list" id="destination-list"></div>
+            <p class="status" id="destination-status" role="status"></p>
+            <div class="files-transfer-actions">
+              <button class="button" id="destination-new-folder" type="button">New Folder</button>
+              <button class="button" id="destination-cancel" type="button">Cancel</button>
+              <button class="button" id="destination-submit" type="button"></button>
+            </div>
+          </dialog>
+          <dialog class="files-dialog" id="zim-import-dialog" aria-labelledby="zim-import-title">
+            <form id="zim-import-form">
+              <h3 id="zim-import-title">Import ZIMs</h3>
+              <div class="field">
+                <label for="zim-import-source">USB drive</label>
+                <select id="zim-import-source" required></select>
               </div>
-              <div class="files-shortcuts" id="files-left-shortcuts"></div>
-              <div class="files-list" id="files-left-list">Loading files...</div>
-            </section>
-            <section class="files-pane" id="files-pane-right">
-              <div class="files-pane-head">
-                <h3>Right Pane</h3>
-                <p class="substatus" id="files-right-path">Loading...</p>
+              <div class="field">
+                <label for="zim-import-library">Copy to library</label>
+                <select id="zim-import-library" required></select>
               </div>
-              <div class="files-shortcuts" id="files-right-shortcuts"></div>
-              <div class="files-list" id="files-right-list">Loading files...</div>
-            </section>
-          </div>
+              <div class="files-transfer-actions">
+                <button class="button" id="zim-import-cancel" type="button">Cancel</button>
+                <button class="button" type="submit">Import ZIMs</button>
+              </div>
+            </form>
+          </dialog>
         </section>
       </div>
     </section>
+
+    <dialog class="card download-review" id="usb-prepare-dialog" aria-labelledby="usb-prepare-title">
+      <form id="usb-prepare-form">
+        <h2 id="usb-prepare-title">Prepare USB drive</h2>
+        <p id="usb-prepare-drive"></p>
+        <p>This permanently erases all partitions and files on this USB drive. PrepperCache will create one ext4 partition with library, maps, and media folders.</p>
+        <div class="field">
+          <label for="usb-prepare-name">New drive name</label>
+          <input id="usb-prepare-name" type="text" value="PrepperCacheDATA" maxlength="16"
+            pattern="[A-Za-z0-9_\-]{1,16}" aria-describedby="usb-prepare-name-help" required>
+          <p class="substatus" id="usb-prepare-name-help">Up to 16 letters, numbers, hyphens, or underscores.</p>
+        </div>
+        <p><label><input id="usb-prepare-confirm" type="checkbox" required> I understand that all files on this drive will be erased.</label></p>
+        <div class="actions">
+          <button class="button secondary" type="button" id="usb-prepare-cancel" autofocus>Cancel</button>
+          <button class="button" type="submit">Erase and prepare</button>
+        </div>
+      </form>
+    </dialog>
 
     <dialog class="card download-review" id="content-set-review" aria-labelledby="content-set-review-title">
       <h2 id="content-set-review-title">Review Content Set</h2>
@@ -2234,6 +2428,8 @@
     </div>
   </main>
   <script>
+    let adminSession = null;
+    let adminActionPending = false;
     let currentState = null;
     let currentStatus = null;
     let applyPollHandle = null;
@@ -2241,6 +2437,7 @@
     let dashboardPollHandle = null;
     let dashboardLoading = false;
     let currentContent = null;
+    let uploadingZims = false;
     let contentSetPlan = null;
     let reviewedContentSet = "";
     let contentSetRequest = 0;
@@ -2248,6 +2445,8 @@
     let contentPanelLoading = false;
     let contentNeedsRefresh = true;
     let latestContentApply = null;
+    let applyActionPending = false;
+    let filesRebuildRequested = false;
     let currentContentCatalog = null;
     let contentCatalogPollHandle = null;
     let installedZimSort = { by: "name", dir: "asc" };
@@ -2264,11 +2463,18 @@
     let mapsSyncPollHandle = null;
     let currentPanel = "system";
     let addMoreContentVisible = false;
-    let filesPaneState = {
-      left: { path: "", parentPath: "", selectedPath: "", entries: [], roots: [], sortBy: "name", sortDir: "asc", nameColumnWidth: 320 },
-      right: { path: "", parentPath: "", selectedPath: "", entries: [], roots: [], sortBy: "name", sortDir: "asc", nameColumnWidth: 320 }
-    };
-    let activeFilesPane = "left";
+    let files = { entries: [], roots: [] };
+    let selectedFilePath = "";
+    let filesSort = { field: "name", ascending: true };
+    let filesLoadRequest = 0;
+    let filesLoading = false;
+    let fileActionPending = false;
+    let usbConnected = false;
+    let transferJob = {};
+    let transferPollTimer;
+    let transferStatusRequest = 0;
+    let destinationPicker = null;
+    let storagePreparationRunning = false;
     let apFormDirty = false;
     let apClientsPanelVisible = false;
 
@@ -2293,9 +2499,18 @@
       if (panelName === "dashboard") {
         loadSettingsDashboard();
       } else if (panelName === "wifi" || panelName === "system" || panelName === "storage") {
-        loadSystemPanelData();
+        loadSystemPanelData().then(() => {
+          if (currentPanel === "storage" && settingsDevice()) focusStorageDevice(settingsDevice());
+        });
       } else if (panelName === "files") {
-        loadFilesPanelData();
+        loadContentPanelData(false);
+        const device = settingsDevice();
+        if (device) {
+          openStorageDrive(device);
+          pollFileTransfer();
+        } else {
+          loadFilesPanelData();
+        }
       } else if (panelName === "content") {
         loadContentPanelData();
       } else if (panelName === "maps") {
@@ -2308,7 +2523,7 @@
 
     function renderApplyState(apply) {
       latestContentApply = apply;
-      const running = apply.status === "running";
+      const running = apply.status === "running" && !apply.can_retry_download;
       const failed = apply.status === "failed";
       const setupRunning = running && apply.action === "full";
       const setupNote = document.getElementById("content-setup-note");
@@ -2319,26 +2534,37 @@
           : "";
       setupNote.classList.toggle("hidden", !setupNote.textContent);
       document.getElementById("content-library-details").classList.toggle("hidden", setupRunning);
+      document.querySelectorAll("[data-content-library-action]").forEach((control) => {
+        control.classList.toggle("hidden", setupRunning);
+      });
       const failures = apply.download_failed || 0;
+      const failedDownloads = running ? [] : [...new Set(apply.failed_download_names || [])];
+      const rejectedZims = running ? [] : (apply.rejected_zim_names || []);
       setContentActionStatus(
         running ? (setupRunning ? "Installing PrepperCache" : "Working on your content")
+          : apply.status === "running" ? "Content download interrupted. You can resume it below."
           : failed ? (apply.error || "The last operation failed.")
-          : failures ? `Finished with ${failures} failed download${failures === 1 ? "" : "s"}.`
+          : failedDownloads.length || rejectedZims.length ? "Some content needs attention."
           : apply.status === "succeeded" ? (apply.result_message || (apply.action === "update-content" ? "Content update complete." : "")) : "",
-        running || failed || failures > 0 || Boolean(apply.result_message) || apply.action === "update-content" && apply.status === "succeeded"
+        running || apply.can_retry_download || failed || failedDownloads.length > 0 || rejectedZims.length > 0
+          || Boolean(apply.result_message) || apply.action === "update-content" && apply.status === "succeeded"
       );
-      const failedFiles = document.getElementById("content-failed-files");
-      const names = running ? [] : [...new Set(apply.failed_download_names || [])];
-      failedFiles.replaceChildren(...names.map((name) => {
-        const item = document.createElement("li");
-        item.textContent = name;
-        return item;
-      }));
-      failedFiles.classList.toggle("hidden", !names.length);
-      document.getElementById("toggle-apply-log-button").classList.toggle("hidden", !apply.log_tail?.length);
+      for (const [section, list, names] of [
+        ["content-download-issues", "content-failed-files", failedDownloads],
+        ["content-index-issues", "content-rejected-files", rejectedZims],
+      ]) {
+        document.getElementById(list).replaceChildren(...names.map((name) => {
+          const item = document.createElement("li");
+          item.textContent = name;
+          return item;
+        }));
+        document.getElementById(section).classList.toggle("hidden", !names.length);
+      }
+      document.getElementById("content-download-recovery").classList.toggle("hidden", !apply.can_retry_download);
+
       renderContentSetControls();
       document.getElementById("retry-content-downloads").classList.toggle("hidden",
-        running || apply.action !== "download-extra-content" || !apply.failed_download_names?.length);
+        !apply.can_retry_download);
       document.getElementById("progress-label").textContent = apply.step || "Preparing";
       const percent = Number(apply.progress_percent) || 0;
       document.getElementById("progress-value").textContent = `${percent}%`;
@@ -2356,8 +2582,8 @@
       document.getElementById("apply-log").textContent =
         apply.log_tail && apply.log_tail.length
           ? apply.log_tail.join("\n")
-          : "No active download log.";
-      setContentProgressVisibility(apply.status === "running" || apply.status === "failed");
+          : "No log output was recorded for this operation.";
+      setContentProgressVisibility(running && Boolean(apply.downloads_active));
 
       document.getElementById("update-content-button").disabled = running || !currentContent?.automatic_updates;
       document.getElementById("automatic-content-updates").disabled = running || !currentContent?.automatic_updates;
@@ -2366,7 +2592,18 @@
       document.getElementById("select-all-local-zims-button").disabled = running;
       document.getElementById("clear-local-zims-button").disabled = running;
       document.getElementById("refresh-content-button").disabled = running;
-      document.getElementById("rebuild-library-button").disabled = running;
+      document.getElementById("rebuild-library-button").disabled = running || applyActionPending;
+      updateFileButtons();
+      if (filesRebuildRequested && apply.action === "rebuild-library") {
+        const rejected = apply.rejected_zim_names || [];
+        setFilesRebuildStatus(
+          running ? "Rebuilding Kiwix library…"
+            : apply.status === "failed" ? (apply.error || "The library rebuild failed. See Content for details.")
+            : rejected.length ? "Library rebuilt. Some ZIM files are unavailable. See Content for details."
+            : "Kiwix library rebuilt."
+        );
+        filesRebuildRequested = running;
+      }
       updateCustomLibraryVisibility(true, running);
 
       updatePolling();
@@ -2469,7 +2706,14 @@
       }));
     }
 
-    function renderDashboardStorage(disk) {
+    function renderDashboardStorage(disk, volumes) {
+      const usbStatus = document.getElementById("dashboard-usb-status");
+      const known = Array.isArray(volumes);
+      const connected = known && volumes.some((volume) => volume?.transport === "usb");
+      const label = connected ? "USB storage connected" : known ? "No USB storage connected" : "USB storage status unavailable";
+      if (usbStatus.textContent !== label) usbStatus.textContent = label;
+      usbStatus.dataset.tone = connected ? "good" : "neutral";
+
       const total = Number(disk?.total_bytes);
       const used = Number(disk?.used_bytes);
       const available = total > 0 && Number.isFinite(used);
@@ -2501,7 +2745,7 @@
           ? content.installed_count.toLocaleString() : "Unavailable";
         renderDashboardRecent(content);
         renderDashboardHealth(health, maps);
-        renderDashboardStorage(health?.storage?.disk || health?.disk);
+        renderDashboardStorage(health?.storage?.disk || health?.disk, health?.storage?.volumes);
       } finally {
         dashboardLoading = false;
       }
@@ -2523,23 +2767,12 @@
       return "status-chip--warn";
     }
 
-    function setStatusChips(elementId, items) {
-      const container = document.getElementById(elementId);
-      container.innerHTML = items.map((item) => {
-        const tone = item.tone ? ` ${item.tone}` : "";
-        return `<span class="status-chip${tone}">
-          <span class="status-chip-key">${escapeHtml(item.label)}</span>
-          <span class="status-chip-value">${escapeHtml(item.value)}</span>
-        </span>`;
-      }).join("");
-    }
-
     function updateContentPaneVisibility() {
       const card = document.getElementById("add-more-content-card");
       const button = document.getElementById("toggle-add-content-button");
       card.classList.toggle("hidden", !addMoreContentVisible);
       button.setAttribute("aria-expanded", String(addMoreContentVisible));
-      button.textContent = addMoreContentVisible ? "Hide Catalog" : "Add Content";
+      button.textContent = addMoreContentVisible ? "Hide Catalog" : "Add More Content";
     }
 
     function setContentActionStatus(text = "", visible = false) {
@@ -2692,311 +2925,466 @@
       })[String(content.profile || "").toLowerCase()] || "Installed";
     }
 
-    function activePaneState() {
-      return filesPaneState[activeFilesPane];
+    function selectedFileEntry() {
+      return files.entries.find((entry) => entry.path === selectedFilePath);
     }
 
-    function inactivePaneKey() {
-      return activeFilesPane === "left" ? "right" : "left";
+    function updateFileButtons() {
+      const working = fileActionPending || transferJob.status === "running";
+      const unavailable = working || filesLoading || !files.path;
+      for (const action of ["rename", "copy", "move", "delete"]) {
+        document.getElementById(`${action}-file-button`).disabled = unavailable || !selectedFileEntry();
+      }
+      document.getElementById("new-folder-button").disabled = unavailable;
+      document.getElementById("files-rebuild-library-button").disabled =
+        working || uploadingZims || applyActionPending || !latestContentApply || latestContentApply.status === "running";
+      const importButton = document.getElementById("import-zims-button");
+      importButton.hidden = !usbConnected;
+      importButton.disabled = unavailable;
     }
 
-    function sortedFilesEntries(side, entries) {
-      const pane = filesPaneState[side];
-      const sortBy = pane.sortBy || "name";
-      const sortDir = pane.sortDir === "desc" ? -1 : 1;
-      return [...entries].sort((left, right) => {
-        if (left.is_dir !== right.is_dir) {
-          return left.is_dir ? -1 : 1;
+    document.addEventListener("preppercache:usb-presence", ({ detail }) => {
+      if (usbConnected === detail) return;
+      usbConnected = detail;
+      updateFileButtons();
+    });
+
+    function renderFileNavigation(prefix, listing, browse) {
+      const location = document.getElementById(`${prefix}-location`);
+      const breadcrumb = document.getElementById(`${prefix}-path`);
+      const up = document.getElementById(`${prefix}-up`);
+      const root = listing.roots.reduce((closest, item) => {
+        const containsPath = listing.path === item.path || listing.path.startsWith(`${item.path}/`);
+        return containsPath && (!closest || item.path.length > closest.path.length) ? item : closest;
+      }, null);
+      const options = listing.roots.map((item) => new Option(item.label, item.path));
+      if (prefix === "files") {
+        for (const drive of listing.unmounted_usb || []) {
+          options.push(new Option(`USB: ${drive.display_name} (mount and browse)`, `usb:${drive.path}`));
         }
-
-        let comparison = 0;
-        if (sortBy === "size") {
-          comparison = Number(left.size_bytes || 0) - Number(right.size_bytes || 0);
-        } else if (sortBy === "modified") {
-          comparison = String(left.modified_at || "").localeCompare(String(right.modified_at || ""));
+      }
+      location.replaceChildren(...options);
+      location.value = root?.path || "";
+      location.onchange = () => {
+        if (location.value.startsWith("usb:")) {
+          const device = location.value.slice(4);
+          location.value = root?.path || "";
+          openStorageDrive(device);
         } else {
-          comparison = String(left.name || "").localeCompare(String(right.name || ""), undefined, { numeric: true, sensitivity: "base" });
+          browse(location.value);
         }
-
-        if (comparison === 0) {
-          comparison = String(left.name || "").localeCompare(String(right.name || ""), undefined, { numeric: true, sensitivity: "base" });
-        }
-        return comparison * sortDir;
-      });
-    }
-
-    function updateFilesPaneSort(side, sortBy) {
-      const pane = filesPaneState[side];
-      if (pane.sortBy === sortBy) {
-        pane.sortDir = pane.sortDir === "asc" ? "desc" : "asc";
-      } else {
-        pane.sortBy = sortBy;
-        pane.sortDir = sortBy === "name" ? "asc" : "desc";
-      }
-      renderFilesPane("left", filesPaneState.left);
-      renderFilesPane("right", filesPaneState.right);
-    }
-
-    function beginFilesColumnResize(side, event) {
-      event.preventDefault();
-      const paneRoot = document.getElementById(`files-pane-${side}`);
-      const startX = event.clientX;
-      const startWidth = Number(filesPaneState[side].nameColumnWidth || 320);
-      const maxWidth = Math.max((paneRoot.getBoundingClientRect().width || 520) - 230, 220);
-
-      const onMove = (moveEvent) => {
-        const nextWidth = Math.max(180, Math.min(maxWidth, startWidth + (moveEvent.clientX - startX)));
-        filesPaneState[side].nameColumnWidth = nextWidth;
-        paneRoot.style.setProperty("--files-name-col-width", `${nextWidth}px`);
       };
 
-      const onUp = () => {
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-      };
-
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-    }
-
-    function renderFilesPane(side, payload) {
-      filesPaneState[side] = {
-        path: payload.path || "",
-        parentPath: payload.parent_path || "",
-        selectedPath: filesPaneState[side].selectedPath || "",
-        entries: Array.isArray(payload.entries) ? payload.entries : [],
-        roots: Array.isArray(payload.roots) ? payload.roots : [],
-        sortBy: filesPaneState[side].sortBy || "name",
-        sortDir: filesPaneState[side].sortDir || "asc",
-        nameColumnWidth: Number(filesPaneState[side].nameColumnWidth || 320)
-      };
-      const pane = filesPaneState[side];
-      const paneRoot = document.getElementById(`files-pane-${side}`);
-      const pathEl = document.getElementById(`files-${side}-path`);
-      const shortcutsEl = document.getElementById(`files-${side}-shortcuts`);
-      const listEl = document.getElementById(`files-${side}-list`);
-
-      paneRoot.classList.toggle("active", activeFilesPane === side);
-      paneRoot.style.setProperty("--files-name-col-width", `${pane.nameColumnWidth}px`);
-      pathEl.textContent = pane.path || "Unavailable";
-      shortcutsEl.innerHTML = "";
-
-      const roots = Array.isArray(pane.roots) ? pane.roots : [];
-      roots.forEach((root) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "button files-shortcut-button";
-        button.textContent = root.label || root.path || "Root";
-        button.addEventListener("click", () => loadFilesPane(side, root.path || ""));
-        shortcutsEl.appendChild(button);
-      });
-
-      listEl.textContent = "";
-      const entries = [];
-      if (pane.parentPath) {
-        entries.push({
-          name: "..",
-          path: pane.parentPath,
-          is_dir: true,
-          size_label: "",
-          modified_at: "Parent folder"
-        });
-      }
-      entries.push(...pane.entries);
-
-      if (!entries.length) {
-        const empty = document.createElement("div");
-        empty.className = "files-empty";
-        empty.textContent = "This folder is empty.";
-        listEl.appendChild(empty);
+      up.disabled = !listing.parent_path;
+      up.onclick = () => browse(listing.parent_path);
+      breadcrumb.replaceChildren();
+      if (!root) {
+        breadcrumb.textContent = listing.path;
         return;
       }
 
-      const sortIndicator = pane.sortDir === "asc" ? "▲" : "▼";
+      let path = root.path;
+      const parts = [root.label, ...listing.path.slice(root.path.length).split("/").filter(Boolean)];
+      parts.forEach((part, index) => {
+        if (index > 0) {
+          path += `/${part}`;
+          breadcrumb.append("›");
+        }
+        if (index === parts.length - 1) {
+          const current = document.createElement("span");
+          current.setAttribute("aria-current", "location");
+          current.textContent = part;
+          breadcrumb.append(current);
+          return;
+        }
+        const button = document.createElement("button");
+        const folder = path;
+        button.type = "button";
+        button.className = "files-folder-link";
+        button.textContent = part;
+        button.onclick = () => browse(folder);
+        breadcrumb.append(button);
+      });
+    }
+
+    function renderFileList() {
+      const list = document.getElementById("files-list");
+      list.replaceChildren();
+      if (!files.entries.length) {
+        list.textContent = "This folder is empty.";
+        return;
+      }
+
       const header = document.createElement("div");
       header.className = "files-header";
-      header.innerHTML = `
-        <button class="files-header-button files-name-header" data-sort="name" type="button">
-          Name${pane.sortBy === "name" ? `<span class="files-sort-indicator">${sortIndicator}</span>` : ""}
-          <span class="files-column-resizer" data-resize="name" aria-hidden="true"></span>
-        </button>
-        <button class="files-header-button" data-sort="size" type="button">
-          Size${pane.sortBy === "size" ? `<span class="files-sort-indicator">${sortIndicator}</span>` : ""}
-        </button>
-        <button class="files-header-button" data-sort="modified" type="button">
-          Modified${pane.sortBy === "modified" ? `<span class="files-sort-indicator">${sortIndicator}</span>` : ""}
-        </button>
-      `;
-      header.querySelectorAll("[data-sort]").forEach((button) => {
-        button.addEventListener("click", () => updateFilesPaneSort(side, button.dataset.sort));
-      });
-      const resizer = header.querySelector("[data-resize='name']");
-      if (resizer) {
-        resizer.addEventListener("mousedown", (resizeEvent) => beginFilesColumnResize(side, resizeEvent));
+      for (const [field, label] of [["name", "Name"], ["size_bytes", "Size"], ["modified_at", "Modified"]]) {
+        const button = document.createElement("button");
+        const active = filesSort.field === field;
+        button.type = "button";
+        button.className = "files-header-button";
+        button.dataset.filesSort = field;
+        button.textContent = active ? `${label} ${filesSort.ascending ? "▲" : "▼"}` : label;
+        button.onclick = () => {
+          filesSort = { field, ascending: active ? !filesSort.ascending : field === "name" };
+          renderFileList();
+          list.querySelector(`[data-files-sort="${field}"]`).focus();
+        };
+        header.append(button);
       }
-      listEl.appendChild(header);
+      list.append(header);
 
-      sortedFilesEntries(side, entries).forEach((entry) => {
-        const row = document.createElement("button");
-        row.type = "button";
+      const compareNames = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+      const entries = [...files.entries].sort((a, b) => {
+        if (a.is_dir !== b.is_dir) return a.is_dir ? -1 : 1;
+        let comparison = compareNames(a, b);
+        if (filesSort.field === "size_bytes") comparison = a.size_bytes - b.size_bytes || comparison;
+        if (filesSort.field === "modified_at") comparison = a.modified_at.localeCompare(b.modified_at) || comparison;
+        return comparison * (filesSort.ascending ? 1 : -1);
+      });
+      for (const entry of entries) {
+        const row = document.createElement("div");
         row.className = "files-entry";
-        row.classList.toggle("selected", pane.selectedPath === entry.path);
-        row.innerHTML = `
-          <span class="files-entry-name">${escapeHtml(entry.is_dir ? `📁 ${entry.name}` : `📄 ${entry.name}`)}</span>
-          <span class="files-entry-size">${escapeHtml(entry.is_dir ? "DIR" : (entry.size_label || "--"))}</span>
-          <span class="files-entry-modified">${escapeHtml(entry.modified_at || "")}</span>
-        `;
-        row.addEventListener("click", () => {
-          activeFilesPane = side;
-          pane.selectedPath = entry.path;
-          renderFilesPane("left", filesPaneState.left);
-          renderFilesPane("right", filesPaneState.right);
-        });
-        row.addEventListener("dblclick", () => {
-          activeFilesPane = side;
-          pane.selectedPath = entry.path;
-          if (entry.is_dir) {
-            loadFilesPane(side, entry.path);
-          }
-        });
-        listEl.appendChild(row);
-      });
-    }
+        row.classList.toggle("selected", entry.path === selectedFilePath);
 
-    async function loadFilesPane(side, path = "") {
-      const listEl = document.getElementById(`files-${side}-list`);
-      listEl.textContent = "Loading files...";
-      try {
-        const encoded = path ? `?path=${encodeURIComponent(path)}` : "";
-        const { response, payload } = await fetchJsonWithTimeout(`/api/files${encoded}`, {}, 5000);
-        if (!response.ok) {
-          throw new Error(payload.error || "Unable to load files.");
+        const cell = document.createElement("div");
+        cell.className = "files-name-cell";
+        const select = document.createElement("input");
+        select.type = "radio";
+        select.name = "files-selection";
+        select.checked = entry.path === selectedFilePath;
+        select.setAttribute("aria-label", `Select ${entry.name}`);
+
+        const name = document.createElement(entry.is_dir ? "button" : "span");
+        name.className = "files-entry-name";
+        name.textContent = `${entry.is_dir ? "📁" : "📄"} ${entry.name}`;
+        name.title = entry.name;
+        if (entry.is_dir) {
+          name.type = "button";
+          name.classList.add("files-folder-link");
+          name.onclick = () => loadFiles(entry.path);
         }
-        renderFilesPane(side, payload);
-      } catch (error) {
-        listEl.textContent = error.message;
+        const size = document.createElement("span");
+        size.className = "files-entry-size";
+        size.textContent = entry.is_dir ? "" : entry.size_label;
+        const modified = document.createElement("span");
+        modified.className = "files-entry-modified";
+        modified.textContent = entry.modified_at;
+        cell.append(select, name);
+        row.append(cell, size, modified);
+        row.onclick = (event) => {
+          if (event.target === name && entry.is_dir) return;
+          select.checked = true;
+          selectedFilePath = entry.path;
+          list.querySelector(".selected")?.classList.remove("selected");
+          row.classList.add("selected");
+          updateFileButtons();
+        };
+        list.append(row);
       }
     }
 
-    async function loadFilesPanelData() {
-      await Promise.all([
-        loadFilesPane("left", filesPaneState.left.path || ""),
-        loadFilesPane("right", filesPaneState.right.path || "")
-      ]);
+    async function fileRequest(endpoint, body) {
+      const options = body ? {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      } : {};
+      const { response, payload } = await fetchJsonWithTimeout(endpoint, options, body ? 15000 : 5000);
+      if (!response.ok) throw new Error(payload.error || "File request failed.");
+      return payload;
     }
 
-    function selectedFileEntry(side = activeFilesPane) {
-      const pane = filesPaneState[side];
-      return (pane.entries || []).find((entry) => entry.path === pane.selectedPath) || null;
+    function listFolder(path) {
+      return fileRequest(path ? `/api/files?path=${encodeURIComponent(path)}` : "/api/files");
     }
 
-    async function submitFileAction(endpoint, payload, successMessage) {
-      const statusEl = document.getElementById("files-action-status");
-      statusEl.textContent = "File action running...";
+    function showFiles(listing) {
+      if (files.path !== listing.path || !listing.entries.some((entry) => entry.path === selectedFilePath)) {
+        selectedFilePath = "";
+      }
+      files = listing;
+      usbConnected = Boolean(listing.usb_connected);
+      renderFileNavigation("files", files, loadFiles);
+      renderFileList();
+    }
+
+    async function loadFiles(path = "") {
+      const request = ++filesLoadRequest;
+      const status = document.getElementById("files-action-status");
+      status.textContent = "Loading folder…";
+      filesLoading = true;
+      updateFileButtons();
       try {
-        const { response, payload: result } = await fetchJsonWithTimeout(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        }, 15000);
-        if (!response.ok) {
-          throw new Error(result.error || "File action failed.");
-        }
-        if (result.source) {
-          renderFilesPane(activeFilesPane, result.source);
-        }
-        if (result.target) {
-          renderFilesPane(inactivePaneKey(), result.target);
-        }
-        if (result.pane) {
-          renderFilesPane(activeFilesPane, result.pane);
-        }
-        statusEl.textContent = result.message || successMessage;
+        const listing = await listFolder(path);
+        if (request !== filesLoadRequest) return;
+        showFiles(listing);
+        status.textContent = "";
       } catch (error) {
-        statusEl.textContent = error.message;
+        if (request !== filesLoadRequest) return;
+        status.textContent = error.message;
+        if (!files.path) document.getElementById("files-list").textContent = "Folder unavailable.";
+      } finally {
+        if (request === filesLoadRequest) {
+          filesLoading = false;
+          updateFileButtons();
+        }
       }
     }
 
-    async function refreshFilesPanel() {
-      document.getElementById("files-action-status").textContent = "Refreshing file manager...";
-      await loadFilesPanelData();
-      document.getElementById("files-action-status").textContent = "File manager ready.";
+    async function openStorageDrive(device) {
+      const request = ++filesLoadRequest;
+      const status = document.getElementById("files-action-status");
+      filesLoading = true;
+      updateFileButtons();
+      status.textContent = "Finding USB drive…";
+      try {
+        const { volumes } = await fileRequest("/api/system/storage/volumes");
+        const volume = volumes.find((item) => item.path === device);
+        if (!volume) throw new Error("This drive is no longer connected.");
+        if (request !== filesLoadRequest || currentPanel !== "files") return;
+        let mountpoint = volume.mountpoint;
+        if (!mountpoint) {
+          if (!volume.can_mount) throw new Error("This drive has no filesystem PrepperCache can mount.");
+          status.textContent = `Mounting ${volume.display_name || device}…`;
+          const storage = await fileRequest("/api/system/storage/mount", { device_path: device });
+          mountpoint = storage.volumes.find((item) => item.path === device)?.mountpoint;
+        }
+        if (!mountpoint) throw new Error("The drive could not be mounted.");
+        if (request === filesLoadRequest && currentPanel === "files") await loadFiles(mountpoint);
+      } catch (error) {
+        if (request === filesLoadRequest && currentPanel === "files") {
+          status.textContent = error.message;
+          if (!files.path) document.getElementById("files-list").textContent = "Drive unavailable.";
+        }
+      } finally {
+        if (request === filesLoadRequest) {
+          filesLoading = false;
+          updateFileButtons();
+        }
+      }
     }
 
-    async function createFolderInActivePane() {
-      const pane = activePaneState();
+    function loadFilesPanelData() {
+      loadFiles(files.path || "");
+      pollFileTransfer();
+    }
+
+    async function submitFileAction(endpoint, body) {
+      const status = document.getElementById("files-action-status");
+      const request = filesLoadRequest;
+      fileActionPending = true;
+      updateFileButtons();
+      status.textContent = "Working…";
+      try {
+        const result = await fileRequest(endpoint, body);
+        if (request === filesLoadRequest && result.pane?.path === files.path) showFiles(result.pane);
+        if (request === filesLoadRequest) status.textContent = result.message;
+      } catch (error) {
+        if (request === filesLoadRequest) status.textContent = error.message;
+      } finally {
+        fileActionPending = false;
+        updateFileButtons();
+      }
+    }
+
+    function createFileFolder() {
       const name = window.prompt("Folder name:");
-      if (!name) {
-        document.getElementById("files-action-status").textContent = "Folder creation canceled.";
-        return;
-      }
-      await submitFileAction("/api/files/mkdir", {
-        parent_path: pane.path,
-        name
-      }, `Created folder ${name}.`);
+      if (name?.trim()) submitFileAction("/api/files/mkdir", { parent_path: files.path, name });
     }
 
-    async function renameSelectedFile() {
+    function renameSelectedFile() {
       const entry = selectedFileEntry();
-      if (!entry) {
-        document.getElementById("files-action-status").textContent = "Select a file or folder first.";
-        return;
-      }
+      if (!entry) return;
       const name = window.prompt("New name:", entry.name);
-      if (!name || name === entry.name) {
-        document.getElementById("files-action-status").textContent = "Rename canceled.";
-        return;
+      if (name?.trim() && name !== entry.name) {
+        submitFileAction("/api/files/rename", { source_path: entry.path, new_name: name });
       }
-      await submitFileAction("/api/files/rename", {
-        source_path: entry.path,
-        new_name: name
-      }, `Renamed ${entry.name}.`);
     }
 
-    async function copySelectedFile() {
+    function deleteSelectedFile() {
       const entry = selectedFileEntry();
-      if (!entry) {
-        document.getElementById("files-action-status").textContent = "Select a file or folder first.";
-        return;
+      if (entry && window.confirm(`Permanently delete ${entry.name}?`)) {
+        submitFileAction("/api/files/delete", { source_path: entry.path });
       }
-      await submitFileAction("/api/files/copy", {
-        source_path: entry.path,
-        target_dir: filesPaneState[inactivePaneKey()].path
-      }, `Copied ${entry.name}.`);
     }
 
-    async function moveSelectedFile() {
-      const entry = selectedFileEntry();
-      if (!entry) {
-        document.getElementById("files-action-status").textContent = "Select a file or folder first.";
-        return;
-      }
-      const confirmed = window.confirm(`Move ${entry.name} to the other pane?`);
-      if (!confirmed) {
-        document.getElementById("files-action-status").textContent = "Move canceled.";
-        return;
-      }
-      await submitFileAction("/api/files/move", {
-        source_path: entry.path,
-        target_dir: filesPaneState[inactivePaneKey()].path
-      }, `Moved ${entry.name}.`);
+    function renderTransferStatus(job) {
+      const status = document.getElementById("files-transfer-status");
+      if (status.textContent !== (job.message || "")) status.textContent = job.message || "";
+      const open = document.getElementById("files-open-destination");
+      open.hidden = job.status !== "complete" || (job.operation === "import-zims" && !job.imported);
+      open.onclick = () => loadFiles(job.target_dir);
+      updateFileButtons();
     }
 
-    async function deleteSelectedFile() {
+    async function pollFileTransfer() {
+      clearTimeout(transferPollTimer);
+      const request = ++transferStatusRequest;
+      try {
+        const job = await fileRequest("/api/files/transfer");
+        if (request !== transferStatusRequest) return;
+        const finished = transferJob.status === "running" && job.status !== "running";
+        transferJob = job;
+        renderTransferStatus(job);
+        if (finished && !filesLoading && [job.source_dir, job.target_dir].includes(files.path)) {
+          loadFiles(files.path);
+        }
+      } catch (error) {
+        if (request !== transferStatusRequest) return;
+        document.getElementById("files-transfer-status").textContent = `Could not check transfer status. ${error.message}`;
+      }
+      if (currentPanel === "files" || transferJob.status === "running") {
+        transferPollTimer = setTimeout(pollFileTransfer, 2000);
+      }
+    }
+
+    async function chooseZimImport() {
+      fileActionPending = true;
+      updateFileButtons();
+      const status = document.getElementById("files-action-status");
+      status.textContent = "Checking USB drives and libraries…";
+      try {
+        const { drives, libraries } = await fileRequest("/api/files/zim-import");
+        if (currentPanel !== "files") return;
+        if (!drives.length) throw new Error("No readable USB drive is connected.");
+        if (!libraries.length) throw new Error("No library is available.");
+        status.textContent = "";
+        const currentDrive = drives.find(({ mountpoint }) =>
+          mountpoint && (files.path === mountpoint || files.path.startsWith(`${mountpoint}/`))
+        );
+        if ((currentDrive || drives.length === 1) && libraries.length === 1) {
+          await startZimImport((currentDrive || drives[0]).path, libraries[0].path);
+          return;
+        }
+        const source = document.getElementById("zim-import-source");
+        source.replaceChildren(...drives.map((drive) => new Option(drive.display_name, drive.path)));
+        source.value = (currentDrive || drives[0]).path;
+        const library = document.getElementById("zim-import-library");
+        library.replaceChildren(...libraries.map((item) => new Option(item.label, item.path)));
+        library.value = (libraries.find((item) => item.selected) || libraries[0]).path;
+        document.getElementById("zim-import-dialog").showModal();
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        fileActionPending = false;
+        updateFileButtons();
+      }
+    }
+
+    async function startZimImport(device, targetDir) {
+      fileActionPending = true;
+      updateFileButtons();
+      const status = document.getElementById("files-action-status");
+      status.textContent = "";
+      try {
+        transferJob = await fileRequest("/api/files/zim-import", { device_path: device, target_dir: targetDir });
+        renderTransferStatus(transferJob);
+        pollFileTransfer();
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        fileActionPending = false;
+        updateFileButtons();
+      }
+    }
+
+    function updateDestinationButtons() {
+      const { listing, entry, busy, sourceDir } = destinationPicker;
+      const folder = listing?.path;
+      const invalid = folder === sourceDir ||
+        (entry.is_dir && (folder === entry.path || folder?.startsWith(`${entry.path}/`)));
+      document.getElementById("destination-submit").disabled = busy || !folder || invalid;
+      document.getElementById("destination-new-folder").disabled = busy || !folder;
+      document.getElementById("destination-location").disabled = busy;
+      document.getElementById("destination-up").disabled = busy || !listing?.parent_path;
+      document.getElementById("destination-cancel").disabled = destinationPicker.submitting;
+    }
+
+    async function loadDestination(path, newFolderName) {
+      const picker = destinationPicker;
+      if (picker.busy) return;
+      const status = document.getElementById("destination-status");
+      picker.busy = true;
+      updateDestinationButtons();
+      status.textContent = newFolderName ? "Creating folder…" : "Loading folders…";
+      try {
+        let listing;
+        if (newFolderName) {
+          const result = await fileRequest("/api/files/mkdir", { parent_path: path, name: newFolderName });
+          listing = result.pane;
+          if (files.path === path && !filesLoading) showFiles(listing);
+          const created = listing.entries.find((entry) => entry.is_dir && entry.name === newFolderName);
+          if (created) listing = await listFolder(created.path);
+        } else {
+          listing = await listFolder(path);
+        }
+        if (picker !== destinationPicker) return;
+        picker.listing = listing;
+        renderFileNavigation("destination", listing, loadDestination);
+        const list = document.getElementById("destination-list");
+        const folders = listing.entries.filter((entry) => entry.is_dir);
+        list.replaceChildren();
+        for (const folder of folders) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "files-entry";
+          button.textContent = `📁 ${folder.name}`;
+          button.onclick = () => loadDestination(folder.path);
+          list.append(button);
+        }
+        if (!folders.length) list.textContent = "No subfolders.";
+        status.textContent = listing.path === picker.sourceDir ? "Choose a different folder." : "";
+      } catch (error) {
+        if (picker === destinationPicker) {
+          status.textContent = error.message;
+          if (picker.listing) renderFileNavigation("destination", picker.listing, loadDestination);
+        }
+      } finally {
+        if (picker === destinationPicker) {
+          picker.busy = false;
+          updateDestinationButtons();
+        }
+      }
+    }
+
+    function openDestinationPicker(operation) {
       const entry = selectedFileEntry();
-      if (!entry) {
-        document.getElementById("files-action-status").textContent = "Select a file or folder first.";
-        return;
+      if (!entry) return;
+      const verb = operation === "copy" ? "Copy" : "Move";
+      destinationPicker = { operation, entry, sourceDir: files.path, listing: null, busy: false, submitting: false };
+      document.getElementById("destination-title").textContent = `${verb} ${entry.name}`;
+      document.getElementById("destination-submit").textContent = `${verb} here`;
+      for (const id of ["destination-location", "destination-path", "destination-list"]) {
+        document.getElementById(id).replaceChildren();
       }
-      const kind = entry.is_dir ? "folder" : "file";
-      const confirmed = window.confirm(`Delete this ${kind}?\n\n${entry.name}\n\nThis cannot be undone.`);
-      if (!confirmed) {
-        document.getElementById("files-action-status").textContent = "Delete canceled.";
-        return;
+      document.getElementById("files-destination").showModal();
+      loadDestination(files.path);
+    }
+
+    async function startFileTransfer() {
+      const picker = destinationPicker;
+      if (!picker?.listing || picker.busy) return;
+      const status = document.getElementById("destination-status");
+      picker.busy = true;
+      picker.submitting = true;
+      updateDestinationButtons();
+      status.textContent = "Starting transfer…";
+      try {
+        const job = await fileRequest("/api/files/transfer", {
+          operation: picker.operation, source_path: picker.entry.path, target_dir: picker.listing.path
+        });
+        transferJob = job;
+        renderTransferStatus(job);
+        document.getElementById("files-destination").close();
+        pollFileTransfer();
+      } catch (error) {
+        status.textContent = error.message;
+        pollFileTransfer();
+      } finally {
+        picker.busy = false;
+        picker.submitting = false;
+        if (picker === destinationPicker) updateDestinationButtons();
       }
-      await submitFileAction("/api/files/delete", {
-        source_path: entry.path
-      }, `Deleted ${entry.name}.`);
     }
 
     function pendingDownloadBytes() {
@@ -3259,6 +3647,7 @@
           signal: controller.signal
         });
         const payload = await response.json();
+        if (response.status === 401 && !url.startsWith("/api/admin/")) checkAdminSession();
         return { response, payload };
       } finally {
         window.clearTimeout(timeoutHandle);
@@ -3362,6 +3751,30 @@
       }).join("");
     }
 
+    function primaryUsbVolumes(volumes) {
+      const drives = new Map();
+      for (const volume of volumes) {
+        if (volume.transport !== "usb" || !volume.path) continue;
+        const key = volume.parent_path || volume.path;
+        if (!drives.has(key)) drives.set(key, { path: key, disk: null, partitions: [] });
+        const drive = drives.get(key);
+        if (volume.is_partition) drive.partitions.push(volume);
+        else drive.disk = volume;
+      }
+      return [...drives.values()].map((drive) => {
+        const candidates = drive.partitions.length ? drive.partitions : [drive.disk].filter(Boolean);
+        const readable = candidates.filter((volume) =>
+          (volume.mounted || volume.can_mount) &&
+          volume.filesystem !== "swap" && !/^(EFI( SYSTEM( PARTITION)?)?|ESP)$/i.test(volume.label || "")
+        );
+        const main = readable.sort((a, b) => {
+          const ready = (volume) => Boolean(volume.preppercache_layout?.library && volume.preppercache_layout?.maps);
+          return Number(ready(b)) - Number(ready(a)) || b.size_bytes - a.size_bytes;
+        })[0];
+        return { ...drive, main };
+      });
+    }
+
     function renderStorageHealth(status) {
       const storage = status && status.storage;
       const disk = storage && storage.disk;
@@ -3376,13 +3789,12 @@
       const externalBreakdowns = document.getElementById("external-storage-breakdowns");
       const targetsList = document.getElementById("storage-targets-list");
       const volumesList = document.getElementById("storage-volumes-list");
-      const note = document.getElementById("storage-status-note");
 
       if (!disk) {
         summary.textContent = "Storage details are unavailable right now.";
         used.style.width = "0%";
         preppercache.style.width = "0%";
-        free.style.width = "100%";
+        free.style.width = "0%";
         usedLabel.textContent = "-";
         preppercacheLabel.textContent = "-";
         freeLabel.textContent = "-";
@@ -3391,27 +3803,24 @@
         externalBreakdowns.innerHTML = "";
         targetsList.textContent = "Storage target details are unavailable.";
         volumesList.textContent = "Storage volume details are unavailable.";
-        note.textContent = "Storage details are unavailable right now.";
         return;
       }
 
       const totalBytes = Number(disk.total_bytes || 0);
       const usedBytes = Number(disk.used_bytes || 0);
       const freeBytes = Number(disk.free_bytes || 0);
-      const preppercacheBytes = Number(storage.preppercache_bytes || 0);
-      const otherUsedBytes = Math.max(0, usedBytes - preppercacheBytes);
-      const otherPercent = totalBytes > 0 ? Math.max(0, Math.min(100, (otherUsedBytes / totalBytes) * 100)) : 0;
-      const preppercachePercent = totalBytes > 0 ? Math.max(0, Math.min(100 - otherPercent, (preppercacheBytes / totalBytes) * 100)) : 0;
-      const freePercent = Math.max(0, 100 - otherPercent - preppercachePercent);
+      const preppercacheBytes = Math.min(Number(storage.preppercache_bytes || 0), usedBytes);
+      const otherUsedBytes = usedBytes - preppercacheBytes;
+      const displayedBytes = usedBytes + freeBytes;
       const freeSpacePercent = totalBytes > 0 ? (freeBytes / totalBytes) * 100 : 0;
 
-      used.style.width = `${otherPercent}%`;
-      preppercache.style.width = `${preppercachePercent}%`;
-      free.style.width = `${freePercent}%`;
+      used.style.width = `${displayedBytes ? (otherUsedBytes / displayedBytes) * 100 : 0}%`;
+      preppercache.style.width = `${displayedBytes ? (preppercacheBytes / displayedBytes) * 100 : 0}%`;
+      free.style.width = `${displayedBytes ? (freeBytes / displayedBytes) * 100 : 0}%`;
       usedLabel.textContent = formatBytes(otherUsedBytes);
       preppercacheLabel.textContent = formatBytes(preppercacheBytes);
       freeLabel.textContent = formatBytes(freeBytes);
-      summary.textContent = `This device is using ${formatBytes(usedBytes)} overall, with about ${formatBytes(preppercacheBytes)} currently tied to PrepperCache maps and library data.`;
+      summary.textContent = `The system drive is using ${formatBytes(usedBytes)}, including ${formatBytes(preppercacheBytes)} of PrepperCache data.`;
 
       warning.className = "content-storage-warning";
       warning.textContent = "";
@@ -3426,26 +3835,31 @@
       const targets = Array.isArray(storage.targets) ? storage.targets : [];
       const volumes = Array.isArray(storage.volumes) ? storage.volumes : [];
       const preppercacheBytesByVolume = new Map();
-      const seenResolvedPaths = new Set();
-      targets.forEach((target) => {
+      const pathsByVolume = new Map();
+      const targetsByPathLength = [...targets].sort(
+        (a, b) => String(a?.resolved_path || "").length - String(b?.resolved_path || "").length
+      );
+      targetsByPathLength.forEach((target) => {
         const resolvedPath = String(target?.resolved_path || "");
         const volume = target?.volume || null;
         const volumeKey = String(volume?.path || volume?.mountpoint || "");
-        if (!resolvedPath || !volumeKey || seenResolvedPaths.has(resolvedPath)) {
+        const countedPaths = pathsByVolume.get(volumeKey) || [];
+        if (!resolvedPath || !volumeKey || countedPaths.some(
+          (path) => resolvedPath === path || resolvedPath.startsWith(`${path}/`)
+        )) {
           return;
         }
-        seenResolvedPaths.add(resolvedPath);
+        countedPaths.push(resolvedPath);
+        pathsByVolume.set(volumeKey, countedPaths);
         preppercacheBytesByVolume.set(
           volumeKey,
           Number(preppercacheBytesByVolume.get(volumeKey) || 0) + Number(target.current_bytes || 0)
         );
       });
 
-      const mountedExternalVolumes = volumes.filter((volume) =>
-        volume
-        && volume.location === "external"
-        && volume.mounted
-        && Number(volume.size_bytes || 0) > 0
+      const usbDrives = primaryUsbVolumes(volumes);
+      const mountedExternalVolumes = usbDrives.map((drive) => drive.main).filter((volume) =>
+        volume?.mounted && Number(volume.size_bytes || 0) > 0
       );
       if (!mountedExternalVolumes.length) {
         externalBreakdowns.innerHTML = "";
@@ -3456,10 +3870,11 @@
           const usedVolumeBytes = Number(volume.used_bytes || 0);
           const freeVolumeBytes = Number(volume.free_bytes || 0);
           const preppercacheVolumeBytes = Math.min(Number(preppercacheBytesByVolume.get(volumeKey) || 0), usedVolumeBytes);
-          const otherVolumeBytes = Math.max(0, usedVolumeBytes - preppercacheVolumeBytes);
-          const otherVolumePercent = totalVolumeBytes > 0 ? Math.max(0, Math.min(100, (otherVolumeBytes / totalVolumeBytes) * 100)) : 0;
-          const preppercacheVolumePercent = totalVolumeBytes > 0 ? Math.max(0, Math.min(100 - otherVolumePercent, (preppercacheVolumeBytes / totalVolumeBytes) * 100)) : 0;
-          const freeVolumePercent = Math.max(0, 100 - otherVolumePercent - preppercacheVolumePercent);
+          const otherVolumeBytes = usedVolumeBytes - preppercacheVolumeBytes;
+          const displayedVolumeBytes = usedVolumeBytes + freeVolumeBytes;
+          const otherVolumePercent = displayedVolumeBytes ? (otherVolumeBytes / displayedVolumeBytes) * 100 : 0;
+          const preppercacheVolumePercent = displayedVolumeBytes ? (preppercacheVolumeBytes / displayedVolumeBytes) * 100 : 0;
+          const freeVolumePercent = displayedVolumeBytes ? (freeVolumeBytes / displayedVolumeBytes) * 100 : 0;
           const title = volume.display_name || volume.label || volume.model || volume.path || "External Drive";
           const mountpointText = volume.mountpoint ? `Mounted at ${volume.mountpoint}` : "Mounted";
           return `<div class="external-storage-breakdown">
@@ -3514,49 +3929,40 @@
         }).join("");
       }
 
-      if (!volumes.length) {
-        volumesList.textContent = "No mounted or attached storage volumes were detected.";
+      if (!usbDrives.length) {
+        volumesList.textContent = "No USB storage connected.";
       } else {
-        volumesList.innerHTML = volumes.map((volume) => {
-          const title = volume.display_name || volume.path || volume.name || "Volume";
-          const location = volume.location === "external" ? "External" : "Internal";
-          const mountText = volume.mountpoint ? `Mounted at ${volume.mountpoint}` : "Not mounted";
-          const filesystem = volume.filesystem ? ` • ${volume.filesystem}` : "";
-          const usage = volume.mountpoint && volume.size_bytes
-            ? `${formatBytes(volume.used_bytes || 0)} used / ${formatBytes(volume.free_bytes || 0)} free`
-            : formatBytes(volume.size_bytes || 0);
-          const layout = volume.preppercache_layout || {};
-          const layoutPieces = [];
-          if (layout.maps) layoutPieces.push("maps");
-          if (layout.library) layoutPieces.push("library");
-          if (layout.media) layoutPieces.push("media");
-          const layoutText = layoutPieces.length ? ` • PrepperCache folders: ${layoutPieces.join(", ")}` : "";
-          let actions = "";
-          if (volume.can_mount && !volume.mounted) {
-            actions += `<button class="button secondary storage-action-button" data-icon="↻" data-storage-action="mount" data-device-path="${escapeHtml(volume.path || "")}" type="button">Mount Drive</button>`;
+        volumesList.innerHTML = usbDrives.map(({ path, disk, main }) => {
+          const title = main?.label || disk?.model || disk?.display_name || "USB drive";
+          const mountText = main?.mounted ? "Mounted" : main ? "Not mounted" : "No readable filesystem detected";
+          const ready = main?.preppercache_layout?.maps && main?.preppercache_layout?.library;
+          const actions = [];
+          if (main?.can_mount) {
+            actions.push(`<button class="button secondary storage-action-button" data-storage-action="mount" data-device-path="${escapeHtml(main.path)}" type="button">Mount</button>`);
           }
-          if (volume.can_unmount) {
-            actions += `<button class="button secondary storage-action-button" data-icon="⏏" data-storage-action="unmount" data-device-path="${escapeHtml(volume.path || "")}" type="button">Unmount Drive</button>`;
+          if (main) {
+            actions.push(`<button class="button secondary storage-action-button" data-storage-action="browse" data-device-path="${escapeHtml(main.path)}" type="button">Browse files</button>`);
           }
-          if (volume.can_prepare) {
-            actions += `<button class="button secondary storage-action-button" data-icon="⚠" data-storage-action="prepare" data-device-path="${escapeHtml(volume.path || "")}" type="button">Prepare Drive</button>`;
+          if (main?.can_unmount) {
+            actions.push(`<button class="button secondary storage-action-button" data-storage-action="unmount" data-device-path="${escapeHtml(main.path)}" type="button">Unmount</button>`);
           }
-          if (volume.location === "external" && volume.is_partition && volume.filesystem) {
-            actions += `<button class="button secondary storage-action-button" data-icon="✎" data-storage-action="rename" data-device-path="${escapeHtml(volume.path || "")}" data-current-label="${escapeHtml(volume.label || "")}" type="button">Rename Drive</button>`;
+          if (disk?.can_prepare) {
+            actions.push(`<button class="button secondary storage-action-button" data-storage-action="prepare" data-device-path="${escapeHtml(disk.path)}" data-disk-sequence="${escapeHtml(disk.disk_sequence)}" data-drive-name="${escapeHtml(title)}" type="button">Prepare for PrepperCache…</button>`);
           }
-          return `<div class="storage-row">
+          return `<div class="storage-row" data-storage-device="${escapeHtml(path)}" tabindex="-1">
             <div class="storage-row-main">
               <strong>${escapeHtml(title)}</strong>
-              <span>${escapeHtml(formatBytes(volume.size_bytes || 0))}</span>
+              <span>${escapeHtml(formatBytes(disk?.size_bytes || main?.size_bytes || 0))}</span>
             </div>
-            <div class="storage-row-meta">${escapeHtml(location)}${filesystem}${volume.path ? ` • ${escapeHtml(volume.path)}` : ""}</div>
-            <div class="storage-row-note">${escapeHtml(mountText)} • ${escapeHtml(usage)}${escapeHtml(layoutText)}</div>
-            ${actions ? `<div class="storage-row-actions">${actions}</div>` : ""}
+            <div class="storage-row-note">${mountText}${ready ? " • Ready for PrepperCache" : ""}</div>
+            <div class="storage-row-actions">${actions.join("")}</div>
           </div>`;
         }).join("");
       }
 
-      note.textContent = "Use this page to confirm where PrepperCache data lives before moving maps or library content to another drive.";
+      if (storagePreparationRunning) {
+        volumesList.querySelectorAll(".storage-action-button").forEach((button) => { button.disabled = true; });
+      }
     }
 
     function renderSystemUnavailable(delayed) {
@@ -3632,7 +4038,7 @@
       document.getElementById("system-services-list").textContent = "Checking application services...";
       document.getElementById("storage-summary").textContent = "Checking device storage.";
       document.getElementById("storage-targets-list").textContent = "Checking current storage paths...";
-      document.getElementById("storage-volumes-list").textContent = "Checking attached storage volumes...";
+      document.getElementById("storage-volumes-list").textContent = "Checking for USB storage…";
       try {
         const [healthResult, accessPointResult] = await Promise.allSettled([
           fetchJsonWithTimeout("/api/system/health", {}, 2000),
@@ -3674,138 +4080,94 @@
       }
     }
 
-    function setStorageActionState(note = "", tone = "status-chip--muted", active = false) {
-      const cluster = document.getElementById("storage-action-status");
-      if (!note) {
-        cluster.innerHTML = "";
-        cluster.classList.remove("status-cursor");
-        return;
-      }
-      cluster.innerHTML = `<span class="status-chip ${tone}">
-        <span class="status-chip-key">Storage</span>
-        <span class="status-chip-value">${escapeHtml(note)}</span>
-      </span>`;
-      cluster.classList.toggle("status-cursor", active);
+    function showStorageNotice(device, title, detail, options = {}) {
+      document.dispatchEvent(new CustomEvent("preppercache:notice", {
+        detail: { title, detail, href: `/admin/#storage?device=${encodeURIComponent(device)}`, ...options },
+      }));
     }
 
-    async function runStorageAction(action, devicePath, currentLabel = "") {
-      if (!devicePath) {
-        return;
-      }
-      const note = document.getElementById("storage-status-note");
-      const refreshButton = document.getElementById("refresh-storage-button");
-      let requestBody = { device_path: devicePath };
-      if (action === "mount") {
-        note.textContent = `Mounting ${devicePath}...`;
-        setStorageActionState(`Mounting ${devicePath}`, "status-chip--warn", true);
-      } else if (action === "unmount") {
-        const confirmed = window.confirm(
-          `Unmount ${devicePath}?\n\nThis safely removes the drive from PrepperCache. Any content stored only on that drive will disappear until it is mounted again.`
-        );
-        if (!confirmed) {
-          note.textContent = "Drive unmount canceled.";
-          setStorageActionState("Drive unmount canceled.", "status-chip--muted", false);
-          return;
-        }
-        note.textContent = `Unmounting ${devicePath}...`;
-        setStorageActionState(`Unmounting ${devicePath}`, "status-chip--warn", true);
-      } else if (action === "prepare") {
-        const confirmed = window.confirm(
-          `Prepare ${devicePath} for PrepperCache?\n\nThis will erase everything on that drive, format it as ext4, mount it, and create maps, library, and media folders.`
-        );
-        if (!confirmed) {
-          note.textContent = "Drive preparation canceled.";
-          setStorageActionState("Drive preparation canceled.", "status-chip--muted", false);
-          return;
-        }
-        const expected = `FORMAT ${devicePath}`;
-        const typed = window.prompt(`Type ${expected} to confirm erasing and preparing this drive.`, "");
-        if (typed !== expected) {
-          note.textContent = "Drive preparation canceled.";
-          setStorageActionState("Drive preparation canceled.", "status-chip--muted", false);
-          return;
-        }
-        const label = window.prompt(
-          "Name this PrepperCache drive. Letters, numbers, hyphens, and underscores only. 16 characters max.",
-          currentLabel || "PrepperCacheDATA"
-        );
-        if (label === null) {
-          note.textContent = "Drive preparation canceled.";
-          setStorageActionState("Drive preparation canceled.", "status-chip--muted", false);
-          return;
-        }
-        requestBody = { device_path: devicePath, confirm_text: expected, label };
-        note.textContent = `Preparing ${devicePath}. Formatting and creating PrepperCache folders. This may take a minute...`;
-        setStorageActionState(`Preparing ${devicePath}`, "status-chip--warn", true);
-      } else if (action === "rename") {
-        const label = window.prompt(
-          "Choose a new volume name. Letters, numbers, hyphens, and underscores only. 16 characters max.",
-          currentLabel || "PrepperCacheDATA"
-        );
-        if (label === null) {
-          note.textContent = "Drive rename canceled.";
-          setStorageActionState("Drive rename canceled.", "status-chip--muted", false);
-          return;
-        }
-        requestBody = { device_path: devicePath, label };
-        note.textContent = `Renaming ${devicePath}...`;
-        setStorageActionState(`Renaming ${devicePath}`, "status-chip--warn", true);
-      }
+    function prepareUsbDrive(button) {
+      const { devicePath, diskSequence, driveName } = button.dataset;
+      const dialog = document.getElementById("usb-prepare-dialog");
+      const form = document.getElementById("usb-prepare-form");
+      const label = document.getElementById("usb-prepare-name");
+      form.reset();
+      document.getElementById("usb-prepare-drive").textContent = `${driveName || "USB drive"} (${devicePath})`;
+      document.getElementById("usb-prepare-cancel").onclick = () => dialog.close();
+      form.onsubmit = (event) => {
+        event.preventDefault();
+        if (!dialog.open || !form.reportValidity() || storagePreparationRunning) return;
+        dialog.close();
+        startUsbPreparation(button, devicePath, diskSequence, label.value);
+      };
+      dialog.showModal();
+    }
 
-      document.querySelectorAll(".storage-action-button").forEach((button) => {
-        button.disabled = true;
-      });
-      refreshButton.disabled = true;
+    async function startUsbPreparation(button, devicePath, diskSequence, label) {
+      button.disabled = true;
       try {
-        const endpoint = action === "mount"
-          ? "/api/system/storage/mount"
-          : action === "unmount"
-            ? "/api/system/storage/unmount"
-            : action === "rename"
-              ? "/api/system/storage/rename"
-              : "/api/system/storage/prepare";
-        const response = await fetch(endpoint, {
+        const response = await fetch("/api/system/storage/prepare", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify({
+            device_path: devicePath, disk_sequence: diskSequence, confirm_text: `ERASE ${devicePath}`, label,
+          }),
+        });
+        const job = await response.json().catch(() => null);
+        if (!response.ok || job?.status !== "running") {
+          throw new Error(job?.error || `The Pi did not start preparation (HTTP ${response.status}).`);
+        }
+        document.dispatchEvent(new CustomEvent("preppercache:storage-started", { detail: job }));
+      } catch (error) {
+        showStorageNotice(devicePath, "Could not start USB preparation", error.message, { problem: true });
+      } finally {
+        button.disabled = storagePreparationRunning;
+      }
+    }
+
+    document.addEventListener("preppercache:storage-progress", ({ detail }) => {
+      const wasRunning = storagePreparationRunning;
+      storagePreparationRunning = detail.status === "running";
+      if (!wasRunning && !storagePreparationRunning) return;
+      document.querySelectorAll(".storage-action-button").forEach((button) => {
+        button.disabled = storagePreparationRunning;
+      });
+      if (wasRunning && !storagePreparationRunning && currentPanel === "storage") refreshStoragePanel();
+      if (wasRunning && !storagePreparationRunning && currentPanel === "files") loadFilesPanelData();
+    });
+
+    async function runStorageAction(action, devicePath, driveName) {
+      if (!devicePath || !["mount", "unmount"].includes(action)) return;
+      const mounting = action === "mount";
+      const drive = driveName || "USB drive";
+      if (!mounting && !window.confirm(
+        `Unmount ${drive}? Content stored on the drive will be unavailable until it is mounted again.`
+      )) {
+        showStorageNotice(devicePath, "Unmount canceled", drive);
+        return;
+      }
+
+      const refreshButton = document.getElementById("refresh-storage-button");
+      document.querySelectorAll(".storage-action-button").forEach((button) => { button.disabled = true; });
+      refreshButton.disabled = true;
+      showStorageNotice(devicePath, mounting ? "Mounting USB drive" : "Unmounting USB drive", drive, { busy: true });
+      try {
+        const response = await fetch(`/api/system/storage/${action}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ device_path: devicePath }),
         });
         const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.error || "Storage action failed.");
-        }
-        currentStatus = {
-          ...(currentStatus || {}),
-          disk: payload.disk,
-          storage: payload,
-          temperature_c: currentStatus?.temperature_c ?? null,
-          cpu: currentStatus?.cpu ?? null,
-          uptime: currentStatus?.uptime ?? null,
-        };
+        if (!response.ok) throw new Error(payload.error || "Storage action failed.");
+        currentStatus = { ...currentStatus, disk: payload.disk, storage: payload };
         renderStorageHealth(currentStatus);
-        note.textContent = action === "mount"
-          ? `Mounted ${devicePath}.`
-          : action === "unmount"
-            ? `Unmounted ${devicePath}.`
-            : action === "rename"
-              ? `Renamed ${devicePath}.`
-              : `Prepared ${devicePath} and created maps, library, and media folders.`;
-        setStorageActionState(
-          action === "mount"
-            ? `Mounted ${devicePath}`
-            : action === "unmount"
-              ? `Unmounted ${devicePath}`
-              : action === "rename"
-                ? `Renamed ${devicePath}`
-                : `Prepared ${devicePath}`,
-          "status-chip--ok",
-          false
-        );
+        showStorageNotice(devicePath, mounting ? "USB drive mounted" : "USB drive unmounted", drive);
       } catch (error) {
-        note.textContent = error.message;
-        setStorageActionState(error.message, "status-chip--error", false);
+        showStorageNotice(devicePath, mounting ? "Could not mount USB drive" : "Could not unmount USB drive",
+          error.message, { problem: true });
       } finally {
         document.querySelectorAll(".storage-action-button").forEach((button) => {
-          button.disabled = false;
+          button.disabled = storagePreparationRunning;
         });
         refreshButton.disabled = false;
       }
@@ -4061,17 +4423,19 @@
     }
 
     async function loadContentPanelData(force = true) {
-      if (contentPanelLoading) return;
+      if (contentPanelLoading || applyActionPending) return;
+      const previousApply = latestContentApply;
       contentPanelLoading = true;
       try {
         const { response, payload: apply } = await fetchJsonWithTimeout("/api/apply");
         if (!response.ok) throw new Error("Unable to check installation status.");
+        if (applyActionPending || latestContentApply !== previousApply) return;
         if (latestContentApply?.status !== apply.status || latestContentApply?.finished_at !== apply.finished_at) {
           contentNeedsRefresh = true;
         }
         latestContentApply = apply;
         renderApplyState(apply);
-        if (apply.status === "running") return;
+        if (currentPanel !== "content" || apply.status === "running") return;
         if (!force && !contentNeedsRefresh) return;
         const [state, content] = await Promise.allSettled([
           fetchJsonWithTimeout("/api/state"),
@@ -4134,6 +4498,103 @@
         renderAutomaticContentUpdates(currentContent?.automatic_updates);
       }
     }
+
+    function showZimUploadProgress(message, value) {
+      document.querySelectorAll("[data-zim-upload]").forEach((section) => {
+        section.querySelector(".zim-upload-feedback").textContent = message;
+        section.querySelector("[data-zim-choose]").disabled = uploadingZims;
+        const progress = section.querySelector("progress");
+        progress.hidden = !uploadingZims;
+        if (Number.isFinite(value)) progress.value = value;
+        else progress.removeAttribute("value");
+      });
+    }
+
+    function sendZimFile(file, label) {
+      return new Promise((resolve, reject) => {
+        const upload = new XMLHttpRequest();
+        upload.open("POST", `/api/content/upload?name=${encodeURIComponent(file.name)}`);
+        upload.setRequestHeader("Content-Type", "application/octet-stream");
+        upload.responseType = "json";
+        upload.upload.onprogress = ({ loaded, lengthComputable }) => {
+          showZimUploadProgress(label, lengthComputable ? Math.floor(loaded * 100 / file.size) : undefined);
+        };
+        upload.onload = () => {
+          if (upload.status === 201) resolve();
+          else reject(new Error(upload.response?.error || `Upload failed (HTTP ${upload.status}).`));
+        };
+        upload.onerror = () => reject(new Error("Connection lost during upload."));
+        upload.send(file);
+      });
+    }
+
+    async function uploadZimFiles(selection) {
+      if (uploadingZims || !selection.length) return;
+      uploadingZims = true;
+      updateFileButtons();
+      const errors = [];
+      let uploaded = 0;
+      for (const [index, file] of Array.from(selection).entries()) {
+        if (!file.name.toLowerCase().endsWith(".zim")) {
+          errors.push(`${file.name}: choose a .zim archive.`);
+          continue;
+        }
+        const label = `Uploading ${index + 1} of ${selection.length}: ${file.name}`;
+        showZimUploadProgress(label, 0);
+        try {
+          await sendZimFile(file, label);
+          uploaded++;
+        } catch (error) {
+          errors.push(`${file.name}: ${error.message}`);
+        }
+      }
+
+      const messages = [];
+      if (uploaded) {
+        messages.push(`Uploaded ${uploaded} ZIM ${uploaded === 1 ? "file" : "files"}.`);
+        try {
+          const { response, payload } = await fetchJsonWithTimeout("/api/apply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "rebuild-library" }),
+          });
+          if (!response.ok) throw new Error(payload.error || "Could not start indexing.");
+          messages.push("Kiwix library rebuild started.");
+          renderApplyState(payload);
+        } catch {
+          messages.push("Use Rebuild Kiwix Library once other jobs finish.");
+        }
+      }
+      uploadingZims = false;
+      updateFileButtons();
+      showZimUploadProgress([...messages, ...errors].join(" "));
+      if (uploaded && currentPanel === "files") loadFilesPanelData();
+      if (uploaded && currentPanel === "content") loadContentPanelData();
+    }
+
+    document.querySelectorAll("[data-zim-upload]").forEach((section) => {
+      const picker = section.querySelector('input[type="file"]');
+      const drop = section.querySelector(".zim-upload-drop");
+      section.querySelector("[data-zim-choose]").addEventListener("click", () => picker.click());
+      picker.addEventListener("change", () => {
+        uploadZimFiles(Array.from(picker.files));
+        picker.value = "";
+      });
+      drop.addEventListener("dragover", (event) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = uploadingZims ? "none" : "copy";
+        drop.classList.toggle("is-over", !uploadingZims);
+      });
+      drop.addEventListener("dragleave", (event) => {
+        if (!drop.contains(event.relatedTarget)) drop.classList.remove("is-over");
+      });
+      drop.addEventListener("drop", (event) => {
+        event.preventDefault();
+        drop.classList.remove("is-over");
+        uploadZimFiles(Array.from(event.dataTransfer.files));
+      });
+    });
 
     function renderContentState(content, note = "") {
       renderAutomaticContentUpdates(content.automatic_updates);
@@ -4553,7 +5014,6 @@
     async function loadMapsPanelData() {
       loadCountryMapCatalog();
       loadRegionalMapCatalog();
-      document.getElementById("maps-root").textContent = "PMTiles root: checking local storage...";
       document.getElementById("active-map-file").textContent = "Active map: checking local storage...";
       document.getElementById("maps-local-list").textContent = "Checking local PMTiles packages...";
       try {
@@ -4575,11 +5035,7 @@
         }
 
       } catch (error) {
-        setStatusChips("maps-status", [
-          { label: "Archive", value: "Unavailable", tone: "status-chip--error" }
-        ]);
         const delayed = error && error.name === "AbortError";
-        document.getElementById("maps-root").textContent = delayed ? "PMTiles root: local check delayed" : "PMTiles root: unavailable";
         document.getElementById("active-map-file").textContent = delayed ? "Active map: local check delayed" : "Active map: unavailable";
         document.getElementById("maps-local-list").textContent =
           delayed ? "Local PMTiles package check is taking too long." : "Unable to load local PMTiles packages.";
@@ -4606,7 +5062,7 @@
         systemPollHandle = null;
       }
 
-      if (currentPanel === "content") {
+      if (currentPanel === "content" || currentPanel === "files") {
         if (applyPollHandle === null) {
           applyPollHandle = window.setInterval(() => loadContentPanelData(false), 5000);
         }
@@ -4627,32 +5083,12 @@
 
     function renderMapsState(maps, note = "") {
       populateInstallTargetSelect("maps-install-target", maps.install_destinations || [], maps.install_dir || "");
-      document.getElementById("maps-root").textContent = `PMTiles root: ${maps.root}`;
       document.getElementById("active-map-file").textContent =
         `Active map: ${maps.state_regions?.[maps.active_file]?.title || friendlyMapTitle(maps.active_file)}`;
-      setStatusChips("maps-status", [
-        {
-          label: "Archive",
-          value: maps.active_valid ? "Valid" : (maps.active_exists ? "Invalid" : "Missing"),
-          tone: maps.active_valid ? "status-chip--ok" : (maps.active_exists ? "status-chip--error" : "status-chip--warn")
-        },
-        {
-          label: "Flavor",
-          value: maps.flavor || "dark",
-          tone: "status-chip--muted"
-        },
-        {
-          label: "Language",
-          value: maps.language || "en",
-          tone: "status-chip--muted"
-        }
-      ]);
       document.getElementById("maps-status-note").textContent = note || (
-        maps.active_valid
-          ? "Active PMTiles archive is ready for the viewer."
-          : (maps.active_error || "Configured PMTiles archive is unavailable.")
+        maps.active_valid ? "" : (maps.active_error || "Configured PMTiles archive is unavailable.")
       );
-      document.getElementById("map-flavor").value = maps.flavor || "dark";
+      document.getElementById("map-flavor").value = maps.flavor || "light";
       renderLocalInstalledMaps(maps);
       if (countryMapCatalog) renderCountryMapSummary();
       renderRegionalMapSummary();
@@ -4889,8 +5325,21 @@
       }
     }
 
-    async function triggerApplyAction(action) {
-      setContentActionStatus(`Content actions: starting ${action}`, true);
+    function setFilesRebuildStatus(message) {
+      const status = document.getElementById("files-rebuild-status");
+      status.textContent = message;
+      status.classList.toggle("hidden", !message);
+    }
+
+    async function triggerApplyAction(action, fromFiles = false) {
+      if (applyActionPending) return;
+      applyActionPending = true;
+      updateFileButtons();
+      if (fromFiles) {
+        setFilesRebuildStatus("Starting Kiwix library rebuild…");
+      } else {
+        setContentActionStatus(`Content actions: starting ${action}`, true);
+      }
       try {
         const response = await fetch("/api/apply", {
           method: "POST",
@@ -4903,9 +5352,19 @@
           throw new Error(payload.error || "Unable to start action");
         }
 
+        if (fromFiles) filesRebuildRequested = true;
         renderApplyState(payload);
       } catch (error) {
-        setContentActionStatus(`Content actions: ${error.message}`, true);
+        if (fromFiles) {
+          setFilesRebuildStatus(`Could not start the library rebuild. ${error.message}`);
+        } else {
+          setContentActionStatus(`Content actions: ${error.message}`, true);
+        }
+      } finally {
+        applyActionPending = false;
+        document.getElementById("rebuild-library-button").disabled =
+          latestContentApply?.status === "running" && !latestContentApply.can_retry_download;
+        updateFileButtons();
       }
     }
 
@@ -4918,13 +5377,8 @@
         currentMaps = maps;
         renderMapsState(maps);
         renderMapsStorage(maps);
-        document.getElementById("maps-status-note").textContent = "Installed PMTiles packages refreshed from local storage.";
       } catch (error) {
-        setStatusChips("maps-status", [
-          { label: "Archive", value: "Unavailable", tone: "status-chip--error" }
-        ]);
         const delayed = error && error.name === "AbortError";
-        document.getElementById("maps-root").textContent = delayed ? "PMTiles root: local check delayed" : "PMTiles root: unavailable";
         document.getElementById("active-map-file").textContent = delayed ? "Active map: local check delayed" : "Active map: unavailable";
         document.getElementById("maps-local-list").textContent =
           delayed ? "Local PMTiles package check is taking too long." : "Unable to load local PMTiles packages.";
@@ -5135,9 +5589,6 @@
         currentMaps = payload;
         renderMapsState(payload, `Map theme updated to ${payload.flavor || flavor}.`);
       } catch (error) {
-        setStatusChips("maps-status", [
-          { label: "Archive", value: "Update Failed", tone: "status-chip--error" }
-        ]);
         document.getElementById("maps-status-note").textContent = error.message;
       } finally {
         button.disabled = false;
@@ -5367,10 +5818,10 @@
       const button = event.currentTarget;
       button.disabled = true;
       try {
-        const { response, payload } = await fetchJsonWithTimeout("/api/content/retry-downloads", {
+        const { response, payload } = await fetchJsonWithTimeout("/api/content/resume-download", {
           method: "POST", headers: { "Content-Type": "application/json" }, body: "{}"
         });
-        if (!response.ok) throw new Error(payload.error || "Unable to retry failed downloads.");
+        if (!response.ok) throw new Error(payload.error || "Unable to resume the content download.");
         renderApplyState(payload);
       } catch (error) {
         setContentActionStatus(error.message, true);
@@ -5383,6 +5834,7 @@
     document.getElementById("content-install-target").addEventListener("change", saveContentInstallTarget);
     document.getElementById("toggle-add-content-button").addEventListener("click", () => {
       addMoreContentVisible = !addMoreContentVisible;
+      if (addMoreContentVisible) document.getElementById("installed-zim-files").open = false;
       updateContentPaneVisibility();
     });
     document.getElementById("zim-prev-page-button").addEventListener("click", goToPreviousZimPage);
@@ -5415,28 +5867,42 @@
     document.getElementById("rebuild-library-button").addEventListener("click", () => triggerApplyAction("rebuild-library"));
     document.getElementById("refresh-maps-button").addEventListener("click", refreshMapsList);
     document.getElementById("refresh-storage-button").addEventListener("click", refreshStoragePanel);
-    document.getElementById("refresh-files-button").addEventListener("click", refreshFilesPanel);
-    document.getElementById("new-folder-button").addEventListener("click", createFolderInActivePane);
+    document.getElementById("refresh-files-button").addEventListener("click", loadFilesPanelData);
+    document.getElementById("files-rebuild-library-button").addEventListener("click", () => triggerApplyAction("rebuild-library", true));
+    document.getElementById("import-zims-button").addEventListener("click", chooseZimImport);
+    const zimImportDialog = document.getElementById("zim-import-dialog");
+    document.getElementById("zim-import-cancel").addEventListener("click", () => zimImportDialog.close());
+    document.getElementById("zim-import-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      zimImportDialog.close();
+      startZimImport(document.getElementById("zim-import-source").value, document.getElementById("zim-import-library").value);
+    });
+    document.getElementById("new-folder-button").addEventListener("click", createFileFolder);
     document.getElementById("rename-file-button").addEventListener("click", renameSelectedFile);
-    document.getElementById("copy-file-button").addEventListener("click", copySelectedFile);
-    document.getElementById("move-file-button").addEventListener("click", moveSelectedFile);
+    document.getElementById("copy-file-button").addEventListener("click", () => openDestinationPicker("copy"));
+    document.getElementById("move-file-button").addEventListener("click", () => openDestinationPicker("move"));
     document.getElementById("delete-file-button").addEventListener("click", deleteSelectedFile);
-    document.getElementById("files-pane-left").addEventListener("click", () => {
-      activeFilesPane = "left";
-      renderFilesPane("left", filesPaneState.left);
-      renderFilesPane("right", filesPaneState.right);
+    document.getElementById("destination-submit").addEventListener("click", startFileTransfer);
+    document.getElementById("destination-new-folder").addEventListener("click", () => {
+      const name = window.prompt("Folder name:")?.trim();
+      if (name) loadDestination(destinationPicker.listing.path, name);
     });
-    document.getElementById("files-pane-right").addEventListener("click", () => {
-      activeFilesPane = "right";
-      renderFilesPane("left", filesPaneState.left);
-      renderFilesPane("right", filesPaneState.right);
+    const destinationDialog = document.getElementById("files-destination");
+    document.getElementById("destination-cancel").addEventListener("click", () => destinationDialog.close());
+    destinationDialog.addEventListener("cancel", (event) => {
+      if (destinationPicker?.submitting) event.preventDefault();
     });
+    destinationDialog.addEventListener("close", () => { destinationPicker = null; });
     document.getElementById("storage-volumes-list").addEventListener("click", (event) => {
       const button = event.target.closest(".storage-action-button");
       if (!button) {
         return;
       }
-      runStorageAction(button.dataset.storageAction, button.dataset.devicePath, button.dataset.currentLabel || "");
+      if (storagePreparationRunning) return;
+      const { storageAction, devicePath } = button.dataset;
+      if (storageAction === "prepare") prepareUsbDrive(button);
+      else if (storageAction === "browse") window.location.hash = `files?device=${encodeURIComponent(devicePath)}`;
+      else runStorageAction(storageAction, devicePath, button.closest(".storage-row")?.querySelector("strong")?.textContent);
     });
     document.getElementById("system-services-list").addEventListener("click", (event) => {
       const button = event.target.closest(".system-service-restart-button");
@@ -5472,7 +5938,7 @@
     document.getElementById("restart-system-button").addEventListener("click", () => requestPowerAction("restart"));
     document.getElementById("shutdown-system-button").addEventListener("click", () => requestPowerAction("shutdown"));
     document.getElementById("toggle-apply-log-button").addEventListener("click", () => {
-      togglePanel("apply-log-panel", "toggle-apply-log-button", "Show Content Log", "Hide Content Log");
+      setContentLogOpen(document.getElementById("apply-log-panel").classList.contains("hidden"));
     });
     document.getElementById("toggle-maps-log-button").addEventListener("click", () => {
       togglePanel("maps-log-panel", "toggle-maps-log-button", "Show Map Sync Log", "Hide Map Sync Log");
@@ -5492,8 +5958,37 @@
       window.location.href = "/?mode=setup";
     });
 
+    function setContentLogOpen(open) {
+      document.getElementById("apply-log-panel").classList.toggle("hidden", !open);
+      const button = document.getElementById("toggle-apply-log-button");
+      button.setAttribute("aria-expanded", String(open));
+      button.textContent = open ? "Hide Logs" : "Show Logs";
+    }
+
+    function routeSettings() {
+      if (!adminSession?.authenticated) return;
+      setActivePanel(initialPanelFromLocation());
+      if (window.location.hash === "#content-log") {
+        setContentLogOpen(true);
+        document.getElementById("apply-log-panel").focus();
+      }
+    }
+
+    function settingsDevice() {
+      return new URLSearchParams(window.location.hash.split("?")[1]).get("device");
+    }
+
+    function focusStorageDevice(device) {
+      const volume = currentStatus?.storage?.volumes?.find((item) => item.path === device);
+      const drive = volume?.parent_path || device;
+      const row = document.querySelector(`[data-storage-device="${CSS.escape(drive)}"]`);
+      if (row) row.focus();
+      else showStorageNotice(device, "USB drive unavailable", "The selected drive is no longer connected.", { problem: true, href: "/admin/#storage" });
+    }
+
     function initialPanelFromLocation() {
-      const hash = (window.location.hash || "").replace(/^#/, "").trim().toLowerCase();
+      const hash = window.location.hash.slice(1).split("?")[0].trim().toLowerCase();
+      if (hash === "content-log") return "content";
       if (["wifi", "system", "content", "maps", "storage", "files", "about"].includes(hash)) {
         return hash;
       }
@@ -5544,8 +6039,130 @@
     });
     document.getElementById("install-country-maps").addEventListener("click", () => reviewMapDownload("countries", [...selectedCountries]));
     document.getElementById("cancel-map-build").addEventListener("click", cancelMapExtraction);
-    window.addEventListener("hashchange", () => setActivePanel(initialPanelFromLocation()));
-    setActivePanel(initialPanelFromLocation());
+    const adminLoginForm = document.getElementById("admin-login-form");
+    const adminPasswordForm = document.getElementById("admin-password-form");
+    const adminPasswordEnabled = document.getElementById("admin-password-enabled");
+    const adminCurrentPassword = document.getElementById("admin-current-password");
+    const adminNewPassword = document.getElementById("admin-new-password");
+    const adminConfirmPassword = document.getElementById("admin-confirm-password");
+    const adminGateStatus = document.getElementById("admin-gate-status");
+    const adminPasswordStatus = document.getElementById("admin-password-status");
+    const adminProtectionStatus = document.getElementById("admin-protection-status");
+    const adminSaveButton = document.getElementById("admin-save-button");
+    const adminCheckAgain = document.getElementById("admin-check-again");
+
+    function updateAdminPasswordFields() {
+      const requiresCurrent = Boolean(adminSession?.enabled);
+      document.getElementById("admin-current-field").classList.toggle("hidden", !requiresCurrent);
+      adminCurrentPassword.required = requiresCurrent;
+      document.getElementById("admin-new-fields").classList.toggle("hidden", !adminPasswordEnabled.checked);
+      adminNewPassword.required = adminConfirmPassword.required = adminPasswordEnabled.checked;
+      document.getElementById("admin-sign-out").classList.toggle("hidden", !requiresCurrent);
+      const hasChanges = adminPasswordEnabled.checked !== requiresCurrent
+        || (adminPasswordEnabled.checked && Boolean(adminNewPassword.value || adminConfirmPassword.value));
+      adminSaveButton.classList.toggle("primary", hasChanges);
+    }
+
+    function renderAdminSession(session) {
+      const wasAuthenticated = adminSession?.authenticated;
+      const changed = adminSession?.enabled !== session.enabled || wasAuthenticated !== session.authenticated;
+      adminSession = session;
+      document.getElementById("admin-gate").classList.toggle("hidden", session.authenticated);
+      document.getElementById("admin-settings").classList.toggle("hidden", !session.authenticated);
+      adminLoginForm.classList.toggle("hidden", session.authenticated);
+      adminCheckAgain.classList.add("hidden");
+      if (changed) {
+        adminPasswordForm.reset();
+        adminPasswordEnabled.checked = session.enabled;
+        updateAdminPasswordFields();
+        adminProtectionStatus.dataset.tone = session.enabled ? "good" : "error";
+        adminProtectionStatus.textContent = session.enabled ? "Protection on" : "Protection off";
+        adminPasswordStatus.textContent = "";
+      }
+      if (session.authenticated && !wasAuthenticated) {
+        adminGateStatus.textContent = "";
+        routeSettings();
+      } else if (!session.authenticated && changed) {
+        currentPanel = "";
+        updatePolling();
+        adminGateStatus.textContent = "Enter the admin password to unlock Settings.";
+        document.getElementById("admin-login-password").focus();
+      }
+    }
+
+    async function checkAdminSession() {
+      if (adminActionPending) return;
+      const previous = adminSession;
+      try {
+        const { response, payload } = await fetchJsonWithTimeout("/api/admin/session");
+        if (adminActionPending || previous !== adminSession) return;
+        if (!response.ok || typeof payload.authenticated !== "boolean") throw new Error();
+        renderAdminSession(payload);
+      } catch {
+        if (!adminSession) {
+          adminGateStatus.textContent = "Could not check admin access. Try again.";
+          adminCheckAgain.classList.remove("hidden");
+        }
+      }
+    }
+
+    async function submitAdminAction(action, form, status, body) {
+      if (adminActionPending) return;
+      adminActionPending = true;
+      const buttons = form.querySelectorAll("button");
+      buttons.forEach((button) => { button.disabled = true; });
+      try {
+        const { response, payload } = await fetchJsonWithTimeout(`/api/admin/${action}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }, 10000);
+        if (!response.ok) throw new Error(payload.error || "Could not update admin access.");
+        renderAdminSession(payload);
+        if (action === "password") {
+          adminPasswordForm.reset();
+          adminPasswordEnabled.checked = payload.enabled;
+          updateAdminPasswordFields();
+          status.textContent = payload.enabled ? "Admin password saved." : "Admin password protection is off.";
+        }
+      } catch (error) {
+        status.textContent = error.name === "AbortError" ? "The request timed out. Try again." : error.message;
+      } finally {
+        if (action !== "password") {
+          form.querySelectorAll('input[type="password"]').forEach((input) => { input.value = ""; });
+        }
+        buttons.forEach((button) => { button.disabled = false; });
+        adminActionPending = false;
+      }
+    }
+
+    adminLoginForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitAdminAction("login", adminLoginForm, adminGateStatus, {
+        password: document.getElementById("admin-login-password").value,
+      });
+    });
+    adminPasswordForm.addEventListener("input", updateAdminPasswordFields);
+    adminPasswordForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (adminPasswordEnabled.checked && adminNewPassword.value !== adminConfirmPassword.value) {
+        adminPasswordStatus.textContent = "The new passwords do not match.";
+        return;
+      }
+      submitAdminAction("password", adminPasswordForm, adminPasswordStatus, {
+        enabled: adminPasswordEnabled.checked,
+        current_password: adminCurrentPassword.value,
+        new_password: adminPasswordEnabled.checked ? adminNewPassword.value : "",
+      });
+    });
+    document.getElementById("admin-sign-out").addEventListener("click", () => {
+      submitAdminAction("logout", adminPasswordForm, adminPasswordStatus, {});
+    });
+    adminCheckAgain.addEventListener("click", checkAdminSession);
+    window.addEventListener("hashchange", routeSettings);
+    window.addEventListener("pageshow", checkAdminSession);
+    window.setInterval(() => { if (!document.hidden) checkAdminSession(); }, 10000);
+    checkAdminSession();
     updateContentPaneVisibility();
     setContentActionStatus("Content actions: ready", false);
     setContentProgressVisibility(false);

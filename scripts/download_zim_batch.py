@@ -41,7 +41,7 @@ def download(url: str, target: Path, index: int, total: int) -> bool:
         with tempfile.NamedTemporaryFile(dir=staging_dir) as response_log:
             response_path = Path(response_log.name)
             with subprocess.Popen(
-                ["wget", "--server-response", "--no-verbose", "-N", "-c", "--", url],
+                ["wget", "--server-response", "--no-verbose", "--timeout=45", "--tries=3", "--waitretry=5", "-N", "-c", "--", url],
                 stdout=response_log, stderr=subprocess.STDOUT,
                 cwd=staging_dir,
                 env={**os.environ, "TMPDIR": str(staging_dir)},
@@ -62,7 +62,9 @@ def download(url: str, target: Path, index: int, total: int) -> bool:
             staged_file.replace(target)
             print(f"Ready: {target.name}", flush=True)
             return True
-        reason = status if status and not status.startswith(("200", "206")) else f"wget exited with code {return_code}"
+        reason = f"wget exited with code {return_code}"
+        if return_code != 4 and status and not status.startswith(("200", "206")):
+            reason = status
         print(f"Failed: {target.name} ({reason})", flush=True)
     except OSError as exc:
         print(f"{target.name}: {exc}", flush=True)
@@ -99,6 +101,14 @@ def main() -> None:
         mirror = MIRROR
 
     targets = manifest_targets(args.manifest, args.download_dir.resolve(), args.wikipedia_dir.resolve(), mirror)
+    retry_names = json.loads(os.environ.get("PREPPERCACHE_RETRY_ZIM_NAMES", "[]"))
+    if retry_names:
+        targets = {target: url for target, url in targets.items() if target.name in retry_names}
+    if os.environ.get("PREPPERCACHE_SKIP_INSTALLED_ZIMS") == "1":
+        targets = {
+            target: url for target, url in targets.items()
+            if not target.is_file() and not (args.library / target.name).is_file()
+        }
     total = len(targets)
     failures = []
     with (args.library / ".preppercache-zim-download.lock").open("a") as lock:

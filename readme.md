@@ -4,7 +4,7 @@
 
 PrepperCache is an offline-first Raspberry Pi project for serving emergency preparedness, medical, survival, and general reference material on a local network.
 
-[PrepperCache v1.0](https://github.com/A2ThreeD/PrepperCache/releases/tag/v1.0.0) serves an offline Kiwix library and maps from one local dashboard. The Settings page manages content, storage, Wi-Fi access, and optional GPIO accessories.
+[PrepperCache v1.0.1](https://github.com/A2ThreeD/PrepperCache/releases/tag/v1.0.1) serves an offline Kiwix library and maps from one local dashboard. The Settings page manages content, storage, Wi-Fi access, and optional GPIO accessories.
 
 ## Current Repository Layout
 
@@ -33,6 +33,13 @@ PrepperCache is an offline-first Raspberry Pi project for serving emergency prep
 - `docs/software-plan.md` - software checklist for the Pi
 - `web/admin/index.html` - settings and maintenance interface
 - `web/maps/index.html` - offline PMTiles maps viewer powered by MapLibre
+
+## Kiwix rebuild troubleshooting
+
+Open **Details** on a content error to go straight to the Content Log. If Kiwix
+rejects a ZIM, the log names the file. A rebuild indexes the readable archives
+and leaves rejected files on disk so you can inspect or replace them. If Kiwix
+cannot index any archives, PrepperCache keeps the previous library index.
 
 ## Intended Software Stack
 
@@ -97,7 +104,7 @@ ssh <your-username>@preppercache.local
 ### 4. Clone and install PrepperCache
 
 ```bash
-git clone --branch v1.0.0 https://github.com/A2ThreeD/PrepperCache.git preppercache
+git clone --branch v1.0.1 https://github.com/A2ThreeD/PrepperCache.git preppercache
 sudo ./preppercache/scripts/install_preppercache.sh
 ```
 
@@ -109,9 +116,13 @@ The ZIM library is stored at `/library/zims/content`. Large libraries can take c
 
 While setup runs, **Settings → Content** shows the current step and download progress. The installed library and disk usage appear automatically when setup finishes. A status panel at the bottom of PrepperCache pages follows active setup, content, and map jobs as you navigate. It links to job details and hides when there is nothing to show.
 
+PrepperCache checks for interrupted content jobs at startup and once a minute. It resumes from the interrupted step and reuses partial downloads. Temporary network failures get up to three automatic retries. If a download still needs attention, use **Settings → Content → Resume Content Download** to retry it manually.
+
 In **Settings → Content**, the highlighted button shows the current base set. Select another to review its contents and space requirements. Larger sets keep existing ZIMs. Switching to a smaller set requires explicit confirmation and permanently removes ZIMs outside that set from the local library and mounted PrepperCache library drives. PrepperCache verifies the smaller set is complete first.
 
 **Update Content Now** checks the configured mirror and downloads newer editions alongside your existing files. Open **Update Schedule** to enable weekly updates while the Pi is on. The schedule is off by default. Failed downloads appear by filename in Content. Use **Add Content** to browse the mirror or download missing files.
+
+Upload existing `.zim` archives from **Settings → Content** or **Settings → Files**. Drop the files into **Upload ZIM Files** or use **Choose ZIM Files**. Keep the page open until copying finishes. Files go to the content drive selected in Content, and PrepperCache starts a Kiwix library rebuild after the batch. Existing files with the same name are kept.
 
 For troubleshooting, use **Settings → System → Export Troubleshooting Logs** to download recent setup, content, and map logs. Review the file before sharing it.
 
@@ -123,9 +134,13 @@ For a fresh install, use the steps above. For an in-place cutover, back up the c
 
 Settings opens to the dashboard with a local overview of the installed library, map packages, service status, and system drive. On phones, use **Menu** to open Settings navigation.
 
+Admin password protection is off by default. To enable it, go to **Settings → System → Admin Access**, check **Require an admin password**, and save a password. Settings then asks for that password without a username. **Admin Access** also lets you change the password, disable protection, or sign out. Kiwix and maps remain available without signing in.
+
+The standard local installation uses HTTP. Set or enter the password on a trusted connection, or use HTTPS if you have configured it. If you forget the password, an administrator with shell access to the Pi can remove `admin-password.json` from the configured data directory (by default `/srv/preppercache/data`) and restart `preppercache-portal.service`. This turns protection off until you set a new password.
+
 Settings tabs have direct links such as `/admin/#content` and `/admin/#maps`. **Add Content** and **Add Maps** open their respective catalogs. Review the items, destination, and storage estimate before starting a selected download. Failed files from an extra content batch and failed country or regional maps can be retried from their job status.
 
-Under **Settings → WiFi**, edit the SSID and passphrase, then use **Save Config** to store the settings or **Apply Config** to apply them. Network and DHCP options are under **Advanced Settings**. The access point indicator appears in the header, and action results appear in the shared popup.
+Under **Settings → WiFi**, edit the SSID and passphrase, then use **Save Config** to store the settings or **Apply Config** to apply them. Network and DHCP options are under **Advanced Settings**. The access point indicator appears in the header, and action results appear in the shared popup. The default network is `PrepperCache` with passphrase `prepperlocal`. Once connected, open `http://10.10.10.10`. The hotspot uses `10.10.10.0/24` and assigns addresses from `10.10.10.50` through `10.10.10.150`.
 
 Under **Settings → About**, you can find the installed version, web update date, license, and project credits.
 
