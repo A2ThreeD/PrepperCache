@@ -45,6 +45,10 @@ PrepperCache is an offline-first Raspberry Pi project for serving emergency prep
 
 PrepperCache integrates the local portal, library, and offline map viewer into a single Raspberry Pi installation.
 
+## Printable quick-start card
+
+Use the [PrepperCache quick-start card](docs/PrepperCache-Quick-Start-US-Letter.pdf) with an already configured unit. Print it on US Letter paper at **Actual Size (100%)** and trim along the outline for a 4 × 6 inch card.
+
 ## Prepare a Raspberry Pi 4
 
 You need a Raspberry Pi 4, a reliable power supply, an Ethernet connection or Wi-Fi credentials, and a quality microSD card. Use a **128 GB or larger** card for the base system and starter library; choose **256 GB or larger** if you plan to add larger Wikipedia editions, regional maps, or comprehensive ZIM collections.
